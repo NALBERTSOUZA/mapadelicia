@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa Simples</title>
+<title>Mapa de Mesas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
@@ -22,10 +22,16 @@ header{
   border-bottom:1px solid #ddd;
 }
 
-.actions{
-  display:flex;
-  align-items:center;
-  gap:12px;
+.actions{display:flex;gap:12px;align-items:center}
+
+button{
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  background:#111827;
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
 }
 
 .toggle{
@@ -36,7 +42,6 @@ header{
   position:relative;
   cursor:pointer;
 }
-
 .toggle::after{
   content:'';
   width:24px;
@@ -48,38 +53,58 @@ header{
   left:33px;
   transition:.2s;
 }
-
-.toggle.on{
-  background:#16a34a;
-}
-
-.toggle.on::after{
-  left:3px;
-}
-
-#btnAdd{
-  padding:8px 14px;
-  border:none;
-  border-radius:6px;
-  background:#111827;
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-}
+.toggle.on{background:#16a34a}
+.toggle.on::after{left:3px}
 
 #canvas{
   position:relative;
   height:calc(100vh - 60px);
 }
 
+/* MESA */
 .mesa{
-  width:100px;
-  height:100px;
+  position:absolute;
   background:#e5e7eb;
   border:3px solid #9ca3af;
-  border-radius:50%;
+}
+.quadrada{width:80px;height:80px}
+.retangular{width:140px;height:80px}
+.redonda{border-radius:50%}
+
+.cadeira{
+  width:18px;
+  height:18px;
+  background:#111827;
   position:absolute;
-  cursor:grab;
+  border-radius:4px;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:300px;
+  border-radius:10px;
+}
+.modal-box label{display:block;margin-top:10px}
+.modal-box input,select{
+  width:100%;
+  padding:8px;
+  margin-top:4px;
+}
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+  margin-top:15px;
 }
 </style>
 </head>
@@ -88,70 +113,134 @@ header{
 
 <header>
   <strong id="label">Editar</strong>
-
   <div class="actions">
     <button id="btnAdd">+ Mesa</button>
-    <div id="toggle" class="toggle"></div>
+    <div id="toggle" class="toggle on"></div>
   </div>
 </header>
 
 <div id="canvas"></div>
 
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h3>Nova Mesa</h3>
+
+    <label>Formato</label>
+    <select id="formato">
+      <option value="quadrada">Quadrada</option>
+      <option value="retangular">Retangular</option>
+      <option value="redonda">Redonda</option>
+    </select>
+
+    <label>Cadeiras</label>
+    <input type="number" id="cadeiras" value="4" min="2">
+
+    <label id="labelRaio" style="display:none">Raio (redonda)</label>
+    <input type="number" id="raio" value="50" style="display:none">
+
+    <div class="modal-actions">
+      <button onclick="fechar()">Cancelar</button>
+      <button onclick="criarMesa()">Criar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let modoEditar = true;
-
 const toggle = document.getElementById('toggle');
 const label = document.getElementById('label');
 const btnAdd = document.getElementById('btnAdd');
 const canvas = document.getElementById('canvas');
+const modal = document.getElementById('modal');
 
-/* SWITCH */
-toggle.onclick = () => {
-  modoEditar = !modoEditar;
-  toggle.classList.toggle('on', modoEditar);
-  label.innerText = modoEditar ? 'Editar' : 'Ao vivo';
-  btnAdd.style.display = modoEditar ? 'inline-block' : 'none';
+toggle.onclick = ()=>{
+  modoEditar=!modoEditar;
+  toggle.classList.toggle('on',modoEditar);
+  label.innerText = modoEditar?'Editar':'Ao vivo';
+  btnAdd.style.display = modoEditar?'block':'none';
 };
 
-/* ADD MESA */
-btnAdd.onclick = () => {
-  if(!modoEditar) return;
+btnAdd.onclick = ()=> modal.style.display='flex';
+function fechar(){ modal.style.display='none'; }
+
+/* FORM */
+formato.onchange = ()=>{
+  const isRedonda = formato.value==='redonda';
+  labelRaio.style.display = raio.style.display = isRedonda?'block':'none';
+};
+
+function criarMesa(){
+  const f = formato.value;
+  const c = +cadeiras.value;
+  const r = +raio.value;
 
   const mesa = document.createElement('div');
-  mesa.className = 'mesa';
-  mesa.style.left = Math.random() * 400 + 'px';
-  mesa.style.top = Math.random() * 300 + 'px';
+  mesa.className = `mesa ${f}`;
+  mesa.style.left = '200px';
+  mesa.style.top = '200px';
 
-  habilitarDrag(mesa);
+  if(f==='redonda'){
+    mesa.style.width = mesa.style.height = (r*2)+'px';
+    mesa.style.borderRadius='50%';
+    gerarRedonda(mesa,c,r);
+  }
+
+  if(f==='quadrada'){
+    gerarQuadrada(mesa);
+  }
+
+  if(f==='retangular'){
+    gerarRetangular(mesa);
+  }
+
+  drag(mesa);
   canvas.appendChild(mesa);
-};
-
-/* DRAG */
-function habilitarDrag(el){
-  let movendo = false;
-  let ox = 0, oy = 0;
-
-  el.addEventListener('mousedown', e => {
-    if(!modoEditar) return;
-    movendo = true;
-    ox = e.offsetX;
-    oy = e.offsetY;
-  });
-
-  document.addEventListener('mousemove', e => {
-    if(!movendo) return;
-    el.style.left = (e.pageX - ox) + 'px';
-    el.style.top = (e.pageY - oy - 60) + 'px';
-  });
-
-  document.addEventListener('mouseup', () => {
-    movendo = false;
-  });
+  fechar();
 }
 
-/* estado inicial */
-btnAdd.style.display = 'inline-block';
-toggle.classList.add('on');
+/* CADEIRAS */
+function gerarQuadrada(m){
+  add(m, -25, 30); add(m, 85, 30);
+}
+
+function gerarRetangular(m){
+  add(m, 20, -25); add(m, 100, -25);
+  add(m, 20, 85); add(m, 100, 85);
+}
+
+function gerarRedonda(m,c,r){
+  for(let i=0;i<c;i++){
+    const ang = (2*Math.PI/c)*i;
+    add(m,
+      r + Math.cos(ang)*(r+15),
+      r + Math.sin(ang)*(r+15)
+    );
+  }
+}
+
+function add(m,x,y){
+  const c=document.createElement('div');
+  c.className='cadeira';
+  c.style.left=x+'px';
+  c.style.top=y+'px';
+  m.appendChild(c);
+}
+
+/* DRAG */
+function drag(el){
+  let m=false,ox,oy;
+  el.onmousedown=e=>{
+    if(!modoEditar)return;
+    m=true;ox=e.offsetX;oy=e.offsetY;
+  };
+  document.onmousemove=e=>{
+    if(!m)return;
+    el.style.left=(e.pageX-ox)+'px';
+    el.style.top=(e.pageY-oy-60)+'px';
+  };
+  document.onmouseup=()=>m=false;
+}
 </script>
 
 </body>
