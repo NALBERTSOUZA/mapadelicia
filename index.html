@@ -16,6 +16,8 @@
   --mesa-border:#9ca3af;
   --cadeira:#1f2937;
   --primary:#111827;
+  --green:#16a34a;
+  --red:#dc2626;
 }
 
 *{box-sizing:border-box;font-family:Inter}
@@ -31,13 +33,25 @@ header{
   border-bottom:1px solid #e5e7eb;
 }
 
-header button{
-  background:#111827;
-  color:#fff;
+header strong{
+  font-size:16px;
+}
+
+#toggleMode{
   border:none;
-  padding:8px 14px;
-  border-radius:8px;
+  padding:8px 16px;
+  border-radius:999px;
+  font-weight:600;
+  color:#fff;
   cursor:pointer;
+}
+
+/* cores do modo */
+.modo-editar{
+  background:var(--red);
+}
+.modo-vivo{
+  background:var(--green);
 }
 
 main{
@@ -52,7 +66,10 @@ aside{
   padding:16px;
 }
 
-aside h3{margin:0 0 12px}
+aside h3{
+  margin:0 0 12px;
+  font-size:16px;
+}
 
 aside button{
   width:100%;
@@ -61,6 +78,7 @@ aside button{
   background:#e5e7eb;
   border-radius:8px;
   cursor:pointer;
+  font-weight:600;
 }
 
 #canvas{
@@ -71,9 +89,11 @@ aside button{
   overflow:hidden;
 }
 
+/* mesa */
 .mesa-wrapper{
   position:absolute;
   cursor:grab;
+  user-select:none;
 }
 
 .mesa{
@@ -93,8 +113,10 @@ aside button{
   justify-content:center;
   font-size:26px;
   font-weight:700;
+  color:#111827;
 }
 
+/* cadeira */
 .cadeira{
   position:absolute;
   width:18px;
@@ -106,6 +128,7 @@ aside button{
   transform-origin:center 85px;
 }
 
+/* controles */
 .controles{
   display:flex;
   justify-content:center;
@@ -120,6 +143,7 @@ aside button{
   border:none;
   background:#111827;
   color:#fff;
+  font-weight:700;
   cursor:pointer;
 }
 </style>
@@ -129,7 +153,7 @@ aside button{
 
 <header>
   <strong>Mapa de Mesas</strong>
-  <button id="toggleMode">Modo: Editar</button>
+  <button id="toggleMode" class="modo-editar">Modo: Editar</button>
 </header>
 
 <main>
@@ -142,22 +166,34 @@ aside button{
 </main>
 
 <script>
-/* 🔐 SUPABASE */
+/* ================= SUPABASE ================= */
 const supabase = supabase.createClient(
   'https://SUA_URL.supabase.co',
   'SUA_ANON_KEY'
 );
 
+/* ================= MODO ================= */
 let modoEditar = true;
+const btnModo = document.getElementById('toggleMode');
 
-/* 🔄 MODE */
-document.getElementById('toggleMode').onclick = ()=>{
+function atualizarBotaoModo(){
+  if(modoEditar){
+    btnModo.textContent = 'Modo: Editar';
+    btnModo.className = 'modo-editar';
+  }else{
+    btnModo.textContent = 'Modo: Ao vivo';
+    btnModo.className = 'modo-vivo';
+  }
+}
+
+btnModo.onclick = ()=>{
   modoEditar = !modoEditar;
-  document.getElementById('toggleMode').innerText =
-    modoEditar ? 'Modo: Editar' : 'Modo: Ao Vivo';
+  atualizarBotaoModo();
 };
 
-/* 🪑 GERAR CADEIRAS */
+atualizarBotaoModo();
+
+/* ================= CADEIRAS ================= */
 function gerarCadeiras(mesa){
   mesa.querySelectorAll('.cadeira').forEach(c=>c.remove());
   const lugares = Number(mesa.dataset.lugares);
@@ -172,78 +208,94 @@ function gerarCadeiras(mesa){
   mesa.querySelector('.lugares').innerText = lugares;
 }
 
-/* ➕ NOVA MESA */
+/* ================= NOVA MESA ================= */
 async function criarMesa(){
   const { data } = await supabase
     .from('mesas')
-    .insert([{ nome:'Mesa', capacidade:4, x:100, y:100 }])
-    .select().single();
+    .insert([{ nome:'Mesa', capacidade:4, x:120, y:120 }])
+    .select()
+    .single();
 
   renderMesa(data);
 }
 
-/* 🎨 RENDER */
+/* ================= RENDER ================= */
 function renderMesa(m){
   const w = document.createElement('div');
   w.className='mesa-wrapper';
-  w.style.left=m.x+'px';
-  w.style.top=m.y+'px';
-  w.dataset.id=m.id;
+  w.style.left = m.x + 'px';
+  w.style.top  = m.y + 'px';
+  w.dataset.id = m.id;
 
-  w.innerHTML=`
+  w.innerHTML = `
     <div class="mesa" data-lugares="${m.capacidade}">
       <span class="lugares">${m.capacidade}</span>
     </div>
     <div class="controles">
-      <button onclick="alterar(this,-1)">−</button>
-      <button onclick="alterar(this,1)">+</button>
+      <button onclick="alterarLugares(this,-1)">−</button>
+      <button onclick="alterarLugares(this,1)">+</button>
     </div>
   `;
 
   const mesa = w.querySelector('.mesa');
   gerarCadeiras(mesa);
-  drag(w);
+  habilitarDrag(w);
 
   document.getElementById('canvas').appendChild(w);
 }
 
-/* ➕ / ➖ */
-async function alterar(btn,delta){
+/* ================= ALTERAR LUGARES (SALVA SEMPRE) ================= */
+async function alterarLugares(btn,delta){
   const w = btn.closest('.mesa-wrapper');
   const mesa = w.querySelector('.mesa');
-  let v = Number(mesa.dataset.lugares)+delta;
-  if(v<1) return;
-  mesa.dataset.lugares=v;
+
+  let v = Number(mesa.dataset.lugares) + delta;
+  if(v < 1) return;
+
+  mesa.dataset.lugares = v;
   gerarCadeiras(mesa);
 
-  await supabase.from('mesas')
-    .update({capacidade:v})
-    .eq('id',w.dataset.id);
+  await supabase
+    .from('mesas')
+    .update({ capacidade:v })
+    .eq('id', w.dataset.id);
 }
 
-/* 🖱️ DRAG */
-function drag(el){
-  let ox,oy;
-  el.onmousedown=e=>{
+/* ================= DRAG (SALVA SEMPRE) ================= */
+function habilitarDrag(el){
+  let ox, oy;
+
+  el.onmousedown = e=>{
     if(!modoEditar) return;
-    ox=e.offsetX; oy=e.offsetY;
-    document.onmousemove=ev=>{
-      el.style.left=(ev.pageX-ox)+'px';
-      el.style.top=(ev.pageY-oy)+'px';
+
+    ox = e.offsetX;
+    oy = e.offsetY;
+
+    document.onmousemove = ev=>{
+      el.style.left = (ev.pageX - ox) + 'px';
+      el.style.top  = (ev.pageY - oy) + 'px';
     };
-    document.onmouseup=async ()=>{
-      document.onmousemove=null;
-      await supabase.from('mesas').update({
-        x:parseInt(el.style.left),
-        y:parseInt(el.style.top)
-      }).eq('id',el.dataset.id);
+
+    document.onmouseup = async ()=>{
+      document.onmousemove = null;
+
+      await supabase
+        .from('mesas')
+        .update({
+          x: parseInt(el.style.left),
+          y: parseInt(el.style.top)
+        })
+        .eq('id', el.dataset.id);
     };
   };
 }
 
-/* 🔄 LOAD */
+/* ================= LOAD ================= */
 (async()=>{
-  const { data } = await supabase.from('mesas').select('*');
+  const { data } = await supabase
+    .from('mesas')
+    .select('*');
+
   data.forEach(renderMesa);
 })();
 </script>
