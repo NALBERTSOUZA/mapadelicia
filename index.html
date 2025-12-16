@@ -5,7 +5,7 @@
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -14,17 +14,15 @@
   --card:#151515;
   --line:#262626;
   --text:#f5f5f5;
-  --muted:#a3a3a3;
   --primary:#22c55e;
-  --warning:#facc15;
   --danger:#ef4444;
 }
 *{box-sizing:border-box}
 body{
   margin:0;
-  font-family:Inter,system-ui;
   background:var(--bg);
   color:var(--text);
+  font-family:Inter,system-ui;
   overflow:hidden;
 }
 header{
@@ -34,12 +32,11 @@ header{
   align-items:center;
   justify-content:space-between;
   border-bottom:1px solid var(--line);
-  font-weight:800;
 }
 button{
-  border:none;
-  border-radius:10px;
   padding:10px 14px;
+  border-radius:10px;
+  border:none;
   font-weight:700;
   cursor:pointer;
 }
@@ -52,28 +49,17 @@ button{
 }
 .mesa{
   position:absolute;
-  width:140px;
-  height:100px;
   background:#caa472;
   border-radius:14px;
   cursor:grab;
+  font-weight:800;
+  color:#3b2f1b;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-weight:800;
-  color:#3b2f1b;
 }
-.cadeira{
-  position:absolute;
-  width:26px;
-  height:26px;
-  background:#111;
-  border-radius:50%;
-}
-.c1{top:-14px;left:50%;transform:translateX(-50%)}
-.c2{bottom:-14px;left:50%;transform:translateX(-50%)}
-.c3{left:-14px;top:50%;transform:translateY(-50%)}
-.c4{right:-14px;top:50%;transform:translateY(-50%)}
+.quadrada{width:120px;height:120px}
+.retangular{width:180px;height:100px}
 
 #overlay{
   position:fixed;
@@ -84,13 +70,6 @@ button{
   justify-content:center;
   z-index:999;
 }
-.loader{
-  padding:20px 30px;
-  background:#111;
-  border-radius:14px;
-  font-weight:700;
-}
-
 #modal{
   position:fixed;
   inset:0;
@@ -104,7 +83,7 @@ button{
   background:#151515;
   padding:24px;
   border-radius:16px;
-  width:360px;
+  width:340px;
   display:grid;
   gap:12px;
 }
@@ -115,10 +94,7 @@ input,select{
   background:#0b0b0b;
   color:var(--text);
 }
-.error{
-  color:var(--danger);
-  font-size:13px;
-}
+.error{color:var(--danger);font-size:13px}
 </style>
 </head>
 
@@ -126,73 +102,106 @@ input,select{
 
 <header>
   🍽️ Mapa de Mesas
-  <button class="btn-primary" onclick="novaMesa()">＋</button>
+  <button class="btn-primary" id="btnAdd">＋</button>
 </header>
 
 <div id="mapa"></div>
 
-<div id="overlay"><div class="loader">Processando...</div></div>
+<div id="overlay">Salvando...</div>
 
 <div id="modal">
   <div class="modal-box">
-    <strong>Reserva da Mesa</strong>
+    <strong>Nova Mesa</strong>
 
-    <input id="cliente" placeholder="Nome do cliente">
-    <input id="telefone" placeholder="Telefone">
-    <input id="data" type="date">
-    <input id="hora" type="time">
+    <input id="numero" placeholder="Número da mesa">
+    
+    <select id="formato">
+      <option value="quadrada">Quadrada</option>
+      <option value="retangular">Retangular</option>
+    </select>
 
-    <select id="status">
-      <option value="pendente">Pendente</option>
-      <option value="pago">Pago</option>
+    <select id="lugares">
+      <option value="2">2 lugares</option>
+      <option value="4">4 lugares</option>
+      <option value="6">6 lugares</option>
+      <option value="8">8 lugares</option>
     </select>
 
     <div class="error" id="erro"></div>
 
-    <button class="btn-primary" onclick="salvarReserva()">Salvar</button>
+    <button class="btn-primary" id="salvarMesa">Salvar Mesa</button>
     <button onclick="fecharModal()">Cancelar</button>
   </div>
 </div>
 
 <script>
+/* ===== SUPABASE ===== */
 const supabase = supabase.createClient(
   "https://pkpmzbjvsapzeuqtvytm.supabase.co",
   "sb_publishable_UIy2gATpA5WzOIgeXHvqlw_IpSiwdsh"
 )
 
+/* ===== ELEMENTOS ===== */
 const mapa = document.getElementById("mapa")
-const overlay = document.getElementById("overlay")
 const modal = document.getElementById("modal")
+const overlay = document.getElementById("overlay")
 const erro = document.getElementById("erro")
 
-let mesas=[]
-let mesaAtual=null
+document.getElementById("btnAdd").addEventListener("click", abrirModal)
+document.getElementById("salvarMesa").addEventListener("click", salvarMesa)
 
-const loading=v=>overlay.style.display=v?"flex":"none"
-const showError=m=>erro.textContent=m
+/* ===== FUNÇÕES ===== */
+function abrirModal(){
+  erro.textContent=""
+  modal.style.display="flex"
+}
 
-async function carregarMesas(){
+function fecharModal(){
+  modal.style.display="none"
+}
+
+function loading(v){
+  overlay.style.display = v ? "flex" : "none"
+}
+
+async function salvarMesa(){
+  if(!numero.value){
+    erro.textContent="Informe o número da mesa"
+    return
+  }
+
   loading(true)
-  const { data, error } = await supabase.from("mesas").select("*")
-  if(error){ alert(error.message); loading(false); return }
-  mesas=data
-  mapa.innerHTML=""
-  mesas.forEach(renderMesa)
+
+  const { data, error } = await supabase
+    .from("mesas")
+    .insert({
+      numero: Number(numero.value),
+      lugares: Number(lugares.value),
+      formato: formato.value,
+      pos_x: 60,
+      pos_y: 60
+    })
+    .select()
+    .single()
+
   loading(false)
+
+  if(error){
+    erro.textContent = error.message
+    return
+  }
+
+  fecharModal()
+  renderMesa(data)
 }
 
 function renderMesa(m){
   const d=document.createElement("div")
-  d.className="mesa"
+  d.className=`mesa ${m.formato}`
+  d.textContent=`Mesa ${m.numero}`
   d.style.left=m.pos_x+"px"
   d.style.top=m.pos_y+"px"
-  d.textContent="Mesa "+m.numero
-  d.onclick=()=>abrirModal(m)
-  ;["c1","c2","c3","c4"].slice(0,m.lugares).forEach(c=>{
-    const cd=document.createElement("div")
-    cd.className="cadeira "+c
-    d.appendChild(cd)
-  })
+
   drag(d,m)
   mapa.appendChild(d)
 }
@@ -207,64 +216,20 @@ function drag(el,m){
     }
     document.onmouseup=async()=>{
       document.onmousemove=null
-      await supabase.from("mesas")
-        .update({pos_x:parseInt(el.style.left),pos_y:parseInt(el.style.top)})
-        .eq("id",m.id)
+      await supabase.from("mesas").update({
+        pos_x:parseInt(el.style.left),
+        pos_y:parseInt(el.style.top)
+      }).eq("id",m.id)
     }
   }
 }
 
-async function novaMesa(){
-  loading(true)
-  const { data, error } = await supabase
-    .from("mesas")
-    .insert({numero:mesas.length+1,lugares:4,pos_x:60,pos_y:60})
-    .select()
-    .single()
-
-  loading(false)
-
-  if(error){ alert(error.message); return }
-
-  mesaAtual=data
-  await carregarMesas()
-  abrirModal(data)
+/* ===== LOAD ===== */
+async function carregar(){
+  const { data } = await supabase.from("mesas").select("*")
+  data.forEach(renderMesa)
 }
-
-function abrirModal(m){
-  mesaAtual=m
-  modal.style.display="flex"
-  showError("")
-}
-
-async function salvarReserva(){
-  if(!cliente.value||!telefone.value){
-    showError("Nome e telefone obrigatórios")
-    return
-  }
-
-  loading(true)
-  const { error } = await supabase.from("reservas").insert({
-    mesa_id:mesaAtual.id,
-    cliente_nome:cliente.value,
-    cliente_telefone:telefone.value,
-    data:data.value,
-    hora:hora.value,
-    status:status.value
-  })
-  loading(false)
-
-  if(error){ showError(error.message); return }
-  fecharModal()
-}
-
-function fecharModal(){
-  modal.style.display="none"
-  cliente.value=""
-  telefone.value=""
-}
-
-carregarMesas()
+carregar()
 </script>
 
 </body>
