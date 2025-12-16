@@ -23,6 +23,7 @@
 *{box-sizing:border-box;font-family:Inter}
 body{margin:0;background:var(--bg)}
 
+/* HEADER */
 header{
   height:60px;
   background:#fff;
@@ -31,10 +32,6 @@ header{
   justify-content:space-between;
   padding:0 20px;
   border-bottom:1px solid #e5e7eb;
-}
-
-header strong{
-  font-size:16px;
 }
 
 #toggleMode{
@@ -46,14 +43,10 @@ header strong{
   cursor:pointer;
 }
 
-/* cores do modo */
-.modo-editar{
-  background:var(--red);
-}
-.modo-vivo{
-  background:var(--green);
-}
+.modo-editar{background:var(--red)}
+.modo-vivo{background:var(--green)}
 
+/* LAYOUT */
 main{
   display:grid;
   grid-template-columns:220px 1fr;
@@ -66,19 +59,14 @@ aside{
   padding:16px;
 }
 
-aside h3{
-  margin:0 0 12px;
-  font-size:16px;
-}
-
 aside button{
   width:100%;
-  padding:10px;
+  padding:10s
   border:none;
   background:#e5e7eb;
   border-radius:8px;
-  cursor:pointer;
   font-weight:600;
+  cursor:pointer;
 }
 
 #canvas{
@@ -86,16 +74,10 @@ aside button{
   background:var(--canvas);
   margin:16px;
   border-radius:12px;
-  overflow:hidden;
 }
 
-/* mesa */
-.mesa-wrapper{
-  position:absolute;
-  cursor:grab;
-  user-select:none;
-}
-
+/* MESA */
+.mesa-wrapper{position:absolute;cursor:grab}
 .mesa{
   width:110px;
   height:110px;
@@ -113,10 +95,8 @@ aside button{
   justify-content:center;
   font-size:26px;
   font-weight:700;
-  color:#111827;
 }
 
-/* cadeira */
 .cadeira{
   position:absolute;
   width:18px;
@@ -128,24 +108,57 @@ aside button{
   transform-origin:center 85px;
 }
 
-/* controles */
-.controles{
-  display:flex;
+/* POPUP */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
   justify-content:center;
-  gap:6px;
-  margin-top:6px;
+  z-index:1000;
 }
 
-.controles button{
-  width:26px;
-  height:26px;
-  border-radius:50%;
+.modal-box{
+  background:#fff;
+  width:360px;
+  border-radius:12px;
+  padding:20px;
+}
+
+.modal-box h3{margin:0 0 16px}
+
+.modal-box label{
+  display:block;
+  font-size:14px;
+  margin-bottom:6px;
+}
+
+.modal-box input,
+.modal-box select{
+  width:100%;
+  padding:10px;
+  margin-bottom:12px;
+  border-radius:8px;
+  border:1px solid #d1d5db;
+}
+
+.modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:10px;
+}
+
+.modal-actions button{
+  padding:8px 14px;
+  border-radius:8px;
   border:none;
-  background:#111827;
-  color:#fff;
-  font-weight:700;
+  font-weight:600;
   cursor:pointer;
 }
+
+.btn-cancel{background:#e5e7eb}
+.btn-save{background:#111827;color:#fff}
 </style>
 </head>
 
@@ -159,143 +172,139 @@ aside button{
 <main>
   <aside>
     <h3>Mesas</h3>
-    <button onclick="criarMesa()">+ Nova Mesa</button>
+    <button onclick="abrirModal()">+ Nova Mesa</button>
   </aside>
 
   <div id="canvas"></div>
 </main>
 
+<!-- MODAL -->
+<div class="modal" id="modalMesa">
+  <div class="modal-box">
+    <h3>Nova Mesa</h3>
+
+    <label>Nome da mesa</label>
+    <input id="mesaNome" placeholder="Ex: Mesa 10">
+
+    <label>Quantidade de cadeiras</label>
+    <input id="mesaCapacidade" type="number" min="1" value="4">
+
+    <label>Formato da mesa</label>
+    <select id="mesaFormato">
+      <option value="redonda">Redonda</option>
+      <option value="quadrada">Quadrada</option>
+    </select>
+
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
+      <button class="btn-save" onclick="salvarMesa()">Salvar</button>
+    </div>
+  </div>
+</div>
+
 <script>
-/* ================= SUPABASE ================= */
+/* SUPABASE */
 const supabase = supabase.createClient(
   'https://nxeyemyelypyhvdxxvka.supabase.co',
   'sb_publishable__xSAJ3Ip5qnURBTJ34ldZQ_8TrNQJTH'
 );
 
-/* ================= MODO ================= */
 let modoEditar = true;
+
+/* MODO */
 const btnModo = document.getElementById('toggleMode');
-
-function atualizarBotaoModo(){
-  if(modoEditar){
-    btnModo.textContent = 'Modo: Editar';
-    btnModo.className = 'modo-editar';
-  }else{
-    btnModo.textContent = 'Modo: Ao vivo';
-    btnModo.className = 'modo-vivo';
-  }
-}
-
 btnModo.onclick = ()=>{
   modoEditar = !modoEditar;
-  atualizarBotaoModo();
+  btnModo.textContent = modoEditar ? 'Modo: Editar' : 'Modo: Ao vivo';
+  btnModo.className = modoEditar ? 'modo-editar' : 'modo-vivo';
 };
 
-atualizarBotaoModo();
+/* MODAL */
+function abrirModal(){
+  if(!modoEditar) return;
+  document.getElementById('modalMesa').style.display='flex';
+}
+function fecharModal(){
+  document.getElementById('modalMesa').style.display='none';
+}
 
-/* ================= CADEIRAS ================= */
+/* CADEIRAS */
 function gerarCadeiras(mesa){
   mesa.querySelectorAll('.cadeira').forEach(c=>c.remove());
   const lugares = Number(mesa.dataset.lugares);
   const ang = 360 / lugares;
-
   for(let i=0;i<lugares;i++){
     const c = document.createElement('div');
     c.className='cadeira';
-    c.style.transform = `rotate(${ang*i}deg) translateY(-28px)`;
+    c.style.transform=`rotate(${ang*i}deg) translateY(-28px)`;
     mesa.appendChild(c);
   }
-  mesa.querySelector('.lugares').innerText = lugares;
 }
 
-/* ================= NOVA MESA ================= */
-async function criarMesa(){
+/* SALVAR MESA */
+async function salvarMesa(){
+  const nome = mesaNome.value || 'Mesa';
+  const capacidade = Number(mesaCapacidade.value);
+  const formato = mesaFormato.value;
+
   const { data } = await supabase
     .from('mesas')
-    .insert([{ nome:'Mesa', capacidade:4, x:120, y:120 }])
+    .insert([{
+      nome,
+      capacidade,
+      formato,
+      x:150,
+      y:150
+    }])
     .select()
     .single();
 
   renderMesa(data);
+  fecharModal();
 }
 
-/* ================= RENDER ================= */
+/* RENDER */
 function renderMesa(m){
-  const w = document.createElement('div');
+  const w=document.createElement('div');
   w.className='mesa-wrapper';
-  w.style.left = m.x + 'px';
-  w.style.top  = m.y + 'px';
-  w.dataset.id = m.id;
+  w.style.left=m.x+'px';
+  w.style.top=m.y+'px';
+  w.dataset.id=m.id;
 
-  w.innerHTML = `
+  w.innerHTML=`
     <div class="mesa" data-lugares="${m.capacidade}">
       <span class="lugares">${m.capacidade}</span>
     </div>
-    <div class="controles">
-      <button onclick="alterarLugares(this,-1)">−</button>
-      <button onclick="alterarLugares(this,1)">+</button>
-    </div>
   `;
 
-  const mesa = w.querySelector('.mesa');
-  gerarCadeiras(mesa);
+  gerarCadeiras(w.querySelector('.mesa'));
   habilitarDrag(w);
-
-  document.getElementById('canvas').appendChild(w);
+  canvas.appendChild(w);
 }
 
-/* ================= ALTERAR LUGARES (SALVA SEMPRE) ================= */
-async function alterarLugares(btn,delta){
-  const w = btn.closest('.mesa-wrapper');
-  const mesa = w.querySelector('.mesa');
-
-  let v = Number(mesa.dataset.lugares) + delta;
-  if(v < 1) return;
-
-  mesa.dataset.lugares = v;
-  gerarCadeiras(mesa);
-
-  await supabase
-    .from('mesas')
-    .update({ capacidade:v })
-    .eq('id', w.dataset.id);
-}
-
-/* ================= DRAG (SALVA SEMPRE) ================= */
+/* DRAG */
 function habilitarDrag(el){
-  let ox, oy;
-
-  el.onmousedown = e=>{
+  let ox,oy;
+  el.onmousedown=e=>{
     if(!modoEditar) return;
-
-    ox = e.offsetX;
-    oy = e.offsetY;
-
-    document.onmousemove = ev=>{
-      el.style.left = (ev.pageX - ox) + 'px';
-      el.style.top  = (ev.pageY - oy) + 'px';
+    ox=e.offsetX; oy=e.offsetY;
+    document.onmousemove=ev=>{
+      el.style.left=(ev.pageX-ox)+'px';
+      el.style.top=(ev.pageY-oy)+'px';
     };
-
-    document.onmouseup = async ()=>{
-      document.onmousemove = null;
-
-      await supabase
-        .from('mesas')
-        .update({
-          x: parseInt(el.style.left),
-          y: parseInt(el.style.top)
-        })
-        .eq('id', el.dataset.id);
+    document.onmouseup=async()=>{
+      document.onmousemove=null;
+      await supabase.from('mesas').update({
+        x:parseInt(el.style.left),
+        y:parseInt(el.style.top)
+      }).eq('id',el.dataset.id);
     };
   };
 }
 
-/* ================= LOAD ================= */
+/* LOAD */
 (async()=>{
-  const { data } = await supabase
-    .from('mesas')
-    .select('*');
-
+  const { data } = await supabase.from('mesas').select('*');
   data.forEach(renderMesa);
 })();
 </script>
