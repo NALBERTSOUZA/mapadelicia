@@ -67,16 +67,26 @@ button{
   background:#e5e7eb;
   border:3px solid #9ca3af;
 }
-.quadrada{width:80px;height:80px}
-.retangular{width:140px;height:80px}
+.retangular{width:160px;height:90px}
 .redonda{border-radius:50%}
 
+/* CADEIRAS */
 .cadeira{
-  width:18px;
-  height:18px;
-  background:#111827;
   position:absolute;
-  border-radius:4px;
+  width:28px;
+  height:10px;
+  background:#111827;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.nome{
+  position:absolute;
+  top:12px;
+  left:50%;
+  transform:translateX(-50%);
+  font-size:10px;
+  white-space:nowrap;
 }
 
 /* MODAL */
@@ -91,14 +101,8 @@ button{
 .modal-box{
   background:#fff;
   padding:20px;
-  width:300px;
+  width:260px;
   border-radius:10px;
-}
-.modal-box label{display:block;margin-top:10px}
-.modal-box input,select{
-  width:100%;
-  padding:8px;
-  margin-top:4px;
 }
 .modal-actions{
   display:flex;
@@ -121,39 +125,14 @@ button{
 
 <div id="canvas"></div>
 
-<!-- MODAL -->
-<div class="modal" id="modal">
-  <div class="modal-box">
-    <h3>Nova Mesa</h3>
-
-    <label>Formato</label>
-    <select id="formato">
-      <option value="quadrada">Quadrada</option>
-      <option value="retangular">Retangular</option>
-      <option value="redonda">Redonda</option>
-    </select>
-
-    <label>Cadeiras</label>
-    <input type="number" id="cadeiras" value="4" min="2">
-
-    <label id="labelRaio" style="display:none">Raio (redonda)</label>
-    <input type="number" id="raio" value="50" style="display:none">
-
-    <div class="modal-actions">
-      <button onclick="fechar()">Cancelar</button>
-      <button onclick="criarMesa()">Criar</button>
-    </div>
-  </div>
-</div>
-
 <script>
 let modoEditar = true;
 const toggle = document.getElementById('toggle');
 const label = document.getElementById('label');
 const btnAdd = document.getElementById('btnAdd');
 const canvas = document.getElementById('canvas');
-const modal = document.getElementById('modal');
 
+/* SWITCH */
 toggle.onclick = ()=>{
   modoEditar=!modoEditar;
   toggle.classList.toggle('on',modoEditar);
@@ -161,70 +140,66 @@ toggle.onclick = ()=>{
   btnAdd.style.display = modoEditar?'block':'none';
 };
 
-btnAdd.onclick = ()=> modal.style.display='flex';
-function fechar(){ modal.style.display='none'; }
-
-/* FORM */
-formato.onchange = ()=>{
-  const isRedonda = formato.value==='redonda';
-  labelRaio.style.display = raio.style.display = isRedonda?'block':'none';
-};
-
-function criarMesa(){
-  const f = formato.value;
-  const c = +cadeiras.value;
-  const r = +raio.value;
+/* ADD MESA */
+btnAdd.onclick = ()=>{
+  const tipo = prompt('Digite: retangular ou redonda','retangular');
+  if(!tipo) return;
 
   const mesa = document.createElement('div');
-  mesa.className = `mesa ${f}`;
-  mesa.style.left = '200px';
-  mesa.style.top = '200px';
+  mesa.className = `mesa ${tipo}`;
+  mesa.style.left='200px';
+  mesa.style.top='200px';
 
-  if(f==='redonda'){
-    mesa.style.width = mesa.style.height = (r*2)+'px';
-    mesa.style.borderRadius='50%';
-    gerarRedonda(mesa,c,r);
-  }
-
-  if(f==='quadrada'){
-    gerarQuadrada(mesa);
-  }
-
-  if(f==='retangular'){
-    gerarRetangular(mesa);
+  if(tipo==='redonda'){
+    mesa.style.width='120px';
+    mesa.style.height='120px';
+    gerarCadeirasRedonda(mesa,4,60);
+  }else{
+    gerarCadeirasRetangular(mesa);
   }
 
   drag(mesa);
   canvas.appendChild(mesa);
-  fechar();
-}
+};
 
 /* CADEIRAS */
-function gerarQuadrada(m){
-  add(m, -25, 30); add(m, 85, 30);
-}
-
-function gerarRetangular(m){
-  add(m, 20, -25); add(m, 100, -25);
-  add(m, 20, 85); add(m, 100, 85);
-}
-
-function gerarRedonda(m,c,r){
-  for(let i=0;i<c;i++){
-    const ang = (2*Math.PI/c)*i;
-    add(m,
-      r + Math.cos(ang)*(r+15),
-      r + Math.sin(ang)*(r+15)
-    );
-  }
-}
-
-function add(m,x,y){
+function criarCadeira(x,y){
   const c=document.createElement('div');
   c.className='cadeira';
   c.style.left=x+'px';
   c.style.top=y+'px';
-  m.appendChild(c);
+
+  c.onclick=e=>{
+    e.stopPropagation();
+    if(!modoEditar) return;
+    const nome = prompt('Nome da reserva:');
+    if(nome){
+      let span=c.querySelector('.nome');
+      if(!span){
+        span=document.createElement('div');
+        span.className='nome';
+        c.appendChild(span);
+      }
+      span.innerText=nome;
+    }
+  };
+  return c;
+}
+
+function gerarCadeirasRetangular(m){
+  m.appendChild(criarCadeira(30,-15));
+  m.appendChild(criarCadeira(100,-15));
+  m.appendChild(criarCadeira(30,95));
+  m.appendChild(criarCadeira(100,95));
+}
+
+function gerarCadeirasRedonda(m,qtd,r){
+  for(let i=0;i<qtd;i++){
+    const ang=(2*Math.PI/qtd)*i;
+    const x=r + Math.cos(ang)*(r+12);
+    const y=r + Math.sin(ang)*(r+12);
+    m.appendChild(criarCadeira(x,y));
+  }
 }
 
 /* DRAG */
