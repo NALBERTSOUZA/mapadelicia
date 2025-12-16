@@ -22,6 +22,12 @@ header{
   border-bottom:1px solid #ddd;
 }
 
+.actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
 .toggle{
   width:60px;
   height:30px;
@@ -51,6 +57,16 @@ header{
   left:3px;
 }
 
+#btnAdd{
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  background:#111827;
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
+}
+
 #canvas{
   position:relative;
   height:calc(100vh - 60px);
@@ -63,8 +79,6 @@ header{
   border:3px solid #9ca3af;
   border-radius:50%;
   position:absolute;
-  left:200px;
-  top:150px;
   cursor:grab;
 }
 </style>
@@ -74,47 +88,70 @@ header{
 
 <header>
   <strong id="label">Editar</strong>
-  <div id="toggle" class="toggle"></div>
+
+  <div class="actions">
+    <button id="btnAdd">+ Mesa</button>
+    <div id="toggle" class="toggle"></div>
+  </div>
 </header>
 
-<div id="canvas">
-  <div id="mesa" class="mesa"></div>
-</div>
+<div id="canvas"></div>
 
 <script>
 let modoEditar = true;
 
 const toggle = document.getElementById('toggle');
 const label = document.getElementById('label');
-const mesa = document.getElementById('mesa');
+const btnAdd = document.getElementById('btnAdd');
+const canvas = document.getElementById('canvas');
 
 /* SWITCH */
 toggle.onclick = () => {
   modoEditar = !modoEditar;
   toggle.classList.toggle('on', modoEditar);
   label.innerText = modoEditar ? 'Editar' : 'Ao vivo';
+  btnAdd.style.display = modoEditar ? 'inline-block' : 'none';
+};
+
+/* ADD MESA */
+btnAdd.onclick = () => {
+  if(!modoEditar) return;
+
+  const mesa = document.createElement('div');
+  mesa.className = 'mesa';
+  mesa.style.left = Math.random() * 400 + 'px';
+  mesa.style.top = Math.random() * 300 + 'px';
+
+  habilitarDrag(mesa);
+  canvas.appendChild(mesa);
 };
 
 /* DRAG */
-let movendo = false;
-let ox = 0, oy = 0;
+function habilitarDrag(el){
+  let movendo = false;
+  let ox = 0, oy = 0;
 
-mesa.addEventListener('mousedown', e => {
-  if(!modoEditar) return; // 🔒 FLAG FUNCIONA AQUI
-  movendo = true;
-  ox = e.offsetX;
-  oy = e.offsetY;
-});
+  el.addEventListener('mousedown', e => {
+    if(!modoEditar) return;
+    movendo = true;
+    ox = e.offsetX;
+    oy = e.offsetY;
+  });
 
-document.addEventListener('mousemove', e => {
-  if(!movendo) return;
-  mesa.style.left = (e.pageX - ox) + 'px';
-  mesa.style.top = (e.pageY - oy - 60) + 'px';
-});
+  document.addEventListener('mousemove', e => {
+    if(!movendo) return;
+    el.style.left = (e.pageX - ox) + 'px';
+    el.style.top = (e.pageY - oy - 60) + 'px';
+  });
 
-document.addEventListener('mouseup', () => {
-  movendo = false;
-});
+  document.addEventListener('mouseup', () => {
+    movendo = false;
+  });
+}
+
+/* estado inicial */
+btnAdd.style.display = 'inline-block';
+toggle.classList.add('on');
 </script>
 
 </body>
