@@ -291,6 +291,21 @@ async function salvarMesa(){
   fecharModal();
 }
 
+
+  function atualizarUI(){
+  document.querySelector('aside button').disabled = !modoEditar;
+  document.querySelector('aside button').style.opacity = modoEditar ? '1' : '.5';
+}
+
+atualizarUI();
+
+document.getElementById('switchModo').onclick = ()=>{
+  modoEditar = !modoEditar;
+  toggle.classList.toggle('editar', modoEditar);
+  labelModo.innerText = modoEditar ? 'Editar' : 'Ao vivo';
+  atualizarUI();
+};
+
 /* RENDER */
 function renderMesa(m){
   const w=document.createElement('div');
