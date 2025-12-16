@@ -12,38 +12,54 @@ header{
   justify-content:space-between;padding:0 20px;border-bottom:1px solid #ddd
 }
 .actions{display:flex;gap:10px;align-items:center}
-button{padding:8px 14px;border:none;border-radius:6px;background:#111827;color:#fff;font-weight:600;cursor:pointer}
+button{
+  padding:8px 14px;border:none;border-radius:6px;
+  background:#111827;color:#fff;font-weight:600;cursor:pointer
+}
 
-.toggle{width:60px;height:30px;background:#dc2626;border-radius:30px;position:relative;cursor:pointer}
-.toggle::after{content:'';width:24px;height:24px;background:#fff;border-radius:50%;position:absolute;top:3px;left:33px;transition:.2s}
+/* TOGGLE */
+.toggle{
+  width:60px;height:30px;background:#dc2626;border-radius:30px;
+  position:relative;cursor:pointer
+}
+.toggle::after{
+  content:'';width:24px;height:24px;background:#fff;border-radius:50%;
+  position:absolute;top:3px;left:33px;transition:.2s
+}
 .toggle.on{background:#16a34a}
 .toggle.on::after{left:3px}
 
 #canvas{position:relative;height:calc(100vh - 60px)}
 
+/* MESA */
 .mesa{
   position:absolute;background:#e5e7eb;border:3px solid #9ca3af;
-  border-radius:8px;cursor:grab
 }
-.mesa.reservada{border-color:#16a34a}
+.retangular{width:160px;height:90px}
+.redonda{border-radius:50%}
 
 .resize{
   width:12px;height:12px;background:#111827;
   position:absolute;right:-6px;bottom:-6px;cursor:se-resize
 }
 
+/* CADEIRA */
 .cadeira{
   position:absolute;width:26px;height:10px;
-  background:#111827;border-radius:6px
+  background:#111827;border-radius:6px;cursor:pointer;
+  transform-origin:center center
+}
+.nome{
+  position:absolute;top:12px;left:50%;
+  transform:translateX(-50%);font-size:10px;white-space:nowrap
 }
 
-.elemento{
-  position:absolute;background:#9ca3af
-}
-.linha{height:4px;width:120px}
-.degrau{height:20px;width:60px;background:#6b7280}
+/* ELEMENTOS */
+.elemento{position:absolute;background:#9ca3af}
+.linha{width:140px;height:4px}
+.degrau{width:80px;height:20px;background:#6b7280}
 
-/* MODAL */
+/* MODAIS */
 .modal{
   position:fixed;inset:0;background:rgba(0,0,0,.4);
   display:none;align-items:center;justify-content:center;z-index:10
@@ -63,7 +79,7 @@ button{padding:8px 14px;border:none;border-radius:6px;background:#111827;color:#
 <header>
   <strong id="label">Editar</strong>
   <div class="actions">
-    <button id="btnMesa">+ Mesa</button>
+    <button id="btnAdd">+ Mesa</button>
     <button id="btnLinha">+ Linha</button>
     <button id="btnDegrau">+ Degrau</button>
     <div id="toggle" class="toggle on"></div>
@@ -76,8 +92,19 @@ button{padding:8px 14px;border:none;border-radius:6px;background:#111827;color:#
 <div class="modal" id="modalMesa">
   <div class="modal-box">
     <h3>Nova Mesa</h3>
+
+    <label>Formato</label>
+    <select id="formato">
+      <option value="retangular">Retangular</option>
+      <option value="redonda">Redonda</option>
+    </select>
+
     <label>Cadeiras</label>
-    <input type="number" id="qtdCadeiras" value="4" min="2">
+    <input type="number" id="cadeiras" value="4" min="2">
+
+    <label id="lblRaio" style="display:none">Raio (redonda)</label>
+    <input type="number" id="raio" value="60" style="display:none">
+
     <div class="modal-actions">
       <button onclick="fecharMesa()">Cancelar</button>
       <button onclick="criarMesa()">Criar</button>
@@ -89,16 +116,21 @@ button{padding:8px 14px;border:none;border-radius:6px;background:#111827;color:#
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
+
     <label>Cliente</label>
     <input id="cliente">
+
     <label>Telefone</label>
     <input id="telefone">
+
     <label>Lugares</label>
     <input type="number" id="lugares">
+
     <div id="aviso" class="warn" style="display:none">
-      Quantidade maior que os assentos da mesa.<br>
+      Quantidade maior que os assentos desta mesa.<br>
       Você poderá juntar outra mesa depois.
     </div>
+
     <div class="modal-actions">
       <button onclick="fecharReserva()">Cancelar</button>
       <button onclick="salvarReserva()">Salvar</button>
@@ -115,13 +147,13 @@ const modalMesa=document.getElementById('modalMesa');
 const modalReserva=document.getElementById('modalReserva');
 let mesaAtual=null;
 
-/* SWITCH */
+/* TOGGLE */
 toggle.onclick=()=>{
   modoEditar=!modoEditar;
   toggle.classList.toggle('on',modoEditar);
   label.innerText=modoEditar?'Editar':'Ao vivo';
-  document.querySelectorAll('button').forEach(b=>{
-    if(b.id!=='toggle') b.style.display=modoEditar?'inline-block':'none';
+  document.querySelectorAll('.actions button').forEach(b=>{
+    b.style.display=modoEditar?'inline-block':'none';
   });
 };
 
@@ -133,39 +165,47 @@ function addElemento(tipo){
   if(!modoEditar) return;
   const el=document.createElement('div');
   el.className=`elemento ${tipo}`;
-  el.style.left='200px';el.style.top='200px';
+  el.style.left='200px';
+  el.style.top='200px';
   drag(el);
   canvas.appendChild(el);
 }
 
 /* MESA */
-btnMesa.onclick=()=>modalMesa.style.display='flex';
+btnAdd.onclick=()=>modalMesa.style.display='flex';
 function fecharMesa(){modalMesa.style.display='none'}
 
+formato.onchange=()=>{
+  const r=formato.value==='redonda';
+  lblRaio.style.display=raio.style.display=r?'block':'none';
+};
+
 function criarMesa(){
-  const qtd=+qtdCadeiras.value;
+  const f=formato.value;
+  const qtd=+cadeiras.value;
+  const r=+raio.value;
+
   const m=document.createElement('div');
-  m.className='mesa';
-  m.style.width='140px';m.style.height='80px';
-  m.style.left='200px';m.style.top='200px';
+  m.className=`mesa ${f}`;
+  m.style.left='200px';
+  m.style.top='200px';
   m.dataset.cadeiras=qtd;
 
-  for(let i=0;i<qtd;i++){
-    const c=document.createElement('div');
-    c.className='cadeira';
-    c.style.left=(20+i*25)+'px';
-    c.style.top='-15px';
-    m.appendChild(c);
+  if(f==='redonda'){
+    m.style.width=m.style.height=(r*2)+'px';
+    gerarRedonda(m,qtd,r);
+  }else{
+    gerarRetangular(m);
   }
 
-  const r=document.createElement('div');
-  r.className='resize';
-  m.appendChild(r);
-  resize(m,r);
+  const rs=document.createElement('div');
+  rs.className='resize';
+  m.appendChild(rs);
+  resize(m,rs);
   drag(m);
 
   m.ondblclick=e=>{
-    if(!modoEditar) return;
+    if(!modoEditar)return;
     mesaAtual=m;
     modalReserva.style.display='flex';
   };
@@ -174,15 +214,43 @@ function criarMesa(){
   fecharMesa();
 }
 
-/* RESERVA */
-function fecharReserva(){modalReserva.style.display='none'}
+/* CADEIRAS */
+function criarCadeira(x,y,rot){
+  const c=document.createElement('div');
+  c.className='cadeira';
+  c.style.left=x+'px';
+  c.style.top=y+'px';
+  c.style.transform=`rotate(${rot}deg)`;
+  return c;
+}
 
+function gerarRetangular(m){
+  m.appendChild(criarCadeira(30,-15,0));
+  m.appendChild(criarCadeira(100,-15,0));
+  m.appendChild(criarCadeira(30,95,180));
+  m.appendChild(criarCadeira(100,95,180));
+}
+
+function gerarRedonda(m,qtd,r){
+  const c=r,d=r-5;
+  for(let i=0;i<qtd;i++){
+    const a=(2*Math.PI/qtd)*i;
+    const x=c+Math.cos(a)*d-13;
+    const y=c+Math.sin(a)*d-5;
+    const rot=(a*180/Math.PI)+90;
+    m.appendChild(criarCadeira(x,y,rot));
+  }
+}
+
+/* RESERVA */
 lugares.oninput=()=>{
-  aviso.style.display=+lugares.value > +mesaAtual.dataset.cadeiras ? 'block':'none';
+  aviso.style.display=+lugares.value > +mesaAtual.dataset.cadeiras?'block':'none';
 };
 
+function fecharReserva(){modalReserva.style.display='none'}
+
 function salvarReserva(){
-  mesaAtual.classList.add('reservada');
+  mesaAtual.style.borderColor='#16a34a';
   fecharReserva();
 }
 
@@ -202,9 +270,9 @@ function drag(el){
 }
 
 /* RESIZE */
-function resize(m,handle){
+function resize(m,h){
   let r=false;
-  handle.onmousedown=e=>{
+  h.onmousedown=e=>{
     e.stopPropagation();
     r=true;
   };
