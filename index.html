@@ -2,306 +2,259 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Mesas</title>
+<title>Reservas de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f10;
+  --card:#18181b;
+  --line:#2a2a2e;
+  --text:#f4f4f5;
+  --muted:#a1a1aa;
+  --primary:#22c55e;
+  --danger:#ef4444;
+  --warning:#facc15;
+}
 
+*{box-sizing:border-box}
 body{
-  font-family:Inter, Arial, sans-serif;
-  background:#f4f4f5;
-  height:100vh;
-  overflow:hidden;
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,system-ui;
 }
 
-/* HEADER */
 header{
-  height:64px;
-  background:linear-gradient(90deg,#0f172a,#020617);
-  color:#fff;
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:0 16px;
-}
-
-header strong{
-  font-size:18px;
-  margin-right:12px;
-}
-
-header select,
-header input{
-  height:36px;
-  padding:0 10px;
-  border-radius:8px;
-  border:none;
-}
-
-header button{
-  height:36px;
-  padding:0 16px;
-  border:none;
-  border-radius:8px;
-  background:#22c55e;
-  color:#fff;
-  font-weight:700;
-  cursor:pointer;
-  position:relative;
-}
-
-/* BOTÃO LOADING */
-header button.loading{
-  pointer-events:none;
-  opacity:.7;
-}
-
-header button.loading::after{
-  content:'';
-  width:18px;
-  height:18px;
-  border:3px solid #fff;
-  border-top:3px solid transparent;
-  border-radius:50%;
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%,-50%);
-  animation:spin .8s linear infinite;
-}
-
-@keyframes spin{
-  to{transform:translate(-50%,-50%) rotate(360deg)}
-}
-
-/* PALCO */
-#palco{
-  position:relative;
-  height:calc(100vh - 64px);
-  background:#e5e7eb;
-}
-
-/* MESA */
-.mesa{
-  position:absolute;
-  width:96px;
-  height:96px;
-  background:#cbd5e1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
-  cursor:grab;
-  user-select:none;
-  box-shadow:0 10px 25px rgba(0,0,0,.15);
-}
-
-.redonda{border-radius:50%}
-.quadrada{border-radius:14px}
-
-.ocupada{
-  background:#f59e0b;
-  color:#fff;
-}
-
-/* MODAL */
-#modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.55);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
-
-#modal .box{
-  background:#fff;
   padding:20px;
-  width:300px;
-  border-radius:12px;
+  font-size:20px;
+  font-weight:700;
+  border-bottom:1px solid var(--line);
 }
 
-#modal input{
-  width:100%;
-  padding:10px;
-  margin-top:10px;
+.container{
+  max-width:1100px;
+  margin:auto;
+  padding:20px;
 }
 
-#modal button{
+.card{
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:20px;
+  margin-bottom:20px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:14px;
+}
+
+input,select{
   width:100%;
   padding:12px;
-  margin-top:10px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:#0b0b0c;
+  color:var(--text);
+  font-size:14px;
+}
+
+button{
+  padding:12px;
+  border-radius:10px;
   border:none;
-  border-radius:8px;
+  font-weight:600;
   cursor:pointer;
 }
 
-.salvar{background:#0f172a;color:#fff}
-.liberar{background:#ef4444;color:#fff}
+.btn-primary{background:var(--primary);color:#052e16}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-warning{background:var(--warning);color:#422006}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+th,td{
+  padding:14px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+
+th{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.status{
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:12px;
+  font-weight:700;
+}
+
+.pago{background:#052e16;color:#22c55e}
+.pendente{background:#422006;color:#facc15}
+
+.actions button{
+  margin-right:6px;
+}
 </style>
 </head>
 
 <body>
 
-<header>
-  <strong>🍽️ MESAS</strong>
+<header>🍽️ Reservas de Mesas</header>
 
-  <select id="tipo">
-    <option value="quadrada">Quadrada</option>
-    <option value="redonda">Redonda</option>
-  </select>
+<div class="container">
 
-  <input id="lugares" type="number" min="1" placeholder="Lugares">
+  <!-- FORM RESERVA -->
+  <div class="card">
+    <h3>Nova / Editar Reserva</h3>
 
-  <button id="btnAdd">+ ADICIONAR MESA</button>
-</header>
+    <div class="grid">
+      <input id="mesa" placeholder="Mesa nº">
+      <input id="cliente" placeholder="Nome do cliente">
+      <input id="telefone" placeholder="Telefone">
+      <input id="data" type="date">
+      <input id="hora" type="time">
 
-<div id="palco"></div>
+      <select id="status">
+        <option value="pendente">Pendente</option>
+        <option value="pago">Pago</option>
+      </select>
+    </div>
 
-<div id="modal">
-  <div class="box">
-    <h3>Reserva</h3>
-    <input id="cliente" placeholder="Nome do cliente">
-    <button class="salvar">Salvar</button>
-    <button class="liberar">Liberar mesa</button>
+    <br>
+    <button class="btn-primary" onclick="salvarReserva()">Salvar Reserva</button>
   </div>
+
+  <!-- LISTA -->
+  <div class="card">
+    <h3>Reservas</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Mesa</th>
+          <th>Cliente</th>
+          <th>Telefone</th>
+          <th>Data</th>
+          <th>Hora</th>
+          <th>Status</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="lista"></tbody>
+    </table>
+  </div>
+
 </div>
 
 <script>
-/* ====== SUPABASE ====== */
-const SUPABASE_URL = "https://pkpmzbjvsapzeuqtvytm.supabase.co";
-const SUPABASE_KEY = "sb_publishable_UIy2gATpA5WzOIgeXHvqlw_IpSiwdsh";
+// ================== CONFIG SUPABASE ==================
+const supabase = supabase.createClient(
+  "https://SUA_URL.supabase.co",
+  "SUA_ANON_KEY"
+)
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// ================== VARIÁVEIS ==================
+let editId = null
 
-/* ====== ELEMENTOS ====== */
-const palco = document.getElementById('palco');
-const modal = document.getElementById('modal');
-const btnAdd = document.getElementById('btnAdd');
+// ================== LOAD ==================
+carregarReservas()
 
-let mesaAtual = null;
+// ================== CRUD ==================
+async function carregarReservas(){
+  const { data, error } = await supabase
+    .from("reservas")
+    .select("*")
+    .order("data",{ascending:true})
 
-/* ====== ADICIONAR MESA (COM OVERLAY E ERRO) ====== */
-btnAdd.onclick = async () => {
-  const tipoMesa = document.getElementById('tipo').value;
-  const lugaresInput = document.getElementById('lugares');
-  const lugares = parseInt(lugaresInput.value);
+  if(error) return alert(error.message)
 
-  if(!lugares || lugares <= 0){
-    alert("Informe a quantidade de lugares");
-    return;
+  lista.innerHTML = ""
+  data.forEach(r=>{
+    lista.innerHTML += `
+      <tr>
+        <td>${r.mesa}</td>
+        <td>${r.cliente}</td>
+        <td>${r.telefone}</td>
+        <td>${r.data}</td>
+        <td>${r.hora}</td>
+        <td>
+          <span class="status ${r.status}">
+            ${r.status.toUpperCase()}
+          </span>
+        </td>
+        <td class="actions">
+          <button class="btn-warning" onclick="editar(${r.id})">Editar</button>
+          <button class="btn-danger" onclick="excluir(${r.id})">Excluir</button>
+        </td>
+      </tr>
+    `
+  })
+}
+
+async function salvarReserva(){
+  const payload = {
+    mesa: mesa.value,
+    cliente: cliente.value,
+    telefone: telefone.value,
+    data: data.value,
+    hora: hora.value,
+    status: status.value
   }
 
-  btnAdd.classList.add('loading');
-
-  try{
-    const { data, error } = await supabase
-      .from('mesas')
-      .insert({
-        tipo: tipoMesa,
-        lugares: lugares,
-        x: 150,
-        y: 150
-      })
-      .select()
-      .single();
-
-    if(error) throw error;
-
-    desenharMesa(data);
-    lugaresInput.value = '';
-
-  }catch(err){
-    console.error("Erro ao adicionar mesa:", err);
-    alert("Erro ao salvar no Supabase:\n" + err.message);
-  }finally{
-    btnAdd.classList.remove('loading');
+  if(editId){
+    await supabase.from("reservas").update(payload).eq("id",editId)
+    editId = null
+  }else{
+    await supabase.from("reservas").insert(payload)
   }
-};
 
-/* ====== DESENHAR MESA ====== */
-function desenharMesa(m){
-  const el = document.createElement('div');
-  el.className = `mesa ${m.tipo} ${m.status}`;
-  el.style.left = m.x + 'px';
-  el.style.top = m.y + 'px';
-  el.innerText = m.lugares;
-
-  el.onmousedown = e => drag(e, m, el);
-  el.onclick = e => {
-    e.stopPropagation();
-    abrirModal(m, el);
-  };
-
-  palco.appendChild(el);
+  limpar()
+  carregarReservas()
 }
 
-/* ====== DRAG ====== */
-function drag(e, m, el){
-  const ox = e.clientX - el.offsetLeft;
-  const oy = e.clientY - el.offsetTop;
+async function editar(id){
+  const { data } = await supabase
+    .from("reservas")
+    .select("*")
+    .eq("id",id)
+    .single()
 
-  document.onmousemove = ev => {
-    el.style.left = ev.clientX - ox + 'px';
-    el.style.top = ev.clientY - oy + 'px';
-  };
-
-  document.onmouseup = async () => {
-    document.onmousemove = null;
-    await supabase
-      .from('mesas')
-      .update({
-        x: parseInt(el.style.left),
-        y: parseInt(el.style.top)
-      })
-      .eq('id', m.id);
-  };
+  editId = id
+  mesa.value = data.mesa
+  cliente.value = data.cliente
+  telefone.value = data.telefone
+  dataInput.value = data.data
+  hora.value = data.hora
+  status.value = data.status
 }
 
-/* ====== MODAL ====== */
-function abrirModal(m, el){
-  mesaAtual = { m, el };
-  cliente.value = m.cliente || '';
-  modal.style.display = 'flex';
-}
-
-document.querySelector('.salvar').onclick = async () => {
-  await supabase
-    .from('mesas')
-    .update({ cliente: cliente.value, status: 'ocupada' })
-    .eq('id', mesaAtual.m.id);
-
-  mesaAtual.el.classList.add('ocupada');
-  modal.style.display = 'none';
-};
-
-document.querySelector('.liberar').onclick = async () => {
-  await supabase
-    .from('mesas')
-    .update({ cliente: null, status: 'livre' })
-    .eq('id', mesaAtual.m.id);
-
-  mesaAtual.el.classList.remove('ocupada');
-  modal.style.display = 'none';
-};
-
-modal.onclick = e => {
-  if(e.target === modal) modal.style.display = 'none';
-};
-
-/* ====== LOAD ====== */
-async function carregar(){
-  const { data, error } = await supabase.from('mesas').select('*');
-  if(error){
-    console.error("Erro ao carregar mesas:", error);
-    return;
+async function excluir(id){
+  if(confirm("Excluir reserva?")){
+    await supabase.from("reservas").delete().eq("id",id)
+    carregarReservas()
   }
-  data.forEach(desenharMesa);
 }
-carregar();
+
+function limpar(){
+  mesa.value = ""
+  cliente.value = ""
+  telefone.value = ""
+  data.value = ""
+  hora.value = ""
+  status.value = "pendente"
+}
 </script>
 
 </body>
