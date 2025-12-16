@@ -2,234 +2,134 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Mesas • Restaurante</title>
+<title>Index de Mesas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 :root{
-  --bg:#0b0b0b;
-  --card:#151515;
-  --line:#262626;
-  --text:#f5f5f5;
-  --primary:#22c55e;
-  --danger:#ef4444;
+  --mesa:#e5e7eb;
+  --mesa-borda:#9ca3af;
+  --cadeira:#374151;
+  --fundo:#f9fafb;
 }
-*{box-sizing:border-box}
+
+*{
+  box-sizing:border-box;
+  font-family:Inter,system-ui,Arial;
+}
+
 body{
   margin:0;
-  background:var(--bg);
-  color:var(--text);
-  font-family:Inter,system-ui;
-  overflow:hidden;
+  background:var(--fundo);
+  padding:40px;
 }
-header{
-  height:64px;
-  padding:0 20px;
+
+.index-mesas{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  border-bottom:1px solid var(--line);
+  flex-wrap:wrap;
+  gap:40px;
 }
-button{
-  padding:10px 14px;
-  border-radius:10px;
-  border:none;
-  font-weight:700;
+
+/* ===== MESA ===== */
+.mesa{
+  position:relative;
+  width:120px;
+  height:120px;
+  border-radius:50%;
+  background:var(--mesa);
+  border:4px solid var(--mesa-borda);
   cursor:pointer;
 }
-.btn-primary{background:var(--primary);color:#052e16}
-#mapa{
-  position:relative;
-  width:100%;
-  height:calc(100vh - 64px);
-  background:#101010;
+
+.mesa:hover{
+  box-shadow:0 10px 30px rgba(0,0,0,.15);
 }
-.mesa{
+
+/* número central */
+.mesa .lugares{
   position:absolute;
-  background:#caa472;
-  border-radius:14px;
-  cursor:grab;
-  font-weight:800;
-  color:#3b2f1b;
+  inset:0;
   display:flex;
   align-items:center;
   justify-content:center;
+  font-size:28px;
+  font-weight:700;
+  color:#111827;
 }
-.quadrada{width:120px;height:120px}
-.retangular{width:180px;height:100px}
 
-#overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.7);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:999;
+/* cadeira */
+.cadeira{
+  position:absolute;
+  width:22px;
+  height:30px;
+  background:var(--cadeira);
+  border-radius:6px;
+  top:-15px;
+  left:50%;
+  transform-origin:center 75px;
 }
-#modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.7);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:1000;
+
+/* nome opcional */
+.nome-mesa{
+  text-align:center;
+  margin-top:12px;
+  font-weight:600;
+  color:#374151;
 }
-.modal-box{
-  background:#151515;
-  padding:24px;
-  border-radius:16px;
-  width:340px;
-  display:grid;
-  gap:12px;
-}
-input,select{
-  padding:12px;
-  border-radius:10px;
-  border:1px solid var(--line);
-  background:#0b0b0b;
-  color:var(--text);
-}
-.error{color:var(--danger);font-size:13px}
 </style>
 </head>
 
 <body>
 
-<header>
-  🍽️ Mapa de Mesas
-  <button class="btn-primary" id="btnAdd">＋</button>
-</header>
+<h2>Mesas</h2>
 
-<div id="mapa"></div>
+<div class="index-mesas">
 
-<div id="overlay">Salvando...</div>
-
-<div id="modal">
-  <div class="modal-box">
-    <strong>Nova Mesa</strong>
-
-    <input id="numero" placeholder="Número da mesa">
-    
-    <select id="formato">
-      <option value="quadrada">Quadrada</option>
-      <option value="retangular">Retangular</option>
-    </select>
-
-    <select id="lugares">
-      <option value="2">2 lugares</option>
-      <option value="4">4 lugares</option>
-      <option value="6">6 lugares</option>
-      <option value="8">8 lugares</option>
-    </select>
-
-    <div class="error" id="erro"></div>
-
-    <button class="btn-primary" id="salvarMesa">Salvar Mesa</button>
-    <button onclick="fecharModal()">Cancelar</button>
+  <div class="mesa-wrapper">
+    <div class="mesa" data-lugares="2">
+      <span class="lugares">2</span>
+    </div>
+    <div class="nome-mesa">Mesa 1</div>
   </div>
+
+  <div class="mesa-wrapper">
+    <div class="mesa" data-lugares="4">
+      <span class="lugares">4</span>
+    </div>
+    <div class="nome-mesa">Mesa 2</div>
+  </div>
+
+  <div class="mesa-wrapper">
+    <div class="mesa" data-lugares="6">
+      <span class="lugares">6</span>
+    </div>
+    <div class="nome-mesa">Mesa 3</div>
+  </div>
+
+  <div class="mesa-wrapper">
+    <div class="mesa" data-lugares="8">
+      <span class="lugares">8</span>
+    </div>
+    <div class="nome-mesa">Mesa 4</div>
+  </div>
+
 </div>
 
 <script>
-/* ===== SUPABASE ===== */
-const supabase = supabase.createClient(
-  "https://pkpmzbjvsapzeuqtvytm.supabase.co",
-  "sb_publishable_UIy2gATpA5WzOIgeXHvqlw_IpSiwdsh"
-)
+document.querySelectorAll('.mesa').forEach(mesa=>{
+  const lugares = Number(mesa.dataset.lugares);
+  const angulo = 360 / lugares;
 
-/* ===== ELEMENTOS ===== */
-const mapa = document.getElementById("mapa")
-const modal = document.getElementById("modal")
-const overlay = document.getElementById("overlay")
-const erro = document.getElementById("erro")
-
-document.getElementById("btnAdd").addEventListener("click", abrirModal)
-document.getElementById("salvarMesa").addEventListener("click", salvarMesa)
-
-/* ===== FUNÇÕES ===== */
-function abrirModal(){
-  erro.textContent=""
-  modal.style.display="flex"
-}
-
-function fecharModal(){
-  modal.style.display="none"
-}
-
-function loading(v){
-  overlay.style.display = v ? "flex" : "none"
-}
-
-async function salvarMesa(){
-  if(!numero.value){
-    erro.textContent="Informe o número da mesa"
-    return
+  for(let i=0;i<lugares;i++){
+    const cadeira = document.createElement('div');
+    cadeira.className = 'cadeira';
+    cadeira.style.transform = `
+      rotate(${angulo * i}deg)
+      translateY(-15px)
+    `;
+    mesa.appendChild(cadeira);
   }
-
-  loading(true)
-
-  const { data, error } = await supabase
-    .from("mesas")
-    .insert({
-      numero: Number(numero.value),
-      lugares: Number(lugares.value),
-      formato: formato.value,
-      pos_x: 60,
-      pos_y: 60
-    })
-    .select()
-    .single()
-
-  loading(false)
-
-  if(error){
-    erro.textContent = error.message
-    return
-  }
-
-  fecharModal()
-  renderMesa(data)
-}
-
-function renderMesa(m){
-  const d=document.createElement("div")
-  d.className=`mesa ${m.formato}`
-  d.textContent=`Mesa ${m.numero}`
-  d.style.left=m.pos_x+"px"
-  d.style.top=m.pos_y+"px"
-
-  drag(d,m)
-  mapa.appendChild(d)
-}
-
-function drag(el,m){
-  let ox,oy
-  el.onmousedown=e=>{
-    ox=e.offsetX; oy=e.offsetY
-    document.onmousemove=ev=>{
-      el.style.left=ev.pageX-ox+"px"
-      el.style.top=ev.pageY-oy+"px"
-    }
-    document.onmouseup=async()=>{
-      document.onmousemove=null
-      await supabase.from("mesas").update({
-        pos_x:parseInt(el.style.left),
-        pos_y:parseInt(el.style.top)
-      }).eq("id",m.id)
-    }
-  }
-}
-
-/* ===== LOAD ===== */
-async function carregar(){
-  const { data } = await supabase.from("mesas").select("*")
-  data.forEach(renderMesa)
-}
-carregar()
+});
 </script>
 
 </body>
