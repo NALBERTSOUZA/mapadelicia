@@ -33,11 +33,12 @@ header{
   border-bottom:1px solid #e5e7eb;
 }
 
-/* ===== SWITCH ===== */
+/* SWITCH */
 .switch{
   display:flex;
   align-items:center;
   gap:12px;
+  cursor:pointer;
 }
 
 .switch span{
@@ -51,7 +52,6 @@ header{
   height:28px;
   background:var(--green);
   border-radius:999px;
-  cursor:pointer;
   transition:.25s;
 }
 
@@ -70,7 +70,6 @@ header{
 .toggle.editar{
   background:var(--red);
 }
-
 .toggle.editar::after{
   left:29px;
 }
@@ -98,6 +97,12 @@ aside button{
   border-radius:8px;
   font-weight:600;
   cursor:pointer;
+  transition:.2s;
+}
+
+aside button.disabled{
+  opacity:.5;
+  cursor:not-allowed;
 }
 
 #canvas{
@@ -157,7 +162,6 @@ aside button{
   padding:20px;
 }
 
-.modal-box label{font-size:14px}
 .modal-box input,
 .modal-box select{
   width:100%;
@@ -191,17 +195,16 @@ aside button{
 <header>
   <strong>Mapa de Mesas</strong>
 
-<div class="switch" id="switchModo">
-  <span id="labelModo">Editar</span>
-  <div id="toggle" class="toggle editar"></div>
-</div>
-
+  <div class="switch" id="switchModo">
+    <span id="labelModo">Editar</span>
+    <div id="toggle" class="toggle editar"></div>
+  </div>
 </header>
 
 <main>
   <aside>
     <h3>Mesas</h3>
-    <button onclick="abrirModal()">+ Nova Mesa</button>
+    <button id="btnNovaMesa">+ Nova Mesa</button>
   </aside>
 
   <div id="canvas"></div>
@@ -212,10 +215,10 @@ aside button{
   <div class="modal-box">
     <h3>Nova Mesa</h3>
 
-    <label>Nome da mesa</label>
+    <label>Nome</label>
     <input id="mesaNome">
 
-    <label>Quantidade de cadeiras</label>
+    <label>Cadeiras</label>
     <input id="mesaCapacidade" type="number" value="4">
 
     <label>Formato</label>
@@ -238,29 +241,41 @@ const supabase = supabase.createClient(
   'sb_publishable__xSAJ3Ip5qnURBTJ34ldZQ_8TrNQJTH'
 );
 
-/* SWITCH */
+/* ELEMENTOS */
 const toggle = document.getElementById('toggle');
 const labelModo = document.getElementById('labelModo');
+const switchModo = document.getElementById('switchModo');
+const btnNovaMesa = document.getElementById('btnNovaMesa');
+const modalMesa = document.getElementById('modalMesa');
+const canvas = document.getElementById('canvas');
 
 let modoEditar = true;
 
-/* estado inicial */
-toggle.classList.add('editar');
-labelModo.innerText = 'Editar';
-
-document.getElementById('switchModo').onclick = ()=>{
-  modoEditar = !modoEditar;
+/* ATUALIZA UI */
+function atualizarModo(){
   toggle.classList.toggle('editar', modoEditar);
   labelModo.innerText = modoEditar ? 'Editar' : 'Ao vivo';
+
+  btnNovaMesa.classList.toggle('disabled', !modoEditar);
+}
+
+/* SWITCH */
+switchModo.onclick = ()=>{
+  modoEditar = !modoEditar;
+  atualizarModo();
+};
+
+atualizarModo();
+
+/* BOTÃO NOVA MESA */
+btnNovaMesa.onclick = ()=>{
+  if(!modoEditar) return;
+  modalMesa.style.display = 'flex';
 };
 
 /* MODAL */
-function abrirModal(){
-  if(!modoEditar) return;
-  modalMesa.style.display='flex';
-}
 function fecharModal(){
-  modalMesa.style.display='none';
+  modalMesa.style.display = 'none';
 }
 
 /* CADEIRAS */
@@ -291,21 +306,6 @@ async function salvarMesa(){
   fecharModal();
 }
 
-
-  function atualizarUI(){
-  document.querySelector('aside button').disabled = !modoEditar;
-  document.querySelector('aside button').style.opacity = modoEditar ? '1' : '.5';
-}
-
-atualizarUI();
-
-document.getElementById('switchModo').onclick = ()=>{
-  modoEditar = !modoEditar;
-  toggle.classList.toggle('editar', modoEditar);
-  labelModo.innerText = modoEditar ? 'Editar' : 'Ao vivo';
-  atualizarUI();
-};
-
 /* RENDER */
 function renderMesa(m){
   const w=document.createElement('div');
@@ -321,12 +321,12 @@ function renderMesa(m){
   `;
 
   gerarCadeiras(w.querySelector('.mesa'));
-  drag(w);
+  habilitarDrag(w);
   canvas.appendChild(w);
 }
 
 /* DRAG */
-function drag(el){
+function habilitarDrag(el){
   let ox,oy;
   el.onmousedown=e=>{
     if(!modoEditar) return;
