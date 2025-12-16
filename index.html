@@ -11,10 +11,10 @@
 <style>
 :root{
   --bg:#f4f6f9;
-  --card:#ffffff;
-  --dark:#0f172a;
+  --dark:#020617;
   --ocupada:#f59e0b;
   --paga:#22c55e;
+  --card:#ffffff;
   --border:#e5e7eb;
 }
 
@@ -37,11 +37,6 @@ header{
   justify-content:space-between;
 }
 
-header strong{
-  font-size:16px;
-}
-
-/* ADMIN BAR */
 #adminBar{
   display:flex;
   gap:8px;
@@ -51,8 +46,8 @@ header strong{
 #adminBar select,
 #adminBar button{
   height:36px;
-  padding:0 10px;
-  border-radius:8px;
+  padding:0 12px;
+  border-radius:10px;
   border:none;
 }
 
@@ -66,7 +61,6 @@ header strong{
 /* MAPA */
 #mapa{
   position:relative;
-  width:100%;
   height:calc(100vh - 64px);
   background:#f9fafb;
   overflow:hidden;
@@ -75,27 +69,19 @@ header strong{
 /* MESA */
 .mesa{
   position:absolute;
+  background:var(--card);
+  border:1px solid var(--border);
+  box-shadow:0 8px 20px rgba(0,0,0,.08);
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
-  font-weight:600;
   cursor:grab;
-  user-select:none;
-  background:var(--card);
-  border:1px solid var(--border);
-  box-shadow:0 4px 10px rgba(0,0,0,.08);
+  font-weight:600;
   transition:.2s;
 }
 
-.mesa:hover{
-  transform:scale(1.03);
-}
-
-.mesa span{
-  font-size:12px;
-  opacity:.8;
-}
+.mesa:hover{transform:scale(1.05)}
 
 .redonda{
   width:90px;
@@ -104,41 +90,33 @@ header strong{
 }
 
 .quadrada{
-  width:86px;
-  height:86px;
+  width:88px;
+  height:88px;
   border-radius:14px;
 }
 
-.ocupada{
-  background:var(--ocupada);
-  color:#fff;
+.mesa span{
+  font-size:12px;
+  opacity:.7;
 }
 
-.paga{
-  background:var(--paga);
-  color:#fff;
-}
+.ocupada{background:var(--ocupada);color:#fff}
+.paga{background:var(--paga);color:#fff}
 
 /* DRAWER */
 #drawer{
   position:fixed;
-  right:-360px;
   top:0;
+  right:-360px;
   width:360px;
   height:100%;
   background:#fff;
-  box-shadow:-10px 0 30px rgba(0,0,0,.1);
+  box-shadow:-10px 0 30px rgba(0,0,0,.15);
   padding:20px;
   transition:.3s;
 }
 
-#drawer.active{
-  right:0;
-}
-
-#drawer h3{
-  margin-top:0;
-}
+#drawer.active{right:0}
 
 #drawer input,
 #drawer select{
@@ -156,19 +134,12 @@ header strong{
   flex:1;
   padding:12px;
   border:none;
+  border-radius:10px;
   cursor:pointer;
-  border-radius:8px;
 }
 
-.salvar{
-  background:#0f172a;
-  color:#fff;
-}
-
-.apagar{
-  background:#ef4444;
-  color:#fff;
-}
+.salvar{background:#020617;color:#fff}
+.apagar{background:#ef4444;color:#fff}
 </style>
 </head>
 
@@ -190,13 +161,11 @@ header strong{
 
 <div id="mapa"></div>
 
-<!-- DRAWER -->
 <div id="drawer">
   <h3>Reserva</h3>
   <input id="nome" placeholder="Nome do cliente">
   <input id="telefone" placeholder="Telefone">
   <input id="qtd" type="number" placeholder="Qtd pessoas">
-
   <select id="status">
     <option value="livre">Livre</option>
     <option value="ocupada">Ocupada</option>
@@ -218,31 +187,41 @@ const supabase = supabase.createClient(
 const mapa = document.getElementById('mapa');
 const drawer = document.getElementById('drawer');
 
-let mesaAtual = null;
-let offsetX, offsetY;
+let mesaAtual=null, offsetX=0, offsetY=0;
 
-/* ADD MESA */
+/* ADICIONAR MESA */
 async function adicionarMesa(){
-  if(!mesaNome.value || !mesaCapacidade.value) return;
+  const nome = mesaNome.value.trim();
+  const tipo = mesaTipo.value;
+  const capacidade = parseInt(mesaCapacidade.value);
 
-  await supabase.from('mesas').insert({
-    nome: mesaNome.value,
-    tipo: mesaTipo.value,
-    capacidade: mesaCapacidade.value,
-    x: 40,
-    y: 40,
+  if(!nome || !capacidade){
+    alert("Preencha todos os campos");
+    return;
+  }
+
+  const { error } = await supabase.from('mesas').insert({
+    nome, tipo, capacidade,
+    x:50, y:50,
     status:'livre'
   });
+
+  if(error){
+    alert("Erro ao salvar mesa");
+    console.error(error);
+    return;
+  }
 
   mesaNome.value='';
   mesaCapacidade.value='';
   carregarMesas();
 }
 
-/* LOAD */
+/* CARREGAR */
 async function carregarMesas(){
   mapa.innerHTML='';
-  const { data } = await supabase.from('mesas').select('*');
+  const { data, error } = await supabase.from('mesas').select('*');
+  if(error){console.error(error);return;}
 
   data.forEach(m=>{
     const el=document.createElement('div');
