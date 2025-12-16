@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Reservas de Mesas</title>
+<title>Sistema de Reservas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -10,10 +10,15 @@
 
 <style>
 :root{
-  --bg:#f5f6f8;
-  --mesa-ocupada:#ff9800;
-  --mesa-paga:#2ecc71;
+  --bg:#f4f6f9;
+  --card:#ffffff;
+  --dark:#0f172a;
+  --ocupada:#f59e0b;
+  --paga:#22c55e;
+  --border:#e5e7eb;
 }
+
+*{box-sizing:border-box}
 
 body{
   margin:0;
@@ -23,34 +28,36 @@ body{
 
 /* HEADER */
 header{
-  padding:14px 20px;
-  background:#111;
+  height:64px;
+  padding:0 20px;
+  background:linear-gradient(90deg,#020617,#0f172a);
   color:#fff;
   display:flex;
   align-items:center;
   justify-content:space-between;
 }
 
-header span{
-  font-weight:700;
+header strong{
+  font-size:16px;
 }
 
-/* BARRA ADMIN */
+/* ADMIN BAR */
 #adminBar{
   display:flex;
-  gap:10px;
+  gap:8px;
 }
 
 #adminBar input,
 #adminBar select,
 #adminBar button{
-  padding:8px;
-  border-radius:6px;
+  height:36px;
+  padding:0 10px;
+  border-radius:8px;
   border:none;
 }
 
 #adminBar button{
-  background:#2ecc71;
+  background:#22c55e;
   color:#fff;
   font-weight:600;
   cursor:pointer;
@@ -61,7 +68,7 @@ header span{
   position:relative;
   width:100%;
   height:calc(100vh - 64px);
-  background:#fff;
+  background:#f9fafb;
   overflow:hidden;
 }
 
@@ -69,12 +76,25 @@ header span{
 .mesa{
   position:absolute;
   display:flex;
+  flex-direction:column;
   align-items:center;
   justify-content:center;
   font-weight:600;
   cursor:grab;
   user-select:none;
-  border:2px dashed #ccc;
+  background:var(--card);
+  border:1px solid var(--border);
+  box-shadow:0 4px 10px rgba(0,0,0,.08);
+  transition:.2s;
+}
+
+.mesa:hover{
+  transform:scale(1.03);
+}
+
+.mesa span{
+  font-size:12px;
+  opacity:.8;
 }
 
 .redonda{
@@ -84,61 +104,70 @@ header span{
 }
 
 .quadrada{
-  width:80px;
-  height:80px;
-}
-
-.livre{
-  background:transparent;
+  width:86px;
+  height:86px;
+  border-radius:14px;
 }
 
 .ocupada{
-  background:var(--mesa-ocupada);
+  background:var(--ocupada);
   color:#fff;
-  border:none;
 }
 
 .paga{
-  background:var(--mesa-paga);
+  background:var(--paga);
   color:#fff;
-  border:none;
 }
 
-/* MODAL */
-#modal{
+/* DRAWER */
+#drawer{
   position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.5);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
-
-#modal .box{
-  background:#fff;
+  right:-360px;
+  top:0;
   width:360px;
-  border-radius:12px;
+  height:100%;
+  background:#fff;
+  box-shadow:-10px 0 30px rgba(0,0,0,.1);
   padding:20px;
+  transition:.3s;
 }
 
-.box h3{
+#drawer.active{
+  right:0;
+}
+
+#drawer h3{
   margin-top:0;
 }
 
-.box input,
-.box select{
+#drawer input,
+#drawer select{
   width:100%;
   padding:10px;
   margin-bottom:10px;
 }
 
-.box button{
-  width:100%;
+.drawer-actions{
+  display:flex;
+  gap:10px;
+}
+
+.drawer-actions button{
+  flex:1;
   padding:12px;
-  background:#111;
-  color:#fff;
   border:none;
   cursor:pointer;
+  border-radius:8px;
+}
+
+.salvar{
+  background:#0f172a;
+  color:#fff;
+}
+
+.apagar{
+  background:#ef4444;
+  color:#fff;
 }
 </style>
 </head>
@@ -146,35 +175,37 @@ header span{
 <body>
 
 <header>
-  <span>📍 Sistema de Reservas</span>
+  <strong>📍 Sistema de Reservas</strong>
 
-  <!-- ADMIN -->
   <div id="adminBar">
-    <input id="mesaNome" placeholder="Nome da mesa">
+    <input id="mesaNome" placeholder="Mesa">
     <select id="mesaTipo">
       <option value="redonda">Redonda</option>
       <option value="quadrada">Quadrada</option>
     </select>
     <input id="mesaCapacidade" type="number" placeholder="Lugares">
-    <button onclick="adicionarMesa()">+ Adicionar mesa</button>
+    <button onclick="adicionarMesa()">Adicionar</button>
   </div>
 </header>
 
 <div id="mapa"></div>
 
-<!-- MODAL RESERVA -->
-<div id="modal">
-  <div class="box">
-    <h3>Reserva da Mesa</h3>
-    <input id="nome" placeholder="Nome do cliente">
-    <input id="telefone" placeholder="Telefone">
-    <input id="qtd" type="number" placeholder="Qtd de pessoas">
-    <select id="status">
-      <option value="ocupada">Ocupada (não paga)</option>
-      <option value="paga">Paga</option>
-      <option value="livre">Livre</option>
-    </select>
-    <button onclick="salvarReserva()">Salvar</button>
+<!-- DRAWER -->
+<div id="drawer">
+  <h3>Reserva</h3>
+  <input id="nome" placeholder="Nome do cliente">
+  <input id="telefone" placeholder="Telefone">
+  <input id="qtd" type="number" placeholder="Qtd pessoas">
+
+  <select id="status">
+    <option value="livre">Livre</option>
+    <option value="ocupada">Ocupada</option>
+    <option value="paga">Paga</option>
+  </select>
+
+  <div class="drawer-actions">
+    <button class="salvar" onclick="salvarReserva()">Salvar</button>
+    <button class="apagar" onclick="apagarReserva()">Apagar</button>
   </div>
 </div>
 
@@ -185,114 +216,103 @@ const supabase = supabase.createClient(
 );
 
 const mapa = document.getElementById('mapa');
-const modal = document.getElementById('modal');
+const drawer = document.getElementById('drawer');
 
 let mesaAtual = null;
 let offsetX, offsetY;
 
-/* ======================
-   ADICIONAR MESA
-====================== */
+/* ADD MESA */
 async function adicionarMesa(){
-  const nome = mesaNome.value;
-  const tipo = mesaTipo.value;
-  const capacidade = mesaCapacidade.value;
-
-  if(!nome || !capacidade){
-    alert("Preencha nome e capacidade");
-    return;
-  }
+  if(!mesaNome.value || !mesaCapacidade.value) return;
 
   await supabase.from('mesas').insert({
-    nome,
-    tipo,
-    capacidade,
-    x: 50,
-    y: 50,
-    status: 'livre'
+    nome: mesaNome.value,
+    tipo: mesaTipo.value,
+    capacidade: mesaCapacidade.value,
+    x: 40,
+    y: 40,
+    status:'livre'
   });
 
-  mesaNome.value = '';
-  mesaCapacidade.value = '';
-
+  mesaNome.value='';
+  mesaCapacidade.value='';
   carregarMesas();
 }
 
-/* ======================
-   CARREGAR MESAS
-====================== */
+/* LOAD */
 async function carregarMesas(){
-  mapa.innerHTML = '';
+  mapa.innerHTML='';
   const { data } = await supabase.from('mesas').select('*');
 
-  data.forEach(m => {
-    const div = document.createElement('div');
-    div.className = `mesa ${m.tipo} ${m.status}`;
-    div.innerText = `${m.nome}\n(${m.capacidade})`;
-    div.style.left = m.x + 'px';
-    div.style.top = m.y + 'px';
+  data.forEach(m=>{
+    const el=document.createElement('div');
+    el.className=`mesa ${m.tipo} ${m.status}`;
+    el.style.left=m.x+'px';
+    el.style.top=m.y+'px';
+    el.innerHTML=`${m.nome}<span>${m.capacidade} lugares</span>`;
 
-    div.onmousedown = e => iniciarDrag(e, m, div);
-    div.onclick = () => abrirModal(m);
+    el.onmousedown=e=>drag(e,m,el);
+    el.onclick=()=>abrirDrawer(m);
 
-    mapa.appendChild(div);
+    mapa.appendChild(el);
   });
 }
-
 carregarMesas();
 
-/* ======================
-   DRAG
-====================== */
-function iniciarDrag(e, mesa, el){
-  mesaAtual = mesa;
-  offsetX = e.offsetX;
-  offsetY = e.offsetY;
+/* DRAG */
+function drag(e,m,el){
+  mesaAtual=m;
+  offsetX=e.offsetX;
+  offsetY=e.offsetY;
 
-  document.onmousemove = ev => {
-    el.style.left = ev.pageX - offsetX + 'px';
-    el.style.top = ev.pageY - offsetY - 64 + 'px';
+  document.onmousemove=ev=>{
+    el.style.left=ev.pageX-offsetX+'px';
+    el.style.top=ev.pageY-offsetY-64+'px';
   };
 
-  document.onmouseup = async () => {
-    document.onmousemove = null;
-    document.onmouseup = null;
-
+  document.onmouseup=async()=>{
+    document.onmousemove=null;
     await supabase.from('mesas').update({
-      x: parseInt(el.style.left),
-      y: parseInt(el.style.top)
-    }).eq('id', mesa.id);
+      x:parseInt(el.style.left),
+      y:parseInt(el.style.top)
+    }).eq('id',m.id);
   };
 }
 
-/* ======================
-   RESERVA
-====================== */
-function abrirModal(m){
-  mesaAtual = m;
-  modal.style.display = 'flex';
+/* DRAWER */
+function abrirDrawer(m){
+  mesaAtual=m;
+  drawer.classList.add('active');
 
-  nome.value = m.nome_cliente || '';
-  telefone.value = m.telefone || '';
-  qtd.value = m.qtd_pessoas || '';
-  status.value = m.status || 'livre';
+  nome.value=m.nome_cliente||'';
+  telefone.value=m.telefone||'';
+  qtd.value=m.qtd_pessoas||'';
+  status.value=m.status||'livre';
 }
 
 async function salvarReserva(){
   await supabase.from('mesas').update({
-    nome_cliente: nome.value,
-    telefone: telefone.value,
-    qtd_pessoas: qtd.value,
-    status: status.value
-  }).eq('id', mesaAtual.id);
+    nome_cliente:nome.value,
+    telefone:telefone.value,
+    qtd_pessoas:qtd.value,
+    status:status.value
+  }).eq('id',mesaAtual.id);
 
-  modal.style.display = 'none';
+  drawer.classList.remove('active');
   carregarMesas();
 }
 
-modal.onclick = e => {
-  if(e.target === modal) modal.style.display = 'none';
-};
+async function apagarReserva(){
+  await supabase.from('mesas').update({
+    nome_cliente:null,
+    telefone:null,
+    qtd_pessoas:null,
+    status:'livre'
+  }).eq('id',mesaAtual.id);
+
+  drawer.classList.remove('active');
+  carregarMesas();
+}
 </script>
 
 </body>
