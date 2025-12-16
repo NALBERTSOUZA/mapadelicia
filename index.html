@@ -5,227 +5,290 @@
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
 
 <style>
 :root{
-  --bg:#f5f5f5;
-  --card:#18181b;
-  --line:#2a2a2e;
-  --text:#f4f4f5;
+  --bg:#0b0b0b;
+  --card:#151515;
+  --line:#262626;
+  --text:#f5f5f5;
+  --muted:#a3a3a3;
   --primary:#22c55e;
-  --danger:#ef4444;
   --warning:#facc15;
+  --danger:#ef4444;
 }
 
 *{box-sizing:border-box}
 body{
   margin:0;
+  font-family:Inter,system-ui;
   background:var(--bg);
   color:var(--text);
-  font-family:Inter,system-ui;
+  overflow:hidden;
 }
 
 header{
-  padding:20px;
-  font-size:20px;
-  font-weight:700;
+  height:64px;
+  padding:0 20px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
   border-bottom:1px solid var(--line);
-}
-
-.container{
-  max-width:1200px;
-  margin:auto;
-  padding:20px;
-}
-
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:14px;
-  padding:20px;
-  margin-bottom:20px;
-}
-
-#mapa{
-  display:grid;
-  grid-template-columns:repeat(5,1fr);
-  grid-gap:20px;
-}
-
-.mesa{
-  background:#d4b28c;
-  border-radius:10px;
-  text-align:center;
-  padding:10px;
-  cursor:move;
-  transition: all 0.3s ease;
-  display:inline-block;
-}
-
-.mesa:hover{
-  background:#deb880;
-}
-
-.mesa .label{
-  margin-top:10px;
-  font-weight:bold;
+  font-weight:800;
 }
 
 button{
-  padding:12px;
-  border-radius:10px;
   border:none;
-  font-weight:600;
+  border-radius:10px;
+  padding:10px 14px;
+  font-weight:700;
   cursor:pointer;
 }
 
-.btn-primary{background:var(--primary);color:#fff}
+.btn-primary{background:var(--primary);color:#052e16}
+.btn-warning{background:var(--warning);color:#422006}
+.btn-danger{background:var(--danger);color:#fff}
 
-#popup{
+#mapa{
+  position:relative;
+  width:100%;
+  height:calc(100vh - 64px);
+  background:#101010;
+}
+
+.mesa{
+  position:absolute;
+  width:140px;
+  height:100px;
+  background:#caa472;
+  border-radius:14px;
+  cursor:grab;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:800;
+  color:#3b2f1b;
+}
+
+.mesa.pago{outline:4px solid var(--primary)}
+.mesa.pendente{outline:4px solid var(--warning)}
+
+.cadeira{
+  position:absolute;
+  width:26px;
+  height:26px;
+  background:#111;
+  border-radius:50%;
+}
+
+.c1{top:-14px;left:50%;transform:translateX(-50%)}
+.c2{bottom:-14px;left:50%;transform:translateX(-50%)}
+.c3{left:-14px;top:50%;transform:translateY(-50%)}
+.c4{right:-14px;top:50%;transform:translateY(-50%)}
+
+#overlay{
   position:fixed;
-  top:0;
-  left:0;
-  right:0;
-  bottom:0;
-  background:rgba(0,0,0,0.7);
+  inset:0;
+  background:rgba(0,0,0,.7);
   display:none;
   align-items:center;
   justify-content:center;
+  z-index:999;
 }
 
-#popupContent{
-  background:white;
-  padding:20px;
-  border-radius:8px;
+.loader{
+  padding:20px 30px;
+  background:#111;
+  border-radius:14px;
+  font-weight:700;
 }
 
-input,button{
-  width:100%;
+#modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:1000;
+}
+
+.modal-box{
+  background:#151515;
+  padding:24px;
+  border-radius:16px;
+  width:360px;
+  display:grid;
+  gap:12px;
+}
+
+input,select{
   padding:12px;
   border-radius:10px;
   border:1px solid var(--line);
-  background:#f8f8f8;
+  background:#0b0b0b;
+  color:var(--text);
 }
 
-input{
-  margin-bottom:10px;
+.error{
+  color:var(--danger);
+  font-size:13px;
 }
 </style>
 </head>
 
 <body>
 
-<header>🍽️ Mapa de Mesas</header>
+<header>
+  🍽️ Mapa de Mesas
+  <button class="btn-primary" onclick="novaMesa()">＋</button>
+</header>
 
-<div class="container">
+<div id="mapa"></div>
 
-  <!-- Botão para adicionar uma nova mesa -->
-  <button class="btn-primary" onclick="mostrarPopup()">+ Adicionar Mesa</button>
-
-  <!-- Mapa de Mesas -->
-  <div id="mapa"></div>
-
+<!-- OVERLAY -->
+<div id="overlay">
+  <div class="loader">Processando...</div>
 </div>
 
-<!-- Popup para adicionar cliente -->
-<div id="popup">
-  <div id="popupContent">
-    <h3>Reservar Mesa</h3>
-    <input type="text" id="nomeCliente" placeholder="Nome do Cliente" />
-    <input type="text" id="telefoneCliente" placeholder="Telefone" />
-    <button onclick="adicionarReserva()">Adicionar</button>
-    <button onclick="fecharPopup()">Fechar</button>
+<!-- MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <strong>Reserva</strong>
+
+    <input id="cliente" placeholder="Nome do cliente">
+    <input id="telefone" placeholder="Telefone">
+    <input id="data" type="date">
+    <input id="hora" type="time">
+
+    <select id="status">
+      <option value="pendente">Pendente</option>
+      <option value="pago">Pago</option>
+    </select>
+
+    <div class="error" id="erro"></div>
+
+    <button class="btn-primary" onclick="salvarReserva()">Salvar</button>
+    <button onclick="fecharModal()">Cancelar</button>
   </div>
 </div>
 
 <script>
-// ================== CONFIG SUPABASE ==================
 const supabase = supabase.createClient(
   "https://pkpmzbjvsapzeuqtvytm.supabase.co",
   "sb_publishable_UIy2gATpA5WzOIgeXHvqlw_IpSiwdsh"
 )
 
-let mesaId = 0;
-let mesas = [];
+const mapa = document.getElementById("mapa")
+const overlay = document.getElementById("overlay")
+const modal = document.getElementById("modal")
+const erro = document.getElementById("erro")
 
-// ================== CARREGAR MESAS ==================
-function carregarMesas() {
-  const mapa = document.getElementById('mapa');
-  mapa.innerHTML = '';
+let mesas = []
+let mesaAtual = null
 
-  mesas.forEach(mesa => {
-    const mesaElement = document.createElement('div');
-    mesaElement.className = 'mesa';
-    mesaElement.id = `mesa-${mesa.id}`;
-    mesaElement.draggable = true;
-    mesaElement.innerHTML = `
-      <div class="label">Mesa ${mesa.numero}</div>
-      <div>Cliente: ${mesa.cliente}</div>
-      <div>Status: ${mesa.status}</div>
-    `;
+function loading(v){ overlay.style.display = v ? "flex" : "none" }
+function showError(msg){ erro.textContent = msg }
 
-    mesaElement.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData("mesaId", mesa.id);
-    });
+async function carregarMesas(){
+  loading(true)
 
-    mapa.appendChild(mesaElement);
-  });
+  const { data, error } = await supabase.from("mesas").select("*")
+  if(error){ alert(error.message); return }
 
-  // Ativar Drag and Drop
-  dragula([mapa]);
+  mesas = data
+  mapa.innerHTML = ""
+  mesas.forEach(renderMesa)
+
+  loading(false)
 }
 
-// ================== ADICIONAR RESERVA ==================
-let editMesa = null;
+function renderMesa(m){
+  const div = document.createElement("div")
+  div.className = "mesa"
+  div.style.left = m.pos_x+"px"
+  div.style.top = m.pos_y+"px"
+  div.textContent = "Mesa "+m.numero
+  div.onclick = ()=>abrirReserva(m)
 
-function mostrarPopup(){
-  document.getElementById('popup').style.display = 'flex';
-  editMesa = null;
+  ;["c1","c2","c3","c4"].slice(0,m.lugares).forEach(c=>{
+    const cd = document.createElement("div")
+    cd.className = "cadeira "+c
+    div.appendChild(cd)
+  })
+
+  drag(div,m)
+  mapa.appendChild(div)
 }
 
-function fecharPopup(){
-  document.getElementById('popup').style.display = 'none';
-}
-
-function adicionarReserva(){
-  const nome = document.getElementById('nomeCliente').value;
-  const telefone = document.getElementById('telefoneCliente').value;
-
-  if(nome && telefone){
-    mesaId++;
-
-    mesas.push({
-      id: mesaId,
-      numero: mesaId,
-      cliente: nome,
-      telefone: telefone,
-      status: 'Pendente',
-    });
-
-    document.getElementById('nomeCliente').value = '';
-    document.getElementById('telefoneCliente').value = '';
-
-    carregarMesas();
-    fecharPopup();
-  }
-  else{
-    alert('Por favor, preencha o nome e telefone do cliente.');
+function drag(el,m){
+  let ox,oy
+  el.onmousedown = e=>{
+    ox=e.offsetX; oy=e.offsetY
+    document.onmousemove = ev=>{
+      el.style.left = ev.pageX-ox+"px"
+      el.style.top = ev.pageY-oy+"px"
+    }
+    document.onmouseup = async()=>{
+      document.onmousemove=null
+      await supabase.from("mesas").update({
+        pos_x:parseInt(el.style.left),
+        pos_y:parseInt(el.style.top)
+      }).eq("id",m.id)
+    }
   }
 }
 
-// ================== EDITAR RESERVA ==================
-function editarReserva(id){
-  editMesa = mesas.find(m => m.id === id);
-  if (editMesa) {
-    document.getElementById('nomeCliente').value = editMesa.cliente;
-    document.getElementById('telefoneCliente').value = editMesa.telefone;
-    mostrarPopup();
-  }
+async function novaMesa(){
+  loading(true)
+  const { error } = await supabase.from("mesas").insert({
+    numero: mesas.length+1,
+    lugares: 4,
+    pos_x: 40,
+    pos_y: 40
+  })
+  if(error) alert(error.message)
+  await carregarMesas()
 }
 
+async function abrirReserva(m){
+  mesaAtual = m
+  modal.style.display="flex"
+  showError("")
+}
+
+async function salvarReserva(){
+  if(!cliente.value || !telefone.value){
+    showError("Nome e telefone obrigatórios")
+    return
+  }
+
+  loading(true)
+
+  const { error } = await supabase.from("reservas").insert({
+    mesa_id: mesaAtual.id,
+    cliente_nome: cliente.value,
+    cliente_telefone: telefone.value,
+    data: data.value,
+    hora: hora.value,
+    status: status.value
+  })
+
+  loading(false)
+
+  if(error){ showError(error.message); return }
+  fecharModal()
+}
+
+function fecharModal(){
+  modal.style.display="none"
+  cliente.value=""
+  telefone.value=""
+}
+
+carregarMesas()
 </script>
 
 </body>
