@@ -2,134 +2,250 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Index de Mesas</title>
+<title>Mapa de Mesas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 :root{
+  --bg:#f4f6fb;
+  --canvas:#ffffff;
   --mesa:#e5e7eb;
-  --mesa-borda:#9ca3af;
-  --cadeira:#374151;
-  --fundo:#f9fafb;
+  --mesa-border:#9ca3af;
+  --cadeira:#1f2937;
+  --primary:#111827;
 }
 
-*{
-  box-sizing:border-box;
-  font-family:Inter,system-ui,Arial;
-}
+*{box-sizing:border-box;font-family:Inter}
+body{margin:0;background:var(--bg)}
 
-body{
-  margin:0;
-  background:var(--fundo);
-  padding:40px;
-}
-
-.index-mesas{
+header{
+  height:60px;
+  background:#fff;
   display:flex;
-  flex-wrap:wrap;
-  gap:40px;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  border-bottom:1px solid #e5e7eb;
 }
 
-/* ===== MESA ===== */
-.mesa{
-  position:relative;
-  width:120px;
-  height:120px;
-  border-radius:50%;
-  background:var(--mesa);
-  border:4px solid var(--mesa-borda);
+header button{
+  background:#111827;
+  color:#fff;
+  border:none;
+  padding:8px 14px;
+  border-radius:8px;
   cursor:pointer;
 }
 
-.mesa:hover{
-  box-shadow:0 10px 30px rgba(0,0,0,.15);
+main{
+  display:grid;
+  grid-template-columns:220px 1fr;
+  height:calc(100vh - 60px);
 }
 
-/* número central */
+aside{
+  background:#fff;
+  border-right:1px solid #e5e7eb;
+  padding:16px;
+}
+
+aside h3{margin:0 0 12px}
+
+aside button{
+  width:100%;
+  padding:10px;
+  border:none;
+  background:#e5e7eb;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+#canvas{
+  position:relative;
+  background:var(--canvas);
+  margin:16px;
+  border-radius:12px;
+  overflow:hidden;
+}
+
+.mesa-wrapper{
+  position:absolute;
+  cursor:grab;
+}
+
+.mesa{
+  width:110px;
+  height:110px;
+  border-radius:50%;
+  background:var(--mesa);
+  border:4px solid var(--mesa-border);
+  position:relative;
+}
+
 .mesa .lugares{
   position:absolute;
   inset:0;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:28px;
+  font-size:26px;
   font-weight:700;
-  color:#111827;
 }
 
-/* cadeira */
 .cadeira{
   position:absolute;
-  width:22px;
-  height:30px;
+  width:18px;
+  height:28px;
   background:var(--cadeira);
   border-radius:6px;
-  top:-15px;
+  top:-14px;
   left:50%;
-  transform-origin:center 75px;
+  transform-origin:center 85px;
 }
 
-/* nome opcional */
-.nome-mesa{
-  text-align:center;
-  margin-top:12px;
-  font-weight:600;
-  color:#374151;
+.controles{
+  display:flex;
+  justify-content:center;
+  gap:6px;
+  margin-top:6px;
+}
+
+.controles button{
+  width:26px;
+  height:26px;
+  border-radius:50%;
+  border:none;
+  background:#111827;
+  color:#fff;
+  cursor:pointer;
 }
 </style>
 </head>
 
 <body>
 
-<h2>Mesas</h2>
+<header>
+  <strong>Mapa de Mesas</strong>
+  <button id="toggleMode">Modo: Editar</button>
+</header>
 
-<div class="index-mesas">
+<main>
+  <aside>
+    <h3>Mesas</h3>
+    <button onclick="criarMesa()">+ Nova Mesa</button>
+  </aside>
 
-  <div class="mesa-wrapper">
-    <div class="mesa" data-lugares="2">
-      <span class="lugares">2</span>
-    </div>
-    <div class="nome-mesa">Mesa 1</div>
-  </div>
-
-  <div class="mesa-wrapper">
-    <div class="mesa" data-lugares="4">
-      <span class="lugares">4</span>
-    </div>
-    <div class="nome-mesa">Mesa 2</div>
-  </div>
-
-  <div class="mesa-wrapper">
-    <div class="mesa" data-lugares="6">
-      <span class="lugares">6</span>
-    </div>
-    <div class="nome-mesa">Mesa 3</div>
-  </div>
-
-  <div class="mesa-wrapper">
-    <div class="mesa" data-lugares="8">
-      <span class="lugares">8</span>
-    </div>
-    <div class="nome-mesa">Mesa 4</div>
-  </div>
-
-</div>
+  <div id="canvas"></div>
+</main>
 
 <script>
-document.querySelectorAll('.mesa').forEach(mesa=>{
+/* 🔐 SUPABASE */
+const supabase = supabase.createClient(
+  'https://SUA_URL.supabase.co',
+  'SUA_ANON_KEY'
+);
+
+let modoEditar = true;
+
+/* 🔄 MODE */
+document.getElementById('toggleMode').onclick = ()=>{
+  modoEditar = !modoEditar;
+  document.getElementById('toggleMode').innerText =
+    modoEditar ? 'Modo: Editar' : 'Modo: Ao Vivo';
+};
+
+/* 🪑 GERAR CADEIRAS */
+function gerarCadeiras(mesa){
+  mesa.querySelectorAll('.cadeira').forEach(c=>c.remove());
   const lugares = Number(mesa.dataset.lugares);
-  const angulo = 360 / lugares;
+  const ang = 360 / lugares;
 
   for(let i=0;i<lugares;i++){
-    const cadeira = document.createElement('div');
-    cadeira.className = 'cadeira';
-    cadeira.style.transform = `
-      rotate(${angulo * i}deg)
-      translateY(-15px)
-    `;
-    mesa.appendChild(cadeira);
+    const c = document.createElement('div');
+    c.className='cadeira';
+    c.style.transform = `rotate(${ang*i}deg) translateY(-28px)`;
+    mesa.appendChild(c);
   }
-});
+  mesa.querySelector('.lugares').innerText = lugares;
+}
+
+/* ➕ NOVA MESA */
+async function criarMesa(){
+  const { data } = await supabase
+    .from('mesas')
+    .insert([{ nome:'Mesa', capacidade:4, x:100, y:100 }])
+    .select().single();
+
+  renderMesa(data);
+}
+
+/* 🎨 RENDER */
+function renderMesa(m){
+  const w = document.createElement('div');
+  w.className='mesa-wrapper';
+  w.style.left=m.x+'px';
+  w.style.top=m.y+'px';
+  w.dataset.id=m.id;
+
+  w.innerHTML=`
+    <div class="mesa" data-lugares="${m.capacidade}">
+      <span class="lugares">${m.capacidade}</span>
+    </div>
+    <div class="controles">
+      <button onclick="alterar(this,-1)">−</button>
+      <button onclick="alterar(this,1)">+</button>
+    </div>
+  `;
+
+  const mesa = w.querySelector('.mesa');
+  gerarCadeiras(mesa);
+  drag(w);
+
+  document.getElementById('canvas').appendChild(w);
+}
+
+/* ➕ / ➖ */
+async function alterar(btn,delta){
+  const w = btn.closest('.mesa-wrapper');
+  const mesa = w.querySelector('.mesa');
+  let v = Number(mesa.dataset.lugares)+delta;
+  if(v<1) return;
+  mesa.dataset.lugares=v;
+  gerarCadeiras(mesa);
+
+  await supabase.from('mesas')
+    .update({capacidade:v})
+    .eq('id',w.dataset.id);
+}
+
+/* 🖱️ DRAG */
+function drag(el){
+  let ox,oy;
+  el.onmousedown=e=>{
+    if(!modoEditar) return;
+    ox=e.offsetX; oy=e.offsetY;
+    document.onmousemove=ev=>{
+      el.style.left=(ev.pageX-ox)+'px';
+      el.style.top=(ev.pageY-oy)+'px';
+    };
+    document.onmouseup=async ()=>{
+      document.onmousemove=null;
+      await supabase.from('mesas').update({
+        x:parseInt(el.style.left),
+        y:parseInt(el.style.top)
+      }).eq('id',el.dataset.id);
+    };
+  };
+}
+
+/* 🔄 LOAD */
+(async()=>{
+  const { data } = await supabase.from('mesas').select('*');
+  data.forEach(renderMesa);
+})();
 </script>
 
 </body>
