@@ -50,6 +50,31 @@ header button{
   color:#fff;
   font-weight:700;
   cursor:pointer;
+  position:relative;
+}
+
+/* BOTÃO LOADING */
+header button.loading{
+  pointer-events:none;
+  opacity:.7;
+}
+
+header button.loading::after{
+  content:'';
+  width:18px;
+  height:18px;
+  border:3px solid #fff;
+  border-top:3px solid transparent;
+  border-radius:50%;
+  position:absolute;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  animation:spin .8s linear infinite;
+}
+
+@keyframes spin{
+  to{transform:translate(-50%,-50%) rotate(360deg)}
 }
 
 /* PALCO */
@@ -146,68 +171,76 @@ header button{
 </div>
 
 <script>
-/* ====== CONFIGURE AQUI ====== */
+/* ====== SUPABASE ====== */
 const SUPABASE_URL = "https://pkpmzbjvsapzeuqtvytm.supabase.co";
 const SUPABASE_KEY = "sb_publishable_UIy2gATpA5WzOIgeXHvqlw_IpSiwdsh";
-/* =========================== */
 
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+/* ====== ELEMENTOS ====== */
 const palco = document.getElementById('palco');
 const modal = document.getElementById('modal');
 const btnAdd = document.getElementById('btnAdd');
 
 let mesaAtual = null;
 
-/* ADD MESA */
+/* ====== ADICIONAR MESA (COM OVERLAY E ERRO) ====== */
 btnAdd.onclick = async () => {
-  const tipo = document.getElementById('tipo').value;
-  const lugares = parseInt(document.getElementById('lugares').value);
+  const tipoMesa = document.getElementById('tipo').value;
+  const lugaresInput = document.getElementById('lugares');
+  const lugares = parseInt(lugaresInput.value);
 
-  if(!lugares){
-    alert("Informe os lugares");
+  if(!lugares || lugares <= 0){
+    alert("Informe a quantidade de lugares");
     return;
   }
 
-  const { data, error } = await supabase
-    .from('mesas')
-    .insert({
-      tipo,
-      lugares,
-      x:150,
-      y:150
-    })
-    .select()
-    .single();
+  btnAdd.classList.add('loading');
 
-  if(error){
-    alert("Erro ao inserir. Veja o console.");
-    console.error(error);
-    return;
+  try{
+    const { data, error } = await supabase
+      .from('mesas')
+      .insert({
+        tipo: tipoMesa,
+        lugares: lugares,
+        x: 150,
+        y: 150
+      })
+      .select()
+      .single();
+
+    if(error) throw error;
+
+    desenharMesa(data);
+    lugaresInput.value = '';
+
+  }catch(err){
+    console.error("Erro ao adicionar mesa:", err);
+    alert("Erro ao salvar no Supabase:\n" + err.message);
+  }finally{
+    btnAdd.classList.remove('loading');
   }
-
-  desenharMesa(data);
 };
 
-/* DESENHAR */
+/* ====== DESENHAR MESA ====== */
 function desenharMesa(m){
   const el = document.createElement('div');
   el.className = `mesa ${m.tipo} ${m.status}`;
-  el.style.left = m.x+'px';
-  el.style.top = m.y+'px';
+  el.style.left = m.x + 'px';
+  el.style.top = m.y + 'px';
   el.innerText = m.lugares;
 
-  el.onmousedown = e => drag(e,m,el);
+  el.onmousedown = e => drag(e, m, el);
   el.onclick = e => {
     e.stopPropagation();
-    abrirModal(m,el);
+    abrirModal(m, el);
   };
 
   palco.appendChild(el);
 }
 
-/* DRAG */
-function drag(e,m,el){
+/* ====== DRAG ====== */
+function drag(e, m, el){
   const ox = e.clientX - el.offsetLeft;
   const oy = e.clientY - el.offsetTop;
 
@@ -218,44 +251,54 @@ function drag(e,m,el){
 
   document.onmouseup = async () => {
     document.onmousemove = null;
-    await supabase.from('mesas')
-      .update({ x:parseInt(el.style.left), y:parseInt(el.style.top) })
-      .eq('id',m.id);
+    await supabase
+      .from('mesas')
+      .update({
+        x: parseInt(el.style.left),
+        y: parseInt(el.style.top)
+      })
+      .eq('id', m.id);
   };
 }
 
-/* MODAL */
-function abrirModal(m,el){
+/* ====== MODAL ====== */
+function abrirModal(m, el){
   mesaAtual = { m, el };
   cliente.value = m.cliente || '';
-  modal.style.display='flex';
+  modal.style.display = 'flex';
 }
 
 document.querySelector('.salvar').onclick = async () => {
-  await supabase.from('mesas')
-    .update({ cliente:cliente.value, status:'ocupada' })
-    .eq('id',mesaAtual.m.id);
+  await supabase
+    .from('mesas')
+    .update({ cliente: cliente.value, status: 'ocupada' })
+    .eq('id', mesaAtual.m.id);
 
   mesaAtual.el.classList.add('ocupada');
-  modal.style.display='none';
+  modal.style.display = 'none';
 };
 
 document.querySelector('.liberar').onclick = async () => {
-  await supabase.from('mesas')
-    .update({ cliente:null, status:'livre' })
-    .eq('id',mesaAtual.m.id);
+  await supabase
+    .from('mesas')
+    .update({ cliente: null, status: 'livre' })
+    .eq('id', mesaAtual.m.id);
 
   mesaAtual.el.classList.remove('ocupada');
-  modal.style.display='none';
+  modal.style.display = 'none';
 };
 
 modal.onclick = e => {
-  if(e.target === modal) modal.style.display='none';
+  if(e.target === modal) modal.style.display = 'none';
 };
 
-/* LOAD */
+/* ====== LOAD ====== */
 async function carregar(){
-  const { data } = await supabase.from('mesas').select('*');
+  const { data, error } = await supabase.from('mesas').select('*');
+  if(error){
+    console.error("Erro ao carregar mesas:", error);
+    return;
+  }
   data.forEach(desenharMesa);
 }
 carregar();
