@@ -21,13 +21,42 @@ body{
   background:var(--bg);
 }
 
+/* HEADER */
 header{
-  padding:16px 24px;
+  padding:14px 20px;
   background:#111;
   color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+header span{
   font-weight:700;
 }
 
+/* BARRA ADMIN */
+#adminBar{
+  display:flex;
+  gap:10px;
+}
+
+#adminBar input,
+#adminBar select,
+#adminBar button{
+  padding:8px;
+  border-radius:6px;
+  border:none;
+}
+
+#adminBar button{
+  background:#2ecc71;
+  color:#fff;
+  font-weight:600;
+  cursor:pointer;
+}
+
+/* MAPA */
 #mapa{
   position:relative;
   width:100%;
@@ -36,6 +65,7 @@ header{
   overflow:hidden;
 }
 
+/* MESA */
 .mesa{
   position:absolute;
   display:flex;
@@ -74,6 +104,7 @@ header{
   border:none;
 }
 
+/* MODAL */
 #modal{
   position:fixed;
   inset:0;
@@ -94,7 +125,8 @@ header{
   margin-top:0;
 }
 
-.box input, .box select{
+.box input,
+.box select{
   width:100%;
   padding:10px;
   margin-bottom:10px;
@@ -113,10 +145,24 @@ header{
 
 <body>
 
-<header>📍 Sistema de Reservas</header>
+<header>
+  <span>📍 Sistema de Reservas</span>
+
+  <!-- ADMIN -->
+  <div id="adminBar">
+    <input id="mesaNome" placeholder="Nome da mesa">
+    <select id="mesaTipo">
+      <option value="redonda">Redonda</option>
+      <option value="quadrada">Quadrada</option>
+    </select>
+    <input id="mesaCapacidade" type="number" placeholder="Lugares">
+    <button onclick="adicionarMesa()">+ Adicionar mesa</button>
+  </div>
+</header>
 
 <div id="mapa"></div>
 
+<!-- MODAL RESERVA -->
 <div id="modal">
   <div class="box">
     <h3>Reserva da Mesa</h3>
@@ -144,9 +190,37 @@ const modal = document.getElementById('modal');
 let mesaAtual = null;
 let offsetX, offsetY;
 
-// =======================
-// CARREGAR MESAS
-// =======================
+/* ======================
+   ADICIONAR MESA
+====================== */
+async function adicionarMesa(){
+  const nome = mesaNome.value;
+  const tipo = mesaTipo.value;
+  const capacidade = mesaCapacidade.value;
+
+  if(!nome || !capacidade){
+    alert("Preencha nome e capacidade");
+    return;
+  }
+
+  await supabase.from('mesas').insert({
+    nome,
+    tipo,
+    capacidade,
+    x: 50,
+    y: 50,
+    status: 'livre'
+  });
+
+  mesaNome.value = '';
+  mesaCapacidade.value = '';
+
+  carregarMesas();
+}
+
+/* ======================
+   CARREGAR MESAS
+====================== */
 async function carregarMesas(){
   mapa.innerHTML = '';
   const { data } = await supabase.from('mesas').select('*');
@@ -154,7 +228,7 @@ async function carregarMesas(){
   data.forEach(m => {
     const div = document.createElement('div');
     div.className = `mesa ${m.tipo} ${m.status}`;
-    div.innerText = m.nome;
+    div.innerText = `${m.nome}\n(${m.capacidade})`;
     div.style.left = m.x + 'px';
     div.style.top = m.y + 'px';
 
@@ -167,9 +241,9 @@ async function carregarMesas(){
 
 carregarMesas();
 
-// =======================
-// DRAG & DROP
-// =======================
+/* ======================
+   DRAG
+====================== */
 function iniciarDrag(e, mesa, el){
   mesaAtual = mesa;
   offsetX = e.offsetX;
@@ -191,9 +265,9 @@ function iniciarDrag(e, mesa, el){
   };
 }
 
-// =======================
-// MODAL
-// =======================
+/* ======================
+   RESERVA
+====================== */
 function abrirModal(m){
   mesaAtual = m;
   modal.style.display = 'flex';
