@@ -1,389 +1,121 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Mapa de Mesas</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<title>Mapa Simples</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <style>
-    :root {
-      --bg: #f4f6fb;
-      --canvas: #ffffff;
-      --mesa: #e5e7eb;
-      --mesa-border: #9ca3af;
-      --cadeira: #1f2937;
-      --green: #16a34a;
-      --red: #dc2626;
-    }
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f4f6fb;
+}
 
-    * {
-      box-sizing: border-box;
-      font-family: Inter;
-    }
+header{
+  height:60px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  border-bottom:1px solid #ddd;
+}
 
-    body {
-      margin: 0;
-      background: var(--bg);
-    }
+.toggle{
+  width:60px;
+  height:30px;
+  background:#dc2626;
+  border-radius:30px;
+  position:relative;
+  cursor:pointer;
+}
 
-    /* HEADER */
-    header {
-      height: 60px;
-      background: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 20px;
-      border-bottom: 1px solid #e5e7eb;
-    }
+.toggle::after{
+  content:'';
+  width:24px;
+  height:24px;
+  background:#fff;
+  border-radius:50%;
+  position:absolute;
+  top:3px;
+  left:33px;
+  transition:.2s;
+}
 
-    /* SWITCH */
-    .switch {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      cursor: pointer;
-    }
+.toggle.on{
+  background:#16a34a;
+}
 
-    .switch span {
-      font-weight: 600;
-      font-size: 14px;
-    }
+.toggle.on::after{
+  left:3px;
+}
 
-    .toggle {
-      position: relative;
-      width: 54px;
-      height: 28px;
-      background: var(--green);
-      border-radius: 999px;
-      transition: .25s;
-    }
+#canvas{
+  position:relative;
+  height:calc(100vh - 60px);
+}
 
-    .toggle::after {
-      content: '';
-      position: absolute;
-      width: 22px;
-      height: 22px;
-      background: #fff;
-      border-radius: 50%;
-      top: 3px;
-      left: 3px;
-      transition: .25s;
-    }
-
-    .toggle.editar {
-      background: var(--red);
-    }
-
-    .toggle.editar::after {
-      left: 29px;
-    }
-
-    /* LAYOUT */
-    main {
-      display: grid;
-      grid-template-columns: 220px 1fr;
-      height: calc(100vh - 60px);
-    }
-
-    aside {
-      background: #fff;
-      border-right: 1px solid #e5e7eb;
-      padding: 16px;
-    }
-
-    aside h3 {
-      margin: 0 0 12px;
-    }
-
-    aside button {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      background: #e5e7eb;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: .2s;
-    }
-
-    aside button.disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-
-    #canvas {
-      position: relative;
-      background: var(--canvas);
-      margin: 16px;
-      border-radius: 12px;
-    }
-
-    /* MESA */
-    .mesa-wrapper {
-      position: absolute;
-      cursor: grab;
-    }
-
-    .mesa {
-      width: 110px;
-      height: 110px;
-      border-radius: 50%;
-      background: var(--mesa);
-      border: 4px solid var(--mesa-border);
-      position: relative;
-    }
-
-    .mesa .lugares {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      font-weight: 700;
-    }
-
-    .cadeira {
-      position: absolute;
-      width: 18px;
-      height: 28px;
-      background: var(--cadeira);
-      border-radius: 6px;
-      top: -14px;
-      left: 50%;
-      transform-origin: center 85px;
-    }
-
-    /* MODAL */
-    .modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, .4);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .modal-box {
-      background: #fff;
-      width: 360px;
-      border-radius: 12px;
-      padding: 20px;
-    }
-
-    .modal-box input,
-    .modal-box select {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0 14px;
-      border-radius: 8px;
-      border: 1px solid #d1d5db;
-    }
-
-    .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 10px;
-    }
-
-    .modal-actions button {
-      padding: 8px 14px;
-      border-radius: 8px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-save {
-      background: #111827;
-      color: #fff;
-    }
-
-    .btn-cancel {
-      background: #e5e7eb;
-    }
-
-    /* Modo Ao Vivo */
-    .modo-ao-vivo .mesa-wrapper {
-      pointer-events: none;
-      cursor: default;
-    }
-
-    aside button:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-    }
-  </style>
+.mesa{
+  width:100px;
+  height:100px;
+  background:#e5e7eb;
+  border:3px solid #9ca3af;
+  border-radius:50%;
+  position:absolute;
+  left:200px;
+  top:150px;
+  cursor:grab;
+}
+</style>
 </head>
 
 <body>
 
-  <header>
-    <strong>Mapa de Mesas</strong>
+<header>
+  <strong id="label">Editar</strong>
+  <div id="toggle" class="toggle"></div>
+</header>
 
-    <div class="switch" id="switchModo">
-      <span id="labelModo">Editar</span>
-      <div id="toggle" class="toggle editar"></div>
-    </div>
-  </header>
+<div id="canvas">
+  <div id="mesa" class="mesa"></div>
+</div>
 
-  <main>
-    <aside>
-      <h3>Mesas</h3>
-      <button id="btnNovaMesa">+ Nova Mesa</button>
-    </aside>
+<script>
+let modoEditar = true;
 
-    <div id="canvas"></div>
-  </main>
+const toggle = document.getElementById('toggle');
+const label = document.getElementById('label');
+const mesa = document.getElementById('mesa');
 
-  <!-- MODAL -->
-  <div class="modal" id="modalMesa">
-    <div class="modal-box">
-      <h3>Nova Mesa</h3>
+/* SWITCH */
+toggle.onclick = () => {
+  modoEditar = !modoEditar;
+  toggle.classList.toggle('on', modoEditar);
+  label.innerText = modoEditar ? 'Editar' : 'Ao vivo';
+};
 
-      <label>Nome</label>
-      <input id="mesaNome">
+/* DRAG */
+let movendo = false;
+let ox = 0, oy = 0;
 
-      <label>Cadeiras</label>
-      <input id="mesaCapacidade" type="number" value="4">
+mesa.addEventListener('mousedown', e => {
+  if(!modoEditar) return; // 🔒 FLAG FUNCIONA AQUI
+  movendo = true;
+  ox = e.offsetX;
+  oy = e.offsetY;
+});
 
-      <label>Formato</label>
-      <select id="mesaFormato">
-        <option value="redonda">Redonda</option>
-        <option value="quadrada">Quadrada</option>
-      </select>
+document.addEventListener('mousemove', e => {
+  if(!movendo) return;
+  mesa.style.left = (e.pageX - ox) + 'px';
+  mesa.style.top = (e.pageY - oy - 60) + 'px';
+});
 
-      <div class="modal-actions">
-        <button class="btn-cancel" onclick="fecharModal()">Cancelar</button>
-        <button class="btn-save" onclick="salvarMesa()">Salvar</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    /* SUPABASE */
-    const supabase = supabase.createClient(
-      'https://nxeyemyelypyhvdxxvka.supabase.co',
-      'sb_publishable__xSAJ3Ip5qnURBTJ34ldZQ_8TrNQJTH'
-    );
-
-    /* ELEMENTOS */
-    const toggle = document.getElementById('toggle');
-    const labelModo = document.getElementById('labelModo');
-    const switchModo = document.getElementById('switchModo');
-    const btnNovaMesa = document.getElementById('btnNovaMesa');
-    const modalMesa = document.getElementById('modalMesa');
-    const canvas = document.getElementById('canvas');
-
-    let modoEditar = true;
-
-    /* ATUALIZA UI */
-    function atualizarModo() {
-      toggle.classList.toggle('editar', modoEditar);
-      labelModo.innerText = modoEditar ? 'Editar' : 'Ao vivo';
-
-      btnNovaMesa.classList.toggle('disabled', !modoEditar);
-
-      document.body.classList.toggle('modo-ao-vivo', !modoEditar);
-    }
-
-    /* SWITCH */
-    switchModo.onclick = () => {
-      modoEditar = !modoEditar;
-      atualizarModo();
-    };
-
-    atualizarModo();
-
-    /* BOTÃO NOVA MESA */
-    btnNovaMesa.onclick = () => {
-      if (!modoEditar) return;
-      modalMesa.style.display = 'flex';
-    };
-
-    /* MODAL */
-    function fecharModal() {
-      modalMesa.style.display = 'none';
-    }
-
-    /* CADEIRAS */
-    function gerarCadeiras(mesa) {
-      mesa.querySelectorAll('.cadeira').forEach(c => c.remove());
-      const lugares = mesa.dataset.lugares;
-      const ang = 360 / lugares;
-      for (let i = 0; i < lugares; i++) {
-        const c = document.createElement('div');
-        c.className = 'cadeira';
-        c.style.transform = `rotate(${ang * i}deg) translateY(-28px)`;
-        mesa.appendChild(c);
-      }
-    }
-
-    /* SALVAR */
-    async function salvarMesa() {
-      const { data } = await supabase.from('mesas')
-        .insert([{
-          nome: mesaNome.value || 'Mesa',
-          capacidade: mesaCapacidade.value,
-          formato: mesaFormato.value,
-          x: 150,
-          y: 150
-        }]).select().single();
-
-      renderMesa(data);
-      fecharModal();
-    }
-
-    /* RENDER */
-    function renderMesa(m) {
-      const w = document.createElement('div');
-      w.className = 'mesa-wrapper';
-      w.style.left = m.x + 'px';
-      w.style.top = m.y + 'px';
-      w.dataset.id = m.id;
-
-      w.innerHTML = `
-        <div class="mesa" data-lugares="${m.capacidade}">
-          <span class="lugares">${m.capacidade}</span>
-        </div>
-      `;
-
-      gerarCadeiras(w.querySelector('.mesa'));
-      habilitarDrag(w);
-      canvas.appendChild(w);
-    }
-
-    /* DRAG */
-    function habilitarDrag(el) {
-      let ox, oy;
-      el.onmousedown = e => {
-        if (!modoEditar) return false;
-        ox = e.offsetX;
-        oy = e.offsetY;
-        document.onmousemove = ev => {
-          el.style.left = (ev.pageX - ox) + 'px';
-          el.style.top = (ev.pageY - oy) + 'px';
-        };
-        document.onmouseup = async () => {
-          document.onmousemove = null;
-          await supabase.from('mesas').update({
-            x: parseInt(el.style.left),
-            y: parseInt(el.style.top)
-          }).eq('id', el.dataset.id);
-        };
-      };
-    }
-
-    /* LOAD */
-    (async () => {
-      const { data } = await supabase.from('mesas').select('*');
-      data.forEach(renderMesa);
-    })();
-  </script>
+document.addEventListener('mouseup', () => {
+  movendo = false;
+});
+</script>
 
 </body>
 </html>
