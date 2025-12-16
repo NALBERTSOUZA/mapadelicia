@@ -2,316 +2,240 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Sistema de Reservas</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mapa de Mesas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{
-  --bg:#f4f6f9;
-  --dark:#020617;
-  --ocupada:#f59e0b;
-  --paga:#22c55e;
-  --card:#ffffff;
-  --border:#e5e7eb;
-}
-
-*{box-sizing:border-box}
-
-body{
+*{
   margin:0;
-  font-family:Inter;
-  background:var(--bg);
-  overflow:auto;
+  padding:0;
+  box-sizing:border-box;
 }
 
-/* HEADER */
+html, body{
+  width:100vw;
+  height:100vh;
+  overflow:hidden;
+  font-family:Inter;
+  background:#e5e7eb;
+}
+
+/* TOPO */
 header{
   height:64px;
-  padding:0 20px;
-  background:linear-gradient(90deg,#020617,#0f172a);
+  background:#0f172a;
   color:#fff;
   display:flex;
   align-items:center;
-  justify-content:space-between;
+  padding:0 20px;
+  gap:12px;
 }
 
-/* ADMIN BAR */
-#adminBar{
-  display:flex;
-  gap:8px;
-}
-
-#adminBar input,
-#adminBar select,
-#adminBar button{
+header button, header select, header input{
   height:36px;
-  padding:0 12px;
-  border-radius:10px;
+  border-radius:8px;
   border:none;
+  padding:0 12px;
 }
 
-#adminBar button{
+header button{
   background:#22c55e;
   color:#fff;
   font-weight:600;
   cursor:pointer;
 }
 
-/* MAPA (GALPÃO) */
-#mapa{
+/* PALCO */
+#palco{
   position:relative;
-  width:2400px;
-  height:1400px;
-  background:#f9fafb;
-  border:2px dashed #ddd;
+  width:100%;
+  height:calc(100vh - 64px);
+  background:#f8fafc;
 }
-
-/* ZONAS */
-.zona{
-  position:absolute;
-  padding:14px 20px;
-  font-weight:700;
-  color:#fff;
-  border-radius:12px;
-  opacity:.9;
-}
-
-.sushi{background:#b91c1c; bottom:40px; left:600px;}
-.bar{background:#22c55e; bottom:40px; right:80px;}
-.buffet{background:#dc2626; bottom:200px; left:800px;}
-.adega{background:#7c3aed; top:60px; left:40px;}
-.fonte{background:#2563eb; top:60px; right:80px;}
-.parquinho{background:#facc15; top:600px; left:40px; color:#000;}
-.sanitarios{background:#374151; bottom:40px; left:40px;}
 
 /* MESA */
 .mesa{
   position:absolute;
-  background:var(--card);
-  border:1px solid var(--border);
-  box-shadow:0 8px 20px rgba(0,0,0,.08);
+  cursor:grab;
+  user-select:none;
   display:flex;
-  flex-direction:column;
   align-items:center;
   justify-content:center;
-  cursor:grab;
-  font-weight:600;
-  transition:.2s;
+  font-weight:700;
+  color:#1f2937;
 }
 
-.mesa:hover{transform:scale(1.05)}
+/* FORMAS */
+.quadrada{
+  width:110px;
+  height:110px;
+  border-radius:14px;
+  background:#94a3b8;
+}
 
 .redonda{
-  width:90px;
-  height:90px;
+  width:110px;
+  height:110px;
   border-radius:50%;
+  background:#94a3b8;
 }
 
-.quadrada{
-  width:90px;
-  height:90px;
-  border-radius:14px;
+/* CADEIRAS */
+.cadeira{
+  position:absolute;
+  width:18px;
+  height:18px;
+  background:#334155;
+  border-radius:4px;
 }
 
-.mesa span{
-  font-size:12px;
-  opacity:.7;
-}
+/* STATUS */
+.ocupada{ background:#f59e0b !important; color:#fff }
+.livre{ background:#94a3b8 }
 
-.ocupada{background:var(--ocupada);color:#fff}
-.paga{background:var(--paga);color:#fff}
-
-/* DRAWER */
-#drawer{
+/* MODAL */
+#modal{
   position:fixed;
-  top:0;
-  right:-360px;
-  width:360px;
-  height:100%;
-  background:#fff;
-  box-shadow:-10px 0 30px rgba(0,0,0,.15);
-  padding:20px;
-  transition:.3s;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  display:none;
+  align-items:center;
+  justify-content:center;
 }
 
-#drawer.active{right:0}
+#modal .box{
+  background:#fff;
+  width:320px;
+  padding:20px;
+  border-radius:12px;
+}
 
-#drawer input,
-#drawer select{
+#modal input{
   width:100%;
   padding:10px;
   margin-bottom:10px;
 }
 
-.drawer-actions{
-  display:flex;
-  gap:10px;
-}
-
-.drawer-actions button{
-  flex:1;
+#modal button{
+  width:100%;
   padding:12px;
   border:none;
-  border-radius:10px;
+  border-radius:8px;
   cursor:pointer;
 }
 
-.salvar{background:#020617;color:#fff}
-.apagar{background:#ef4444;color:#fff}
+.salvar{ background:#0f172a; color:#fff }
+.limpar{ background:#ef4444; color:#fff; margin-top:8px }
 </style>
 </head>
 
 <body>
 
 <header>
-  <strong>📍 Sistema de Reservas</strong>
+  <strong>🍽️ Mapa de Mesas</strong>
 
-  <div id="adminBar">
-    <input id="mesaNome" placeholder="Mesa">
-    <select id="mesaTipo">
-      <option value="redonda">Redonda</option>
-      <option value="quadrada">Quadrada</option>
-    </select>
-    <input id="mesaCapacidade" type="number" placeholder="Lugares">
-    <button onclick="adicionarMesa()">Adicionar</button>
-  </div>
-</header>
-
-<div id="mapa">
-  <!-- ZONAS -->
-  <div class="zona sushi">Sushi</div>
-  <div class="zona bar">Bar</div>
-  <div class="zona buffet">Buffet</div>
-  <div class="zona adega">Adega</div>
-  <div class="zona fonte">Fonte</div>
-  <div class="zona parquinho">Parquinho</div>
-  <div class="zona sanitarios">Sanitários</div>
-</div>
-
-<!-- DRAWER -->
-<div id="drawer">
-  <h3>Reserva</h3>
-  <input id="nome" placeholder="Nome do cliente">
-  <input id="telefone" placeholder="Telefone">
-  <input id="qtd" type="number" placeholder="Qtd pessoas">
-  <select id="status">
-    <option value="livre">Livre</option>
-    <option value="ocupada">Ocupada</option>
-    <option value="paga">Paga</option>
+  <select id="tipo">
+    <option value="quadrada">Quadrada</option>
+    <option value="redonda">Redonda</option>
   </select>
 
-  <div class="drawer-actions">
-    <button class="salvar" onclick="salvarReserva()">Salvar</button>
-    <button class="apagar" onclick="apagarReserva()">Apagar</button>
+  <input id="lugares" type="number" placeholder="Lugares" min="2">
+  <button onclick="adicionarMesa()">Adicionar Mesa</button>
+</header>
+
+<div id="palco"></div>
+
+<!-- MODAL -->
+<div id="modal">
+  <div class="box">
+    <h3>Reserva</h3>
+    <input id="cliente" placeholder="Nome do cliente">
+    <button class="salvar" onclick="salvarCliente()">Salvar</button>
+    <button class="limpar" onclick="limparMesa()">Liberar Mesa</button>
   </div>
 </div>
 
 <script>
-const supabase = supabase.createClient(
-  "https://pkpmzbjvsapzeuqtvytm.supabase.co",
-  "sb_publishable_UIy2gATpA5WzOIgeXHvqlw_IpSiwdsh"
-);
+const palco = document.getElementById('palco');
+const modal = document.getElementById('modal');
+let mesaAtual = null;
 
-const mapa = document.getElementById('mapa');
-const drawer = document.getElementById('drawer');
+/* ADICIONAR MESA */
+function adicionarMesa(){
+  const tipo = document.getElementById('tipo').value;
+  const lugares = document.getElementById('lugares').value;
 
-let mesaAtual=null, offsetX=0, offsetY=0;
+  if(!lugares) return;
 
-/* ADD MESA */
-async function adicionarMesa(){
-  if(!mesaNome.value || !mesaCapacidade.value) return;
+  const mesa = document.createElement('div');
+  mesa.className = `mesa ${tipo} livre`;
+  mesa.style.left = '50%';
+  mesa.style.top = '50%';
+  mesa.innerText = lugares;
 
-  await supabase.from('mesas').insert({
-    nome:mesaNome.value,
-    tipo:mesaTipo.value,
-    capacidade:mesaCapacidade.value,
-    x:200,
-    y:200,
-    status:'livre'
-  });
+  criarCadeiras(mesa, lugares);
 
-  mesaNome.value='';
-  mesaCapacidade.value='';
-  carregarMesas();
+  mesa.onmousedown = e => arrastar(e, mesa);
+  mesa.onclick = e => {
+    e.stopPropagation();
+    abrirModal(mesa);
+  };
+
+  palco.appendChild(mesa);
 }
 
-/* LOAD MESAS */
-async function carregarMesas(){
-  const { data } = await supabase.from('mesas').select('*');
-  document.querySelectorAll('.mesa').forEach(e=>e.remove());
-
-  data.forEach(m=>{
-    const el=document.createElement('div');
-    el.className=`mesa ${m.tipo} ${m.status}`;
-    el.style.left=m.x+'px';
-    el.style.top=m.y+'px';
-    el.innerHTML=`${m.nome}<span>${m.capacidade} lugares</span>`;
-
-    el.onmousedown=e=>drag(e,m,el);
-    el.onclick=()=>abrirDrawer(m);
-
-    mapa.appendChild(el);
-  });
+/* CADEIRAS */
+function criarCadeiras(mesa, lugares){
+  for(let i=0;i<lugares;i++){
+    const c = document.createElement('div');
+    c.className = 'cadeira';
+    const ang = (360/lugares)*i;
+    const r = 65;
+    c.style.left = 50 + r*Math.cos(ang*Math.PI/180) + '%';
+    c.style.top = 50 + r*Math.sin(ang*Math.PI/180) + '%';
+    mesa.appendChild(c);
+  }
 }
-carregarMesas();
 
 /* DRAG */
-function drag(e,m,el){
-  mesaAtual=m;
-  offsetX=e.offsetX;
-  offsetY=e.offsetY;
+function arrastar(e, el){
+  const startX = e.clientX - el.offsetLeft;
+  const startY = e.clientY - el.offsetTop;
 
-  document.onmousemove=ev=>{
-    el.style.left=ev.pageX-offsetX+'px';
-    el.style.top=ev.pageY-offsetY-64+'px';
+  document.onmousemove = ev => {
+    el.style.left = ev.clientX - startX + 'px';
+    el.style.top = ev.clientY - startY + 'px';
   };
 
-  document.onmouseup=async()=>{
-    document.onmousemove=null;
-    await supabase.from('mesas').update({
-      x:parseInt(el.style.left),
-      y:parseInt(el.style.top)
-    }).eq('id',m.id);
+  document.onmouseup = () => {
+    document.onmousemove = null;
   };
 }
 
-/* DRAWER */
-function abrirDrawer(m){
-  mesaAtual=m;
-  drawer.classList.add('active');
-
-  nome.value=m.nome_cliente||'';
-  telefone.value=m.telefone||'';
-  qtd.value=m.qtd_pessoas||'';
-  status.value=m.status||'livre';
+/* MODAL */
+function abrirModal(m){
+  mesaAtual = m;
+  modal.style.display = 'flex';
+  cliente.value = m.dataset.cliente || '';
 }
 
-async function salvarReserva(){
-  await supabase.from('mesas').update({
-    nome_cliente:nome.value,
-    telefone:telefone.value,
-    qtd_pessoas:qtd.value,
-    status:status.value
-  }).eq('id',mesaAtual.id);
-
-  drawer.classList.remove('active');
-  carregarMesas();
+function salvarCliente(){
+  mesaAtual.dataset.cliente = cliente.value;
+  mesaAtual.classList.add('ocupada');
+  modal.style.display = 'none';
 }
 
-async function apagarReserva(){
-  await supabase.from('mesas').update({
-    nome_cliente:null,
-    telefone:null,
-    qtd_pessoas:null,
-    status:'livre'
-  }).eq('id',mesaAtual.id);
-
-  drawer.classList.remove('active');
-  carregarMesas();
+function limparMesa(){
+  mesaAtual.dataset.cliente = '';
+  mesaAtual.classList.remove('ocupada');
+  modal.style.display = 'none';
 }
+
+modal.onclick = e => {
+  if(e.target === modal) modal.style.display = 'none';
+};
 </script>
 
 </body>
