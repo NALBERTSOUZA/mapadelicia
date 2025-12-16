@@ -24,6 +24,7 @@ body{
   margin:0;
   font-family:Inter;
   background:var(--bg);
+  overflow:auto;
 }
 
 /* HEADER */
@@ -37,6 +38,7 @@ header{
   justify-content:space-between;
 }
 
+/* ADMIN BAR */
 #adminBar{
   display:flex;
   gap:8px;
@@ -58,13 +60,32 @@ header{
   cursor:pointer;
 }
 
-/* MAPA */
+/* MAPA (GALPÃO) */
 #mapa{
   position:relative;
-  height:calc(100vh - 64px);
+  width:2400px;
+  height:1400px;
   background:#f9fafb;
-  overflow:hidden;
+  border:2px dashed #ddd;
 }
+
+/* ZONAS */
+.zona{
+  position:absolute;
+  padding:14px 20px;
+  font-weight:700;
+  color:#fff;
+  border-radius:12px;
+  opacity:.9;
+}
+
+.sushi{background:#b91c1c; bottom:40px; left:600px;}
+.bar{background:#22c55e; bottom:40px; right:80px;}
+.buffet{background:#dc2626; bottom:200px; left:800px;}
+.adega{background:#7c3aed; top:60px; left:40px;}
+.fonte{background:#2563eb; top:60px; right:80px;}
+.parquinho{background:#facc15; top:600px; left:40px; color:#000;}
+.sanitarios{background:#374151; bottom:40px; left:40px;}
 
 /* MESA */
 .mesa{
@@ -90,8 +111,8 @@ header{
 }
 
 .quadrada{
-  width:88px;
-  height:88px;
+  width:90px;
+  height:90px;
   border-radius:14px;
 }
 
@@ -159,8 +180,18 @@ header{
   </div>
 </header>
 
-<div id="mapa"></div>
+<div id="mapa">
+  <!-- ZONAS -->
+  <div class="zona sushi">Sushi</div>
+  <div class="zona bar">Bar</div>
+  <div class="zona buffet">Buffet</div>
+  <div class="zona adega">Adega</div>
+  <div class="zona fonte">Fonte</div>
+  <div class="zona parquinho">Parquinho</div>
+  <div class="zona sanitarios">Sanitários</div>
+</div>
 
+<!-- DRAWER -->
 <div id="drawer">
   <h3>Reserva</h3>
   <input id="nome" placeholder="Nome do cliente">
@@ -189,39 +220,28 @@ const drawer = document.getElementById('drawer');
 
 let mesaAtual=null, offsetX=0, offsetY=0;
 
-/* ADICIONAR MESA */
+/* ADD MESA */
 async function adicionarMesa(){
-  const nome = mesaNome.value.trim();
-  const tipo = mesaTipo.value;
-  const capacidade = parseInt(mesaCapacidade.value);
+  if(!mesaNome.value || !mesaCapacidade.value) return;
 
-  if(!nome || !capacidade){
-    alert("Preencha todos os campos");
-    return;
-  }
-
-  const { error } = await supabase.from('mesas').insert({
-    nome, tipo, capacidade,
-    x:50, y:50,
+  await supabase.from('mesas').insert({
+    nome:mesaNome.value,
+    tipo:mesaTipo.value,
+    capacidade:mesaCapacidade.value,
+    x:200,
+    y:200,
     status:'livre'
   });
-
-  if(error){
-    alert("Erro ao salvar mesa");
-    console.error(error);
-    return;
-  }
 
   mesaNome.value='';
   mesaCapacidade.value='';
   carregarMesas();
 }
 
-/* CARREGAR */
+/* LOAD MESAS */
 async function carregarMesas(){
-  mapa.innerHTML='';
-  const { data, error } = await supabase.from('mesas').select('*');
-  if(error){console.error(error);return;}
+  const { data } = await supabase.from('mesas').select('*');
+  document.querySelectorAll('.mesa').forEach(e=>e.remove());
 
   data.forEach(m=>{
     const el=document.createElement('div');
