@@ -15,7 +15,6 @@
   --mesa:#e5e7eb;
   --mesa-border:#9ca3af;
   --cadeira:#1f2937;
-  --primary:#111827;
   --green:#16a34a;
   --red:#dc2626;
 }
@@ -34,17 +33,47 @@ header{
   border-bottom:1px solid #e5e7eb;
 }
 
-#toggleMode{
-  border:none;
-  padding:8px 16px;
-  border-radius:999px;
-  font-weight:600;
-  color:#fff;
-  cursor:pointer;
+/* ===== SWITCH ===== */
+.switch{
+  display:flex;
+  align-items:center;
+  gap:12px;
 }
 
-.modo-editar{background:var(--red)}
-.modo-vivo{background:var(--green)}
+.switch span{
+  font-weight:600;
+  font-size:14px;
+}
+
+.toggle{
+  position:relative;
+  width:54px;
+  height:28px;
+  background:var(--green);
+  border-radius:999px;
+  cursor:pointer;
+  transition:.25s;
+}
+
+.toggle::after{
+  content:'';
+  position:absolute;
+  width:22px;
+  height:22px;
+  background:#fff;
+  border-radius:50%;
+  top:3px;
+  left:3px;
+  transition:.25s;
+}
+
+.toggle.editar{
+  background:var(--red);
+}
+
+.toggle.editar::after{
+  left:29px;
+}
 
 /* LAYOUT */
 main{
@@ -59,9 +88,11 @@ aside{
   padding:16px;
 }
 
+aside h3{margin:0 0 12px}
+
 aside button{
   width:100%;
-  padding:10s
+  padding:10px;
   border:none;
   background:#e5e7eb;
   border-radius:8px;
@@ -108,7 +139,7 @@ aside button{
   transform-origin:center 85px;
 }
 
-/* POPUP */
+/* MODAL */
 .modal{
   position:fixed;
   inset:0;
@@ -126,19 +157,12 @@ aside button{
   padding:20px;
 }
 
-.modal-box h3{margin:0 0 16px}
-
-.modal-box label{
-  display:block;
-  font-size:14px;
-  margin-bottom:6px;
-}
-
+.modal-box label{font-size:14px}
 .modal-box input,
 .modal-box select{
   width:100%;
   padding:10px;
-  margin-bottom:12px;
+  margin:8px 0 14px;
   border-radius:8px;
   border:1px solid #d1d5db;
 }
@@ -157,8 +181,8 @@ aside button{
   cursor:pointer;
 }
 
-.btn-cancel{background:#e5e7eb}
 .btn-save{background:#111827;color:#fff}
+.btn-cancel{background:#e5e7eb}
 </style>
 </head>
 
@@ -166,7 +190,11 @@ aside button{
 
 <header>
   <strong>Mapa de Mesas</strong>
-  <button id="toggleMode" class="modo-editar">Modo: Editar</button>
+
+  <div class="switch">
+    <span id="labelModo">Ao vivo</span>
+    <div id="toggle" class="toggle"></div>
+  </div>
 </header>
 
 <main>
@@ -184,12 +212,12 @@ aside button{
     <h3>Nova Mesa</h3>
 
     <label>Nome da mesa</label>
-    <input id="mesaNome" placeholder="Ex: Mesa 10">
+    <input id="mesaNome">
 
     <label>Quantidade de cadeiras</label>
-    <input id="mesaCapacidade" type="number" min="1" value="4">
+    <input id="mesaCapacidade" type="number" value="4">
 
-    <label>Formato da mesa</label>
+    <label>Formato</label>
     <select id="mesaFormato">
       <option value="redonda">Redonda</option>
       <option value="quadrada">Quadrada</option>
@@ -209,55 +237,50 @@ const supabase = supabase.createClient(
   'sb_publishable__xSAJ3Ip5qnURBTJ34ldZQ_8TrNQJTH'
 );
 
-let modoEditar = true;
+let modoEditar = false;
 
-/* MODO */
-const btnModo = document.getElementById('toggleMode');
-btnModo.onclick = ()=>{
+/* SWITCH */
+const toggle = document.getElementById('toggle');
+const labelModo = document.getElementById('labelModo');
+
+toggle.onclick = ()=>{
   modoEditar = !modoEditar;
-  btnModo.textContent = modoEditar ? 'Modo: Editar' : 'Modo: Ao vivo';
-  btnModo.className = modoEditar ? 'modo-editar' : 'modo-vivo';
+  toggle.classList.toggle('editar', modoEditar);
+  labelModo.innerText = modoEditar ? 'Editar' : 'Ao vivo';
 };
 
 /* MODAL */
 function abrirModal(){
   if(!modoEditar) return;
-  document.getElementById('modalMesa').style.display='flex';
+  modalMesa.style.display='flex';
 }
 function fecharModal(){
-  document.getElementById('modalMesa').style.display='none';
+  modalMesa.style.display='none';
 }
 
 /* CADEIRAS */
 function gerarCadeiras(mesa){
   mesa.querySelectorAll('.cadeira').forEach(c=>c.remove());
-  const lugares = Number(mesa.dataset.lugares);
+  const lugares = mesa.dataset.lugares;
   const ang = 360 / lugares;
   for(let i=0;i<lugares;i++){
-    const c = document.createElement('div');
+    const c=document.createElement('div');
     c.className='cadeira';
     c.style.transform=`rotate(${ang*i}deg) translateY(-28px)`;
     mesa.appendChild(c);
   }
 }
 
-/* SALVAR MESA */
+/* SALVAR */
 async function salvarMesa(){
-  const nome = mesaNome.value || 'Mesa';
-  const capacidade = Number(mesaCapacidade.value);
-  const formato = mesaFormato.value;
-
-  const { data } = await supabase
-    .from('mesas')
+  const { data } = await supabase.from('mesas')
     .insert([{
-      nome,
-      capacidade,
-      formato,
+      nome: mesaNome.value || 'Mesa',
+      capacidade: mesaCapacidade.value,
+      formato: mesaFormato.value,
       x:150,
       y:150
-    }])
-    .select()
-    .single();
+    }]).select().single();
 
   renderMesa(data);
   fecharModal();
@@ -278,12 +301,12 @@ function renderMesa(m){
   `;
 
   gerarCadeiras(w.querySelector('.mesa'));
-  habilitarDrag(w);
+  drag(w);
   canvas.appendChild(w);
 }
 
 /* DRAG */
-function habilitarDrag(el){
+function drag(el){
   let ox,oy;
   el.onmousedown=e=>{
     if(!modoEditar) return;
