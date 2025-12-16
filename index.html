@@ -1,263 +1,250 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Mapa de Mesas</title>
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta charset="UTF-8">
+  <title>Organizar Mesas e Reservas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
 
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 15px;
+      width: 100%;
+      text-align: center;
+    }
 
-html,body{
-  width:100vw;
-  height:100vh;
-  overflow:hidden;
-  font-family:Inter;
-  background:#e5e7eb;
-}
+    .container {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+    }
 
-/* HEADER */
-header{
-  height:64px;
-  background:#0f172a;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  padding:0 20px;
-  gap:12px;
-}
+    #palco {
+      flex: 1;
+      height: 500px;
+      background-color: #eaeaea;
+      position: relative;
+    }
 
-header input, header select, header button{
-  height:36px;
-  padding:0 12px;
-  border:none;
-  border-radius:8px;
-}
+    .mesa {
+      position: absolute;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      cursor: grab;
+      background-color: #3498db;
+      color: white;
+      border-radius: 8px;
+      padding: 10px;
+    }
 
-header button{
-  background:#22c55e;
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-}
+    .redonda {
+      border-radius: 50%;
+    }
 
-/* PALCO */
-#palco{
-  position:relative;
-  width:100%;
-  height:calc(100vh - 64px);
-  background:#f8fafc;
-}
+    .quadrada {
+      width: 100px;
+      height: 100px;
+    }
 
-/* MESA */
-.mesa{
-  position:absolute;
-  width:120px;
-  height:120px;
-  background:#cbd5e1;
-  border-radius:16px;
-  box-shadow:0 10px 25px rgba(0,0,0,.15);
-  cursor:grab;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:700;
-  color:#0f172a;
-}
+    .livre {
+      background-color: #3498db;
+    }
 
-.mesa.redonda{border-radius:50%}
+    .ocupada {
+      background-color: #f39c12;
+    }
 
-.mesa.ocupada{background:#f59e0b;color:#fff}
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: none;
+      justify-content: center;
+      align-items: center;
+    }
 
-/* CADEIRAS */
-.cadeira{
-  position:absolute;
-  width:22px;
-  height:22px;
-  background:#1f2937;
-  border-radius:6px;
-}
+    .modal-content {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      width: 300px;
+    }
 
-/* MODAL */
-#modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.6);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
+    .modal-content input,
+    .modal-content button {
+      width: 100%;
+      padding: 10px;
+      margin: 5px 0;
+    }
 
-#modal .box{
-  width:320px;
-  background:#fff;
-  padding:20px;
-  border-radius:12px;
-}
+    .reservas-list {
+      flex: 1;
+      margin-left: 20px;
+    }
 
-#modal input{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-}
-
-#modal button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-.salvar{background:#0f172a;color:#fff}
-.limpar{background:#ef4444;color:#fff;margin-top:8px}
-</style>
+    .reservas-list ul {
+      list-style-type: none;
+    }
+  </style>
 </head>
 
 <body>
 
 <header>
-  <strong>🍽️ Mapa de Mesas</strong>
-
-  <select id="tipo">
-    <option value="quadrada">Quadrada</option>
-    <option value="redonda">Redonda</option>
-  </select>
-
-  <input id="lugares" type="number" min="2" placeholder="Lugares">
-  <button onclick="criarMesa()">Adicionar Mesa</button>
+  <h1>Organizar Mesas e Reservas</h1>
 </header>
 
-<div id="palco"></div>
+<div class="container">
+  <div id="palco"></div>
+  <div class="reservas-list">
+    <h3>Reservas</h3>
+    <ul id="reservas-list"></ul>
+  </div>
+</div>
 
-<div id="modal">
-  <div class="box">
-    <h3>Reserva</h3>
-    <input id="cliente" placeholder="Nome do cliente">
-    <button class="salvar" onclick="salvarReserva()">Salvar</button>
-    <button class="limpar" onclick="liberarMesa()">Liberar Mesa</button>
+<!-- Modal para adicionar reservas -->
+<div class="modal" id="modal">
+  <div class="modal-content">
+    <h3>Reservar Mesa</h3>
+    <input type="text" id="nome_cliente" placeholder="Nome do Cliente">
+    <input type="text" id="telefone" placeholder="Telefone">
+    <input type="number" id="qtd_pessoas" placeholder="Quantidade de Pessoas">
+    <button id="salvarReserva">Salvar Reserva</button>
+    <button id="cancelarReserva">Cancelar</button>
   </div>
 </div>
 
 <script>
-const supabase = supabase.createClient(
-  "https://SEU_PROJETO.supabase.co",
-  "SUA_PUBLIC_KEY"
-);
+  const supabase = supabase.createClient(
+    'https://your-project.supabase.co', 
+    'your-public-api-key'
+  );
 
-const palco = document.getElementById('palco');
-const modal = document.getElementById('modal');
+  let mesas = [];
+  let reservas = [];
 
-let mesaAtual=null, offsetX=0, offsetY=0;
-
-/* RENDER CADEIRAS */
-function renderCadeiras(mesa, lugares){
-  mesa.querySelectorAll('.cadeira').forEach(c=>c.remove());
-
-  const radius = 70;
-  for(let i=0;i<lugares;i++){
-    const ang = (2*Math.PI/lugares)*i;
-    const c = document.createElement('div');
-    c.className='cadeira';
-    c.style.left = 60 + radius*Math.cos(ang) - 11 + 'px';
-    c.style.top  = 60 + radius*Math.sin(ang) - 11 + 'px';
-    mesa.appendChild(c);
+  // Carregar mesas e reservas do Supabase
+  async function carregarMesas() {
+    const { data, error } = await supabase.from('mesas').select('*');
+    if (error) {
+      console.error('Erro ao carregar mesas:', error);
+    } else {
+      mesas = data;
+      desenharMesas();
+    }
   }
-}
 
-/* CRIAR MESA */
-async function criarMesa(){
-  const tipo = tipo.value;
-  const lugares = parseInt(document.getElementById('lugares').value);
-  if(!lugares) return;
+  async function carregarReservas() {
+    const { data, error } = await supabase.from('reservas').select('*');
+    if (error) {
+      console.error('Erro ao carregar reservas:', error);
+    } else {
+      reservas = data;
+      atualizarListaReservas();
+    }
+  }
 
-  const { data, error } = await supabase.from('mesas').insert({
-    tipo,
-    lugares,
-    x:200,
-    y:200,
-    status:'livre'
-  }).select().single();
+  // Atualizar lista de reservas
+  function atualizarListaReservas() {
+    const lista = document.getElementById('reservas-list');
+    lista.innerHTML = '';
+    reservas.forEach(reserva => {
+      const li = document.createElement('li');
+      li.innerHTML = `${reserva.nome_cliente} - ${reserva.qtd_pessoas} pessoas`;
+      lista.appendChild(li);
+    });
+  }
 
-  if(error){console.error(error);return}
+  // Desenhar as mesas no palco
+  function desenharMesas() {
+    const palco = document.getElementById('palco');
+    palco.innerHTML = ''; // Limpar palco
+    mesas.forEach(mesa => {
+      const mesaElement = document.createElement('div');
+      mesaElement.classList.add('mesa', mesa.tipo, mesa.status);
+      mesaElement.style.left = `${mesa.x}px`;
+      mesaElement.style.top = `${mesa.y}px`;
+      mesaElement.innerText = `${mesa.nome}`;
+      mesaElement.onclick = () => abrirModalReserva(mesa);
+      mesaElement.onmousedown = (e) => iniciarArraste(e, mesa, mesaElement);
+      palco.appendChild(mesaElement);
+    });
+  }
 
-  desenharMesa(data);
-}
+  // Iniciar arraste das mesas
+  function iniciarArraste(e, mesa, mesaElement) {
+    const offsetX = e.clientX - mesaElement.offsetLeft;
+    const offsetY = e.clientY - mesaElement.offsetTop;
 
-/* DESENHAR */
-function desenharMesa(m){
-  const mesa=document.createElement('div');
-  mesa.className=`mesa ${m.tipo} ${m.status}`;
-  mesa.style.left=m.x+'px';
-  mesa.style.top=m.y+'px';
-  mesa.innerText=m.lugares;
-  renderCadeiras(mesa,m.lugares);
+    document.onmousemove = (ev) => {
+      mesaElement.style.left = `${ev.clientX - offsetX}px`;
+      mesaElement.style.top = `${ev.clientY - offsetY}px`;
+    };
 
-  mesa.onmousedown=e=>drag(e,m,mesa);
-  mesa.onclick=e=>{e.stopPropagation();abrirModal(m,mesa)}
+    document.onmouseup = async () => {
+      document.onmousemove = null;
+      const x = parseInt(mesaElement.style.left);
+      const y = parseInt(mesaElement.style.top);
+      await supabase.from('mesas').update({ x, y }).eq('id', mesa.id);
+    };
+  }
 
-  palco.appendChild(mesa);
-}
+  // Abrir o modal para adicionar reserva
+  function abrirModalReserva(mesa) {
+    document.getElementById('modal').style.display = 'flex';
+    document.getElementById('salvarReserva').onclick = () => salvarReserva(mesa);
+  }
 
-/* DRAG */
-function drag(e,m,el){
-  offsetX=e.clientX-el.offsetLeft;
-  offsetY=e.clientY-el.offsetTop;
+  // Salvar reserva
+  async function salvarReserva(mesa) {
+    const nome_cliente = document.getElementById('nome_cliente').value;
+    const telefone = document.getElementById('telefone').value;
+    const qtd_pessoas = document.getElementById('qtd_pessoas').value;
 
-  document.onmousemove=ev=>{
-    el.style.left=ev.clientX-offsetX+'px';
-    el.style.top=ev.clientY-offsetY+'px';
+    if (!nome_cliente || !telefone || !qtd_pessoas) return;
+
+    const { data, error } = await supabase.from('reservas').insert([{
+      mesa_id: mesa.id,
+      nome_cliente,
+      telefone,
+      qtd_pessoas,
+      status: 'pendente',
+    }]);
+
+    if (error) {
+      console.error('Erro ao salvar reserva:', error);
+    } else {
+      reservas.push(data[0]);
+      atualizarListaReservas();
+      document.getElementById('modal').style.display = 'none';
+    }
+  }
+
+  // Cancelar reserva
+  document.getElementById('cancelarReserva').onclick = () => {
+    document.getElementById('modal').style.display = 'none';
   };
 
-  document.onmouseup=async()=>{
-    document.onmousemove=null;
-    await supabase.from('mesas').update({
-      x:parseInt(el.style.left),
-      y:parseInt(el.style.top)
-    }).eq('id',m.id);
-  };
-}
-
-/* MODAL */
-function abrirModal(m,el){
-  mesaAtual={db:m,el};
-  cliente.value=m.cliente_nome||'';
-  modal.style.display='flex';
-}
-
-async function salvarReserva(){
-  await supabase.from('mesas').update({
-    cliente_nome:cliente.value,
-    status:'ocupada'
-  }).eq('id',mesaAtual.db.id);
-
-  mesaAtual.el.classList.add('ocupada');
-  modal.style.display='none';
-}
-
-async function liberarMesa(){
-  await supabase.from('mesas').update({
-    cliente_nome:null,
-    status:'livre'
-  }).eq('id',mesaAtual.db.id);
-
-  mesaAtual.el.classList.remove('ocupada');
-  modal.style.display='none';
-}
-
-/* LOAD */
-async function carregar(){
-  const { data } = await supabase.from('mesas').select('*');
-  data.forEach(desenharMesa);
-}
-carregar();
-
-modal.onclick=e=>{
-  if(e.target===modal) modal.style.display='none';
-};
+  // Inicializar
+  carregarMesas();
+  carregarReservas();
 </script>
 
 </body>
