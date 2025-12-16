@@ -2,19 +2,19 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Reservas de Mesas • Restaurante</title>
+<title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
 
 <style>
 :root{
-  --bg:#0f0f10;
+  --bg:#f5f5f5;
   --card:#18181b;
   --line:#2a2a2e;
   --text:#f4f4f5;
-  --muted:#a1a1aa;
   --primary:#22c55e;
   --danger:#ef4444;
   --warning:#facc15;
@@ -36,7 +36,7 @@ header{
 }
 
 .container{
-  max-width:1100px;
+  max-width:1200px;
   margin:auto;
   padding:20px;
 }
@@ -49,20 +49,29 @@ header{
   margin-bottom:20px;
 }
 
-.grid{
+#mapa{
   display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:14px;
+  grid-template-columns:repeat(5,1fr);
+  grid-gap:20px;
 }
 
-input,select{
-  width:100%;
-  padding:12px;
+.mesa{
+  background:#d4b28c;
   border-radius:10px;
-  border:1px solid var(--line);
-  background:#0b0b0c;
-  color:var(--text);
-  font-size:14px;
+  text-align:center;
+  padding:10px;
+  cursor:move;
+  transition: all 0.3s ease;
+  display:inline-block;
+}
+
+.mesa:hover{
+  background:#deb880;
+}
+
+.mesa .label{
+  margin-top:10px;
+  font-weight:bold;
 }
 
 button{
@@ -73,89 +82,63 @@ button{
   cursor:pointer;
 }
 
-.btn-primary{background:var(--primary);color:#052e16}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-warning{background:var(--warning);color:#422006}
+.btn-primary{background:var(--primary);color:#fff}
 
-table{
+#popup{
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:rgba(0,0,0,0.7);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+#popupContent{
+  background:white;
+  padding:20px;
+  border-radius:8px;
+}
+
+input,button{
   width:100%;
-  border-collapse:collapse;
+  padding:12px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background:#f8f8f8;
 }
 
-th,td{
-  padding:14px;
-  border-bottom:1px solid var(--line);
-  text-align:left;
-}
-
-th{
-  font-size:12px;
-  color:var(--muted);
-}
-
-.status{
-  padding:6px 10px;
-  border-radius:999px;
-  font-size:12px;
-  font-weight:700;
-}
-
-.pago{background:#052e16;color:#22c55e}
-.pendente{background:#422006;color:#facc15}
-
-.actions button{
-  margin-right:6px;
+input{
+  margin-bottom:10px;
 }
 </style>
 </head>
 
 <body>
 
-<header>🍽️ Reservas de Mesas</header>
+<header>🍽️ Mapa de Mesas</header>
 
 <div class="container">
 
-  <!-- FORM RESERVA -->
-  <div class="card">
-    <h3>Nova / Editar Reserva</h3>
+  <!-- Botão para adicionar uma nova mesa -->
+  <button class="btn-primary" onclick="mostrarPopup()">+ Adicionar Mesa</button>
 
-    <div class="grid">
-      <input id="mesa" placeholder="Mesa nº">
-      <input id="cliente" placeholder="Nome do cliente">
-      <input id="telefone" placeholder="Telefone">
-      <input id="data" type="date">
-      <input id="hora" type="time">
+  <!-- Mapa de Mesas -->
+  <div id="mapa"></div>
 
-      <select id="status">
-        <option value="pendente">Pendente</option>
-        <option value="pago">Pago</option>
-      </select>
-    </div>
+</div>
 
-    <br>
-    <button class="btn-primary" onclick="salvarReserva()">Salvar Reserva</button>
+<!-- Popup para adicionar cliente -->
+<div id="popup">
+  <div id="popupContent">
+    <h3>Reservar Mesa</h3>
+    <input type="text" id="nomeCliente" placeholder="Nome do Cliente" />
+    <input type="text" id="telefoneCliente" placeholder="Telefone" />
+    <button onclick="adicionarReserva()">Adicionar</button>
+    <button onclick="fecharPopup()">Fechar</button>
   </div>
-
-  <!-- LISTA -->
-  <div class="card">
-    <h3>Reservas</h3>
-
-    <table>
-      <thead>
-        <tr>
-          <th>Mesa</th>
-          <th>Cliente</th>
-          <th>Telefone</th>
-          <th>Data</th>
-          <th>Hora</th>
-          <th>Status</th>
-          <th>Ações</th>
-        </tr>
-      </thead>
-      <tbody id="lista"></tbody>
-    </table>
-  </div>
-
 </div>
 
 <script>
@@ -165,96 +148,84 @@ const supabase = supabase.createClient(
   "SUA_ANON_KEY"
 )
 
-// ================== VARIÁVEIS ==================
-let editId = null
+let mesaId = 0;
+let mesas = [];
 
-// ================== LOAD ==================
-carregarReservas()
+// ================== CARREGAR MESAS ==================
+function carregarMesas() {
+  const mapa = document.getElementById('mapa');
+  mapa.innerHTML = '';
 
-// ================== CRUD ==================
-async function carregarReservas(){
-  const { data, error } = await supabase
-    .from("reservas")
-    .select("*")
-    .order("data",{ascending:true})
+  mesas.forEach(mesa => {
+    const mesaElement = document.createElement('div');
+    mesaElement.className = 'mesa';
+    mesaElement.id = `mesa-${mesa.id}`;
+    mesaElement.draggable = true;
+    mesaElement.innerHTML = `
+      <div class="label">Mesa ${mesa.numero}</div>
+      <div>Cliente: ${mesa.cliente}</div>
+      <div>Status: ${mesa.status}</div>
+    `;
 
-  if(error) return alert(error.message)
+    mesaElement.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData("mesaId", mesa.id);
+    });
 
-  lista.innerHTML = ""
-  data.forEach(r=>{
-    lista.innerHTML += `
-      <tr>
-        <td>${r.mesa}</td>
-        <td>${r.cliente}</td>
-        <td>${r.telefone}</td>
-        <td>${r.data}</td>
-        <td>${r.hora}</td>
-        <td>
-          <span class="status ${r.status}">
-            ${r.status.toUpperCase()}
-          </span>
-        </td>
-        <td class="actions">
-          <button class="btn-warning" onclick="editar(${r.id})">Editar</button>
-          <button class="btn-danger" onclick="excluir(${r.id})">Excluir</button>
-        </td>
-      </tr>
-    `
-  })
+    mapa.appendChild(mesaElement);
+  });
+
+  // Ativar Drag and Drop
+  dragula([mapa]);
 }
 
-async function salvarReserva(){
-  const payload = {
-    mesa: mesa.value,
-    cliente: cliente.value,
-    telefone: telefone.value,
-    data: data.value,
-    hora: hora.value,
-    status: status.value
+// ================== ADICIONAR RESERVA ==================
+let editMesa = null;
+
+function mostrarPopup(){
+  document.getElementById('popup').style.display = 'flex';
+  editMesa = null;
+}
+
+function fecharPopup(){
+  document.getElementById('popup').style.display = 'none';
+}
+
+function adicionarReserva(){
+  const nome = document.getElementById('nomeCliente').value;
+  const telefone = document.getElementById('telefoneCliente').value;
+
+  if(nome && telefone){
+    mesaId++;
+
+    mesas.push({
+      id: mesaId,
+      numero: mesaId,
+      cliente: nome,
+      telefone: telefone,
+      status: 'Pendente',
+    });
+
+    document.getElementById('nomeCliente').value = '';
+    document.getElementById('telefoneCliente').value = '';
+
+    carregarMesas();
+    fecharPopup();
   }
-
-  if(editId){
-    await supabase.from("reservas").update(payload).eq("id",editId)
-    editId = null
-  }else{
-    await supabase.from("reservas").insert(payload)
-  }
-
-  limpar()
-  carregarReservas()
-}
-
-async function editar(id){
-  const { data } = await supabase
-    .from("reservas")
-    .select("*")
-    .eq("id",id)
-    .single()
-
-  editId = id
-  mesa.value = data.mesa
-  cliente.value = data.cliente
-  telefone.value = data.telefone
-  dataInput.value = data.data
-  hora.value = data.hora
-  status.value = data.status
-}
-
-async function excluir(id){
-  if(confirm("Excluir reserva?")){
-    await supabase.from("reservas").delete().eq("id",id)
-    carregarReservas()
+  else{
+    alert('Por favor, preencha o nome e telefone do cliente.');
   }
 }
 
-function limpar(){
-  mesa.value = ""
-  cliente.value = ""
-  telefone.value = ""
-  data.value = ""
-  hora.value = ""
-  status.value = "pendente"
+// ================== EDITAR RESERVA ==================
+function editarReserva(id){
+  editMesa = mesas.find(m => m.id === id);
+  if (editMesa) {
+    document.getElementById('nomeCliente').value = editMesa.cliente;
+    document.getElementById('telefoneCliente').value = editMesa.telefone;
+    mostrarPopup();
+  }
 }
+
 </script>
 
 </body>
