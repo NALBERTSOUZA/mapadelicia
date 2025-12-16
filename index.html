@@ -6,129 +6,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f4f6fb;
-}
-
+body{margin:0;font-family:Arial;background:#f4f6fb}
 header{
-  height:60px;
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 20px;
-  border-bottom:1px solid #ddd;
+  height:60px;background:#fff;display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;border-bottom:1px solid #ddd
 }
+.actions{display:flex;gap:10px;align-items:center}
+button{padding:8px 14px;border:none;border-radius:6px;background:#111827;color:#fff;font-weight:600;cursor:pointer}
 
-.actions{display:flex;gap:12px;align-items:center}
-
-button{
-  padding:8px 14px;
-  border:none;
-  border-radius:6px;
-  background:#111827;
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-}
-
-.toggle{
-  width:60px;
-  height:30px;
-  background:#dc2626;
-  border-radius:30px;
-  position:relative;
-  cursor:pointer;
-}
-.toggle::after{
-  content:'';
-  width:24px;
-  height:24px;
-  background:#fff;
-  border-radius:50%;
-  position:absolute;
-  top:3px;
-  left:33px;
-  transition:.2s;
-}
+.toggle{width:60px;height:30px;background:#dc2626;border-radius:30px;position:relative;cursor:pointer}
+.toggle::after{content:'';width:24px;height:24px;background:#fff;border-radius:50%;position:absolute;top:3px;left:33px;transition:.2s}
 .toggle.on{background:#16a34a}
 .toggle.on::after{left:3px}
 
-#canvas{
-  position:relative;
-  height:calc(100vh - 60px);
-}
+#canvas{position:relative;height:calc(100vh - 60px)}
 
-/* MESA */
 .mesa{
-  position:absolute;
-  background:#e5e7eb;
-  border:3px solid #9ca3af;
+  position:absolute;background:#e5e7eb;border:3px solid #9ca3af;
+  border-radius:8px;cursor:grab
+}
+.mesa.reservada{border-color:#16a34a}
+
+.resize{
+  width:12px;height:12px;background:#111827;
+  position:absolute;right:-6px;bottom:-6px;cursor:se-resize
 }
 
-.retangular{
-  width:160px;
-  height:90px;
-}
-
-.redonda{
-  border-radius:50%;
-}
-
-/* CADEIRA */
 .cadeira{
-  position:absolute;
-  width:26px;
-  height:10px;
-  background:#111827;
-  border-radius:6px;
-  transform-origin:center center;
-  cursor:pointer;
+  position:absolute;width:26px;height:10px;
+  background:#111827;border-radius:6px
 }
 
-.nome{
-  position:absolute;
-  top:12px;
-  left:50%;
-  transform:translateX(-50%);
-  font-size:10px;
-  white-space:nowrap;
+.elemento{
+  position:absolute;background:#9ca3af
 }
+.linha{height:4px;width:120px}
+.degrau{height:20px;width:60px;background:#6b7280}
 
 /* MODAL */
 .modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:10;
+  position:fixed;inset:0;background:rgba(0,0,0,.4);
+  display:none;align-items:center;justify-content:center;z-index:10
 }
-
 .modal-box{
-  background:#fff;
-  padding:20px;
-  width:300px;
-  border-radius:10px;
+  background:#fff;padding:20px;width:320px;border-radius:10px
 }
-
 .modal-box label{display:block;margin-top:10px}
-.modal-box input,
-.modal-box select{
-  width:100%;
-  padding:8px;
-  margin-top:4px;
-}
-
-.modal-actions{
-  display:flex;
-  justify-content:flex-end;
-  gap:10px;
-  margin-top:15px;
-}
+.modal-box input,select{width:100%;padding:8px;margin-top:4px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:15px}
+.warn{color:#dc2626;font-size:12px;margin-top:6px}
 </style>
 </head>
 
@@ -137,147 +63,157 @@ button{
 <header>
   <strong id="label">Editar</strong>
   <div class="actions">
-    <button id="btnAdd">+ Mesa</button>
+    <button id="btnMesa">+ Mesa</button>
+    <button id="btnLinha">+ Linha</button>
+    <button id="btnDegrau">+ Degrau</button>
     <div id="toggle" class="toggle on"></div>
   </div>
 </header>
 
 <div id="canvas"></div>
 
-<!-- MODAL -->
-<div class="modal" id="modal">
+<!-- MODAL MESA -->
+<div class="modal" id="modalMesa">
   <div class="modal-box">
     <h3>Nova Mesa</h3>
-
-    <label>Formato</label>
-    <select id="formato">
-      <option value="retangular">Retangular</option>
-      <option value="redonda">Redonda</option>
-    </select>
-
     <label>Cadeiras</label>
-    <input type="number" id="cadeiras" value="4" min="2">
-
-    <label id="lblRaio" style="display:none">Raio (redonda)</label>
-    <input type="number" id="raio" value="60" style="display:none">
-
+    <input type="number" id="qtdCadeiras" value="4" min="2">
     <div class="modal-actions">
-      <button onclick="fechar()">Cancelar</button>
+      <button onclick="fecharMesa()">Cancelar</button>
       <button onclick="criarMesa()">Criar</button>
     </div>
   </div>
 </div>
 
-<script>
-let modoEditar = true;
+<!-- MODAL RESERVA -->
+<div class="modal" id="modalReserva">
+  <div class="modal-box">
+    <h3>Reserva</h3>
+    <label>Cliente</label>
+    <input id="cliente">
+    <label>Telefone</label>
+    <input id="telefone">
+    <label>Lugares</label>
+    <input type="number" id="lugares">
+    <div id="aviso" class="warn" style="display:none">
+      Quantidade maior que os assentos da mesa.<br>
+      Você poderá juntar outra mesa depois.
+    </div>
+    <div class="modal-actions">
+      <button onclick="fecharReserva()">Cancelar</button>
+      <button onclick="salvarReserva()">Salvar</button>
+    </div>
+  </div>
+</div>
 
-const toggle = document.getElementById('toggle');
-const label = document.getElementById('label');
-const btnAdd = document.getElementById('btnAdd');
-const canvas = document.getElementById('canvas');
-const modal = document.getElementById('modal');
+<script>
+let modoEditar=true;
+const canvas=document.getElementById('canvas');
+const toggle=document.getElementById('toggle');
+const label=document.getElementById('label');
+const modalMesa=document.getElementById('modalMesa');
+const modalReserva=document.getElementById('modalReserva');
+let mesaAtual=null;
 
 /* SWITCH */
-toggle.onclick = ()=>{
-  modoEditar = !modoEditar;
+toggle.onclick=()=>{
+  modoEditar=!modoEditar;
   toggle.classList.toggle('on',modoEditar);
-  label.innerText = modoEditar?'Editar':'Ao vivo';
-  btnAdd.style.display = modoEditar?'block':'none';
+  label.innerText=modoEditar?'Editar':'Ao vivo';
+  document.querySelectorAll('button').forEach(b=>{
+    if(b.id!=='toggle') b.style.display=modoEditar?'inline-block':'none';
+  });
 };
 
-/* MODAL */
-btnAdd.onclick = ()=> modal.style.display='flex';
-function fechar(){ modal.style.display='none'; }
+/* ELEMENTOS */
+btnLinha.onclick=()=>addElemento('linha');
+btnDegrau.onclick=()=>addElemento('degrau');
 
-formato.onchange = ()=>{
-  const r = formato.value === 'redonda';
-  lblRaio.style.display = raio.style.display = r ? 'block' : 'none';
-};
+function addElemento(tipo){
+  if(!modoEditar) return;
+  const el=document.createElement('div');
+  el.className=`elemento ${tipo}`;
+  el.style.left='200px';el.style.top='200px';
+  drag(el);
+  canvas.appendChild(el);
+}
 
-/* CRIAR MESA */
+/* MESA */
+btnMesa.onclick=()=>modalMesa.style.display='flex';
+function fecharMesa(){modalMesa.style.display='none'}
+
 function criarMesa(){
-  const f = formato.value;
-  const qtd = +cadeiras.value;
-  const r = +raio.value;
-
-  const mesa = document.createElement('div');
-  mesa.className = `mesa ${f}`;
-  mesa.style.left='200px';
-  mesa.style.top='200px';
-
-  if(f==='redonda'){
-    mesa.style.width = mesa.style.height = (r*2)+'px';
-    gerarRedonda(mesa,qtd,r);
-  }else{
-    gerarRetangular(mesa);
-  }
-
-  drag(mesa);
-  canvas.appendChild(mesa);
-  fechar();
-}
-
-/* CADEIRAS */
-function criarCadeira(x,y,rot){
-  const c=document.createElement('div');
-  c.className='cadeira';
-  c.style.left=x+'px';
-  c.style.top=y+'px';
-  c.style.transform=`rotate(${rot}deg)`;
-
-  c.onclick=e=>{
-    e.stopPropagation();
-    if(!modoEditar) return;
-    const nome=prompt('Nome da reserva:');
-    if(nome){
-      let n=c.querySelector('.nome');
-      if(!n){
-        n=document.createElement('div');
-        n.className='nome';
-        c.appendChild(n);
-      }
-      n.innerText=nome;
-    }
-  };
-  return c;
-}
-
-/* RETANGULAR */
-function gerarRetangular(m){
-  m.appendChild(criarCadeira(30,-15,0));
-  m.appendChild(criarCadeira(100,-15,0));
-  m.appendChild(criarCadeira(30,95,180));
-  m.appendChild(criarCadeira(100,95,180));
-}
-
-/* 🔥 REDONDA – CADEIRAS SEGUINDO A BORDA 🔥 */
-function gerarRedonda(m,qtd,r){
-  const centro = r;
-  const distancia = r - 5; // encosta na borda
+  const qtd=+qtdCadeiras.value;
+  const m=document.createElement('div');
+  m.className='mesa';
+  m.style.width='140px';m.style.height='80px';
+  m.style.left='200px';m.style.top='200px';
+  m.dataset.cadeiras=qtd;
 
   for(let i=0;i<qtd;i++){
-    const ang = (2*Math.PI/qtd)*i;
-    const x = centro + Math.cos(ang)*distancia - 13;
-    const y = centro + Math.sin(ang)*distancia - 5;
-    const rot = (ang * 180 / Math.PI) + 90;
-
-    m.appendChild(criarCadeira(x,y,rot));
+    const c=document.createElement('div');
+    c.className='cadeira';
+    c.style.left=(20+i*25)+'px';
+    c.style.top='-15px';
+    m.appendChild(c);
   }
+
+  const r=document.createElement('div');
+  r.className='resize';
+  m.appendChild(r);
+  resize(m,r);
+  drag(m);
+
+  m.ondblclick=e=>{
+    if(!modoEditar) return;
+    mesaAtual=m;
+    modalReserva.style.display='flex';
+  };
+
+  canvas.appendChild(m);
+  fecharMesa();
+}
+
+/* RESERVA */
+function fecharReserva(){modalReserva.style.display='none'}
+
+lugares.oninput=()=>{
+  aviso.style.display=+lugares.value > +mesaAtual.dataset.cadeiras ? 'block':'none';
+};
+
+function salvarReserva(){
+  mesaAtual.classList.add('reservada');
+  fecharReserva();
 }
 
 /* DRAG */
 function drag(el){
-  let mov=false,ox,oy;
+  let m=false,ox,oy;
   el.onmousedown=e=>{
     if(!modoEditar)return;
-    mov=true;ox=e.offsetX;oy=e.offsetY;
+    m=true;ox=e.offsetX;oy=e.offsetY;
   };
   document.onmousemove=e=>{
-    if(!mov)return;
+    if(!m)return;
     el.style.left=(e.pageX-ox)+'px';
     el.style.top=(e.pageY-oy-60)+'px';
   };
-  document.onmouseup=()=>mov=false;
+  document.onmouseup=()=>m=false;
+}
+
+/* RESIZE */
+function resize(m,handle){
+  let r=false;
+  handle.onmousedown=e=>{
+    e.stopPropagation();
+    r=true;
+  };
+  document.onmousemove=e=>{
+    if(!r)return;
+    m.style.width=(e.pageX-m.offsetLeft)+'px';
+    m.style.height=(e.pageY-m.offsetTop-60)+'px';
+  };
+  document.onmouseup=()=>r=false;
 }
 </script>
 
