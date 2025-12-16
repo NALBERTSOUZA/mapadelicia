@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Reservas de Mesas</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root{
+  --bg:#f5f6f8;
+  --mesa-ocupada:#ff9800;
+  --mesa-paga:#2ecc71;
+}
+
+body{
+  margin:0;
+  font-family:Inter;
+  background:var(--bg);
+}
+
+header{
+  padding:16px 24px;
+  background:#111;
+  color:#fff;
+  font-weight:700;
+}
+
+#mapa{
+  position:relative;
+  width:100%;
+  height:calc(100vh - 64px);
+  background:#fff;
+  overflow:hidden;
+}
+
+.mesa{
+  position:absolute;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:600;
+  cursor:grab;
+  user-select:none;
+  border:2px dashed #ccc;
+}
+
+.redonda{
+  width:90px;
+  height:90px;
+  border-radius:50%;
+}
+
+.quadrada{
+  width:80px;
+  height:80px;
+}
+
+.livre{
+  background:transparent;
+}
+
+.ocupada{
+  background:var(--mesa-ocupada);
+  color:#fff;
+  border:none;
+}
+
+.paga{
+  background:var(--mesa-paga);
+  color:#fff;
+  border:none;
+}
+
+#modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.5);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+#modal .box{
+  background:#fff;
+  width:360px;
+  border-radius:12px;
+  padding:20px;
+}
+
+.box h3{
+  margin-top:0;
+}
+
+.box input, .box select{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+}
+
+.box button{
+  width:100%;
+  padding:12px;
+  background:#111;
+  color:#fff;
+  border:none;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<header>📍 Sistema de Reservas</header>
+
+<div id="mapa"></div>
+
+<div id="modal">
+  <div class="box">
+    <h3>Reserva da Mesa</h3>
+    <input id="nome" placeholder="Nome do cliente">
+    <input id="telefone" placeholder="Telefone">
+    <input id="qtd" type="number" placeholder="Qtd de pessoas">
+    <select id="status">
+      <option value="ocupada">Ocupada (não paga)</option>
+      <option value="paga">Paga</option>
+      <option value="livre">Livre</option>
+    </select>
+    <button onclick="salvarReserva()">Salvar</button>
+  </div>
+</div>
+
+<script>
+const supabase = supabase.createClient(
+  "https://SEU_PROJETO.supabase.co",
+  "SUA_PUBLIC_KEY"
+);
+
+const mapa = document.getElementById('mapa');
+const modal = document.getElementById('modal');
+
+let mesaAtual = null;
+let offsetX, offsetY;
+
+// =======================
+// CARREGAR MESAS
+// =======================
+async function carregarMesas(){
+  mapa.innerHTML = '';
+  const { data } = await supabase.from('mesas').select('*');
+
+  data.forEach(m => {
+    const div = document.createElement('div');
+    div.className = `mesa ${m.tipo} ${m.status}`;
+    div.innerText = m.nome;
+    div.style.left = m.x + 'px';
+    div.style.top = m.y + 'px';
+
+    div.onmousedown = e => iniciarDrag(e, m, div);
+    div.onclick = () => abrirModal(m);
+
+    mapa.appendChild(div);
+  });
+}
+
+carregarMesas();
+
+// =======================
+// DRAG & DROP
+// =======================
+function iniciarDrag(e, mesa, el){
+  mesaAtual = mesa;
+  offsetX = e.offsetX;
+  offsetY = e.offsetY;
+
+  document.onmousemove = ev => {
+    el.style.left = ev.pageX - offsetX + 'px';
+    el.style.top = ev.pageY - offsetY - 64 + 'px';
+  };
+
+  document.onmouseup = async () => {
+    document.onmousemove = null;
+    document.onmouseup = null;
+
+    await supabase.from('mesas').update({
+      x: parseInt(el.style.left),
+      y: parseInt(el.style.top)
+    }).eq('id', mesa.id);
+  };
+}
+
+// =======================
+// MODAL
+// =======================
+function abrirModal(m){
+  mesaAtual = m;
+  modal.style.display = 'flex';
+
+  nome.value = m.nome_cliente || '';
+  telefone.value = m.telefone || '';
+  qtd.value = m.qtd_pessoas || '';
+  status.value = m.status || 'livre';
+}
+
+async function salvarReserva(){
+  await supabase.from('mesas').update({
+    nome_cliente: nome.value,
+    telefone: telefone.value,
+    qtd_pessoas: qtd.value,
+    status: status.value
+  }).eq('id', mesaAtual.id);
+
+  modal.style.display = 'none';
+  carregarMesas();
+}
+
+modal.onclick = e => {
+  if(e.target === modal) modal.style.display = 'none';
+};
+</script>
+
+</body>
+</html>
