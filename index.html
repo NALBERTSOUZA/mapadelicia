@@ -55,8 +55,6 @@ button{
   line-height:1.2;
 }
 
-.redonda{border-radius:50%}
-
 /* RESIZE */
 .resize{
   width:12px;height:12px;background:#111827;
@@ -140,22 +138,13 @@ btnAdd.onclick=()=>{
   m.style.top='200px';
   m.dataset.cadeiras=4;
 
-  gerarRetangular(m);
+  gerarMesa(m);
   dragMesa(m);
   canvas.appendChild(m);
 };
 
-/* CADEIRAS */
-function criarCadeira(x,y,rot){
-  const c=document.createElement('div');
-  c.className='cadeira';
-  c.style.left=x+'px';
-  c.style.top=y+'px';
-  c.style.transform=`rotate(${rot}deg)`;
-  return c;
-}
-
-function gerarRetangular(m){
+/* GERAR MESA */
+function gerarMesa(m){
   m.innerHTML='';
   const w=m.offsetWidth,h=m.offsetHeight;
   const qtd=+m.dataset.cadeiras;
@@ -176,29 +165,39 @@ function gerarRetangular(m){
   addResize(m);
 }
 
+/* CADEIRA */
+function criarCadeira(x,y,rot){
+  const c=document.createElement('div');
+  c.className='cadeira';
+  c.style.left=x+'px';
+  c.style.top=y+'px';
+  c.style.transform=`rotate(${rot}deg)`;
+  return c;
+}
+
 /* DRAG + JUNÇÃO */
 function dragMesa(m){
   let ativo=false,ox=0,oy=0;
 
-  m.onmousedown=e=>{
+  m.addEventListener('mousedown',e=>{
     if(!modoEditar)return;
     ativo=true;
     mesaAtual=m;
     ox=e.clientX-m.offsetLeft;
     oy=e.clientY-m.offsetTop;
-  };
+  });
 
-  document.onmousemove=e=>{
+  document.addEventListener('mousemove',e=>{
     if(!ativo)return;
     m.style.left=(e.clientX-ox)+'px';
     m.style.top=(e.clientY-oy-60)+'px';
-  };
+  });
 
-  document.onmouseup=()=>{
+  document.addEventListener('mouseup',()=>{
     if(!ativo)return;
     ativo=false;
     verificarJuncao(m);
-  };
+  });
 
   m.ondblclick=()=>{
     mesaAtual=m;
@@ -208,7 +207,7 @@ function dragMesa(m){
   };
 }
 
-/* JUNÇÃO DE MESAS */
+/* JUNÇÃO */
 function verificarJuncao(m){
   document.querySelectorAll('.mesa').forEach(o=>{
     if(o===m)return;
@@ -232,7 +231,7 @@ function verificarJuncao(m){
         o.classList.add('reservada');
       }
 
-      gerarRetangular(o);
+      gerarMesa(o);
       m.remove();
     }
   });
@@ -255,7 +254,7 @@ function addResize(m){
     if(!r)return;
     m.style.width=Math.max(120,e.clientX-m.offsetLeft)+'px';
     m.style.height=Math.max(80,e.clientY-m.offsetTop-60)+'px';
-    gerarRetangular(m);
+    gerarMesa(m);
   };
   document.onmouseup=()=>r=false;
 }
@@ -265,7 +264,7 @@ function salvarReserva(){
   mesaAtual.dataset.nome=resNome.value;
   mesaAtual.dataset.celular=resCelular.value;
   mesaAtual.classList.add('reservada');
-  gerarRetangular(mesaAtual);
+  gerarMesa(mesaAtual);
   modalReserva.style.display='none';
 }
 
@@ -273,7 +272,7 @@ function excluirReserva(){
   delete mesaAtual.dataset.nome;
   delete mesaAtual.dataset.celular;
   mesaAtual.classList.remove('reservada');
-  gerarRetangular(mesaAtual);
+  gerarMesa(mesaAtual);
   modalReserva.style.display='none';
 }
 </script>
