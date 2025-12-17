@@ -76,7 +76,6 @@ button{
   display:flex;
   justify-content:center;
 }
-
 .elemento img{
   width:42px;
   pointer-events:none;
@@ -90,7 +89,6 @@ main{flex:1;overflow:hidden}
   height:100%;
   overflow-x:auto;
   overflow-y:hidden;
-  cursor:grab;
   background:#e5e7eb;
 }
 
@@ -109,42 +107,18 @@ main{flex:1;overflow:hidden}
   display:flex;
   flex-direction:column;
   align-items:center;
-  cursor:grab;
 }
 .item-mapa img{
   width:150px;
 }
-.item-mapa.selected img{outline:2px solid var(--primary)}
-.item-mapa.reservado img{outline:2px solid var(--green)}
+.item-mapa.reservado img{
+  outline:2px solid var(--green);
+}
 
 .nome-reserva{
   font-size:12px;
   font-weight:600;
   margin-top:4px;
-  white-space:nowrap;
-}
-
-/* MODAL */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
-.modal.active{display:flex}
-
-.modal-box{
-  background:#fff;
-  padding:20px;
-  width:300px;
-  border-radius:10px;
-}
-.modal-box input{
-  width:100%;
-  padding:8px;
-  margin-bottom:8px;
 }
 </style>
 </head>
@@ -158,8 +132,6 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
-  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
-
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
 
@@ -173,23 +145,12 @@ main{flex:1;overflow:hidden}
   </div>
 </main>
 
-<div class="modal" id="modalReserva">
-  <div class="modal-box">
-    <h3>Reserva</h3>
-    <input id="clienteNome" placeholder="Nome">
-    <input id="clienteCelular" placeholder="Celular">
-    <input id="qtdPessoas" type="number" min="1" value="2">
-    <button onclick="salvarReserva()">Salvar</button>
-    <button onclick="fecharReserva()">Cancelar</button>
-  </div>
-</div>
-
 <script>
 /* ================= SUPABASE ================= */
 const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
 const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
 
-const supabase = window.supabase.createClient(
+const supabase = supabaseJs.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 )
@@ -197,31 +158,8 @@ const supabase = window.supabase.createClient(
 /* ================= REFS ================= */
 const overlay = document.getElementById('overlay')
 const mapa = document.getElementById('mapa')
-const viewport = document.getElementById('viewport')
 const listaRes = document.getElementById('listaReservaveis')
 const listaNao = document.getElementById('listaNaoReservaveis')
-const modalReserva = document.getElementById('modalReserva')
-
-const clienteNome = document.getElementById('clienteNome')
-const clienteCelular = document.getElementById('clienteCelular')
-const qtdPessoas = document.getElementById('qtdPessoas')
-
-let selecionado=null
-let reservando=null
-
-/* ================= PAN ================= */
-let panning=false,startX,scrollLeft
-viewport.onmousedown=e=>{
-  if(e.target.closest('.item-mapa')) return
-  panning=true
-  startX=e.pageX
-  scrollLeft=viewport.scrollLeft
-}
-viewport.onmousemove=e=>{
-  if(!panning) return
-  viewport.scrollLeft=scrollLeft-(e.pageX-startX)
-}
-viewport.onmouseup=viewport.onmouseleave=()=>panning=false
 
 /* ================= ELEMENTOS ================= */
 async function carregarElementos(){
@@ -230,21 +168,13 @@ async function carregarElementos(){
     .select('*')
     .eq('ativo', true)
 
-  if(error) throw error
+  if(error) throw new Error('Erro ao carregar elementos: ' + error.message)
 
   data.forEach(el=>{
-    const div=document.createElement('div')
-    div.className='elemento'
-    div.draggable=true
-    div.innerHTML=`<img src="${el.url_da_imagem}">`
-
-    div.ondragstart=e=>{
-      e.dataTransfer.setData('elemento_id', el.id)
-      e.dataTransfer.setData('reservavel', el.tipo==='reservavel')
-      e.dataTransfer.setData('url', el.url_da_imagem)
-    }
-
-    ;(el.tipo==='reservavel'?listaRes:listaNao).appendChild(div)
+    const div = document.createElement('div')
+    div.className = 'elemento'
+    div.innerHTML = `<img src="${el.url_da_imagem}">`
+    ;(el.tipo === 'reservavel' ? listaRes : listaNao).appendChild(div)
   })
 }
 
@@ -252,92 +182,31 @@ async function carregarElementos(){
 async function carregarMapa(){
   const { data, error } = await supabase
     .from('mapa_mesas')
-    .select(`
-      id, x, y, cliente, celular, pessoas, reservado,
-      elementos_mapa ( id, url_da_imagem, tipo )
-    `)
+    .select('*')
 
-  if(error) throw error
+  if(error) throw new Error('Erro ao carregar mapa: ' + error.message)
 
-  data.forEach(d=>{
-    criarItem(
-      d.elementos_mapa.id,
-      d.elementos_mapa.url_da_imagem,
-      d.elementos_mapa.tipo==='reservavel',
-      d.x, d.y,
-      d
-    )
-  })
-}
+  for(const d of data){
+    const { data: el, error: elErr } = await supabase
+      .from('elementos_mapa')
+      .select('url_da_imagem')
+      .eq('id', d.elemento_id)
+      .single()
 
-/* ================= ITEM ================= */
-function criarItem(id,url,reservavel,x,y,data={}){
-  const item=document.createElement('div')
-  item.className='item-mapa'
-  item.dataset.elemento_id=id
-  item.style.left=x+'px'
-  item.style.top=y+'px'
+    if(elErr) throw new Error('Elemento não encontrado: ' + elErr.message)
 
-  item.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-
-  if(data.reservado){
-    item.classList.add('reservado')
-    item.querySelector('.nome-reserva').textContent=
-      `${data.cliente} • ${data.pessoas} pessoas`
-  }
-
-  item.onclick=()=>{
-    document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
-    item.classList.add('selected')
-    selecionado=item
-  }
-
-  if(reservavel){
-    item.ondblclick=()=>{
-      reservando=item
-      clienteNome.value=data.cliente||''
-      clienteCelular.value=data.celular||''
-      qtdPessoas.value=data.pessoas||2
-      modalReserva.classList.add('active')
-    }
-  }
-
-  drag(item)
-  mapa.appendChild(item)
-}
-
-/* ================= DRAG ================= */
-function drag(el){
-  let x=0,y=0
-  el.onmousedown=e=>{
-    e.stopPropagation()
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>document.onmousemove=null
-  }
-}
-
-/* ================= RESERVA ================= */
-function salvarReserva(){
-  reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent=
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
-  fecharReserva()
-}
-function fecharReserva(){
-  reservando=null
-  modalReserva.classList.remove('active')
-}
-
-/* ================= REMOVER ================= */
-function removerSelecionado(){
-  if(selecionado){
-    selecionado.remove()
-    selecionado=null
+    const item = document.createElement('div')
+    item.className = 'item-mapa'
+    item.style.left = d.x + 'px'
+    item.style.top = d.y + 'px'
+    item.innerHTML = `
+      <img src="${el.url_da_imagem}">
+      <div class="nome-reserva">
+        ${d.reservado ? `${d.cliente} • ${d.pessoas} pessoas` : ''}
+      </div>
+    `
+    if(d.reservado) item.classList.add('reservado')
+    mapa.appendChild(item)
   }
 }
 
@@ -348,7 +217,10 @@ function removerSelecionado(){
     await carregarMapa()
     overlay.classList.add('hidden')
   }catch(err){
-    overlay.innerHTML = `<h2>Erro</h2><small>${err.message}</small>`
+    overlay.innerHTML = `
+      <h2>Erro ao carregar</h2>
+      <small>${err.message}</small>
+    `
     console.error(err)
   }
 })()
