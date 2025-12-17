@@ -5,6 +5,8 @@
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root{
   --bg:#f4f6f8;
@@ -12,9 +14,7 @@
   --border:#dcdfe4;
   --green:#16a34a;
 }
-
 *{box-sizing:border-box}
-
 body{
   margin:0;
   font-family:Inter, Arial, sans-serif;
@@ -22,8 +22,6 @@ body{
   display:flex;
   height:100vh;
 }
-
-/* SIDEBAR */
 aside{
   width:280px;
   background:#0f172a;
@@ -31,9 +29,7 @@ aside{
   padding:16px;
   overflow-y:auto;
 }
-
 h2,h3{margin-top:0}
-
 button{
   width:100%;
   padding:10px;
@@ -42,24 +38,14 @@ button{
   border-radius:6px;
   background:var(--primary);
   color:#fff;
-  cursor:pointer;
   font-weight:600;
+  cursor:pointer;
 }
-
-input{
-  width:100%;
-  padding:8px;
-  margin-bottom:8px;
-}
-
-/* ELEMENTOS */
 .elementos{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:10px;
-  margin-bottom:16px;
 }
-
 .elemento{
   background:#020617;
   border:1px dashed #475569;
@@ -67,24 +53,13 @@ input{
   padding:6px;
   cursor:grab;
   display:flex;
-  align-items:center;
   justify-content:center;
 }
-
 .elemento img{
   width:42px;
-  height:42px;
-  object-fit:contain;
   pointer-events:none;
 }
-
-/* MAIN */
-main{
-  flex:1;
-  overflow:hidden;
-}
-
-/* VIEWPORT — SOMENTE HORIZONTAL */
+main{flex:1;overflow:hidden}
 #viewport{
   width:100%;
   height:100%;
@@ -93,52 +68,33 @@ main{
   cursor:grab;
   background:#e5e7eb;
 }
-
-/* MAPA */
 #mapa{
   position:relative;
   width:6000px;
   height:100%;
   background:#fff;
   border:2px dashed var(--border);
-  border-radius:12px;
 }
-
-/* ITEM */
 .item-mapa{
   position:absolute;
-  cursor:grab;
+  width:150px;
   display:flex;
   flex-direction:column;
   align-items:center;
-  width:150px;
+  cursor:grab;
 }
-
 .item-mapa img{
   width:150px;
-  height:150px;
-  object-fit:contain;
   pointer-events:none;
 }
-
-.item-mapa.selected img{
-  outline:2px solid var(--primary);
-  border-radius:8px;
-}
-
-.item-mapa.reservado img{
-  outline:2px solid var(--green);
-  border-radius:8px;
-}
-
+.item-mapa.selected img{outline:2px solid var(--primary)}
+.item-mapa.reservado img{outline:2px solid var(--green)}
 .nome-reserva{
   font-size:12px;
-  margin-top:4px;
   font-weight:600;
+  margin-top:4px;
   white-space:nowrap;
 }
-
-/* MODAL */
 .modal{
   position:fixed;
   inset:0;
@@ -148,12 +104,16 @@ main{
   justify-content:center;
 }
 .modal.active{display:flex}
-
 .modal-box{
   background:#fff;
   padding:20px;
   width:300px;
   border-radius:10px;
+}
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin-bottom:8px;
 }
 </style>
 </head>
@@ -189,14 +149,12 @@ main{
 </div>
 
 <script>
-// =========================
-// API URL (SEU GAS)
-// =========================
-const API_URL = 'https://script.google.com/macros/s/AKfycbxLTpC3DERRsAIyBOMXzEMruTcPbwHKha4v_Vvqk_Wrrk6dDLkFwfTG9yGGEIL6jbA/exec'
+// ===================== SUPABASE =====================
+const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
+const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
+const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
-// =====================================================
-// REFERÊNCIAS
-// =====================================================
+// ===================== REFS =====================
 const mapa = document.getElementById('mapa')
 const viewport = document.getElementById('viewport')
 const listaRes = document.getElementById('listaReservaveis')
@@ -209,9 +167,7 @@ const qtdPessoas = document.getElementById('qtdPessoas')
 let selecionado = null
 let reservando = null
 
-// =====================================================
-// PAN HORIZONTAL
-// =====================================================
+// ===================== PAN HORIZONTAL =====================
 let panning=false,startX,scrollLeft
 viewport.onmousedown=e=>{
   if(e.target.closest('.item-mapa')) return
@@ -225,50 +181,49 @@ viewport.onmousemove=e=>{
 }
 viewport.onmouseup=viewport.onmouseleave=()=>panning=false
 
-// =====================================================
-// ELEMENTOS
-// =====================================================
-const reservaveisPadrao=[
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
-]
-const naoReservaveisPadrao=[
- 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png'
-]
+// ===================== CARREGAR ELEMENTOS =====================
+async function carregarElementos(){
+  const { data } = await supabase
+    .from('elementos_mapa')
+    .select('*')
+    .eq('ativo', true)
 
-function addElemento(url,res){
-  const el=document.createElement('div')
-  el.className='elemento'
-  el.draggable=true
-  el.innerHTML=`<img src="${url}">`
-  el.ondragstart=e=>{
-    e.dataTransfer.setData('url',url)
-    e.dataTransfer.setData('reservavel',res)
-  }
-  ;(res?listaRes:listaNao).appendChild(el)
+  data.forEach(el=>{
+    const div=document.createElement('div')
+    div.className='elemento'
+    div.draggable=true
+    div.innerHTML=`<img src="${el.imagem_url}">`
+    div.ondragstart=e=>{
+      e.dataTransfer.setData('elemento_id', el.id)
+      e.dataTransfer.setData('reservavel', el.tipo==='reservavel')
+      e.dataTransfer.setData('url', el.imagem_url)
+    }
+    ;(el.tipo==='reservavel'?listaRes:listaNao).appendChild(div)
+  })
 }
 
-// =====================================================
-// DROP
-// =====================================================
+// ===================== DROP =====================
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
   e.preventDefault()
   const rect=mapa.getBoundingClientRect()
-  let x=e.clientX-rect.left+viewport.scrollLeft-75
-  let y=e.clientY-rect.top
-  criarItem(e.dataTransfer.getData('url'),e.dataTransfer.getData('reservavel')==='true',x,y)
+  const x=e.clientX-rect.left+viewport.scrollLeft-75
+  const y=e.clientY-rect.top
+  criarItem(
+    e.dataTransfer.getData('elemento_id'),
+    e.dataTransfer.getData('url'),
+    e.dataTransfer.getData('reservavel')==='true',
+    x,y
+  )
   salvarMapa()
 }
 
-// =====================================================
-// ITEM
-// =====================================================
-function criarItem(url,res,x,y){
+// ===================== ITEM =====================
+function criarItem(elemento_id,url,reservavel,x,y){
   const item=document.createElement('div')
   item.className='item-mapa'
-  item.dataset.reservavel=res
+  item.dataset.elemento_id=elemento_id
+  item.dataset.reservavel=reservavel
   item.style.left=x+'px'
   item.style.top=y+'px'
   item.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
@@ -279,7 +234,7 @@ function criarItem(url,res,x,y){
     selecionado=item
   }
 
-  if(res){
+  if(reservavel){
     item.ondblclick=()=>{
       reservando=item
       clienteNome.value=item.dataset.cliente||''
@@ -293,9 +248,7 @@ function criarItem(url,res,x,y){
   mapa.appendChild(item)
 }
 
-// =====================================================
-// DRAG
-// =====================================================
+// ===================== DRAG ITEM =====================
 function drag(el){
   let x=0,y=0
   el.onmousedown=e=>{
@@ -310,11 +263,8 @@ function drag(el){
   }
 }
 
-// =====================================================
-// RESERVA
-// =====================================================
+// ===================== RESERVA =====================
 function salvarReserva(){
-  if(!reservando) return
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.celular=clienteCelular.value
   reservando.dataset.pessoas=qtdPessoas.value
@@ -329,9 +279,7 @@ function fecharReserva(){
   modalReserva.classList.remove('active')
 }
 
-// =====================================================
-// REMOVER
-// =====================================================
+// ===================== REMOVER =====================
 function removerSelecionado(){
   if(selecionado){
     selecionado.remove()
@@ -340,55 +288,53 @@ function removerSelecionado(){
   }
 }
 
-// =====================================================
-// BANCO — SALVAR / CARREGAR
-// =====================================================
-function salvarMapa(){
+// ===================== BANCO =====================
+async function salvarMapa(){
+  await supabase.from('mapa_mesas').delete().neq('id','')
   const itens=[]
   document.querySelectorAll('.item-mapa').forEach(i=>{
     itens.push({
-      url:i.querySelector('img').src,
-      reservavel:i.dataset.reservavel,
-      x:i.style.left,
-      y:i.style.top,
+      elemento_id:i.dataset.elemento_id,
+      x:parseInt(i.style.left),
+      y:parseInt(i.style.top),
       cliente:i.dataset.cliente||'',
       celular:i.dataset.celular||'',
-      pessoas:i.dataset.pessoas||'',
+      pessoas:i.dataset.pessoas||null,
       reservado:i.classList.contains('reservado')
     })
   })
-  fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({action:'salvar',itens})})
+  if(itens.length) await supabase.from('mapa_mesas').insert(itens)
 }
 
-function carregarMapa(){
-  fetch(API_URL+'?action=listar')
-    .then(r=>r.text())
-    .then(t=>{
-      let dados=[]
-      try{dados=JSON.parse(t)}catch{}
-      if(!Array.isArray(dados)) return
-      dados.forEach(d=>{
-        criarItem(d.url,d.reservavel==='true'||d.reservavel===true,parseInt(d.x),parseInt(d.y))
-        const el=mapa.lastChild
-        el.dataset.cliente=d.cliente||''
-        el.dataset.celular=d.celular||''
-        el.dataset.pessoas=d.pessoas||''
-        if(d.reservado){
-          el.classList.add('reservado')
-          el.querySelector('.nome-reserva').textContent=
-            `${d.cliente} • ${d.pessoas} pessoas`
-        }
-      })
-    })
+async function carregarMapa(){
+  const { data } = await supabase
+    .from('mapa_mesas')
+    .select(`
+      x,y,cliente,celular,pessoas,reservado,
+      elementos_mapa ( id, imagem_url )
+    `)
+
+  data.forEach(d=>{
+    criarItem(
+      d.elementos_mapa.id,
+      d.elementos_mapa.imagem_url,
+      true,
+      d.x,d.y
+    )
+    const el=mapa.lastChild
+    el.dataset.cliente=d.cliente||''
+    el.dataset.celular=d.celular||''
+    el.dataset.pessoas=d.pessoas||''
+    if(d.reservado){
+      el.classList.add('reservado')
+      el.querySelector('.nome-reserva').textContent=
+        `${d.cliente} • ${d.pessoas} pessoas`
+    }
+  })
 }
 
-// =====================================================
-// INIT
-// =====================================================
-reservaveisPadrao.forEach(u=>addElemento(u,true))
-naoReservaveisPadrao.forEach(u=>addElemento(u,false))
-setTimeout(carregarMapa,300)
+// ===================== INIT =====================
+carregarElementos().then(carregarMapa)
 </script>
 
 </body>
