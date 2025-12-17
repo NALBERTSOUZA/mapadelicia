@@ -2,108 +2,356 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Teste Supabase – mapa_mesas</title>
+<title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
+:root{
+  --bg:#f4f6f8;
+  --primary:#2563eb;
+  --border:#dcdfe4;
+  --green:#16a34a;
+}
+
+*{box-sizing:border-box}
+
 body{
-  font-family: Arial, sans-serif;
-  padding:20px;
+  margin:0;
+  font-family:Inter, Arial, sans-serif;
+  background:var(--bg);
+  display:flex;
+  height:100vh;
 }
+
+/* OVERLAY */
+#overlay{
+  position:fixed;
+  inset:0;
+  background:#0b1220;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  z-index:9999;
+}
+#overlay.hidden{display:none}
+
+/* SIDEBAR */
+aside{
+  width:280px;
+  background:#0f172a;
+  color:#fff;
+  padding:16px;
+  overflow-y:auto;
+}
+h2,h3{margin-top:0}
+
 button{
-  padding:10px 16px;
-  margin-right:10px;
-}
-pre{
-  background:#111;
-  color:#0f0;
+  width:100%;
   padding:10px;
-  margin-top:20px;
-  max-height:300px;
-  overflow:auto;
+  margin-bottom:10px;
+  border:none;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
 }
-.error{ color:#ff4d4d; }
+
+.elementos{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+}
+
+.elemento{
+  background:#020617;
+  border:1px dashed #475569;
+  border-radius:6px;
+  padding:6px;
+  cursor:grab;
+  display:flex;
+  justify-content:center;
+}
+
+.elemento img{
+  width:42px;
+  pointer-events:none;
+}
+
+/* MAPA */
+main{flex:1;overflow:hidden}
+
+#viewport{
+  width:100%;
+  height:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  cursor:grab;
+  background:#e5e7eb;
+}
+
+#mapa{
+  position:relative;
+  width:6000px;
+  height:100%;
+  background:#fff;
+  border:2px dashed var(--border);
+}
+
+/* ITEM */
+.item-mapa{
+  position:absolute;
+  width:150px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  cursor:grab;
+}
+.item-mapa img{
+  width:150px;
+}
+.item-mapa.selected img{outline:2px solid var(--primary)}
+.item-mapa.reservado img{outline:2px solid var(--green)}
+
+.nome-reserva{
+  font-size:12px;
+  font-weight:600;
+  margin-top:4px;
+  white-space:nowrap;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.modal.active{display:flex}
+
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:300px;
+  border-radius:10px;
+}
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin-bottom:8px;
+}
 </style>
 </head>
 
 <body>
 
-<h2>Teste Supabase – mapa_mesas</h2>
+<div id="overlay">
+  <h2>Carregando mapa…</h2>
+  <small>Conectando ao banco</small>
+</div>
 
-<button id="btnInserir">Inserir Registro</button>
-<button id="btnListar">Listar Registros</button>
+<aside>
+  <h2>Elementos</h2>
+  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
-<pre id="log">Página carregada.</pre>
+  <h3>Reserváveis</h3>
+  <div class="elementos" id="listaReservaveis"></div>
+
+  <h3>Não Reserváveis</h3>
+  <div class="elementos" id="listaNaoReservaveis"></div>
+</aside>
+
+<main>
+  <div id="viewport">
+    <div id="mapa"></div>
+  </div>
+</main>
+
+<div class="modal" id="modalReserva">
+  <div class="modal-box">
+    <h3>Reserva</h3>
+    <input id="clienteNome" placeholder="Nome">
+    <input id="clienteCelular" placeholder="Celular">
+    <input id="qtdPessoas" type="number" min="1" value="2">
+    <button onclick="salvarReserva()">Salvar</button>
+    <button onclick="fecharReserva()">Cancelar</button>
+  </div>
+</div>
 
 <script>
-/* =================== TESTE JS =================== */
-const logEl = document.getElementById('log')
-const log = (msg, err=false)=>{
-  logEl.className = err ? 'error' : ''
-  logEl.textContent =
-    typeof msg === 'string'
-      ? msg
-      : JSON.stringify(msg, null, 2)
-}
-
-log('JS carregado com sucesso ✅')
-
-/* =================== SUPABASE =================== */
-if(!window.supabase){
-  log('ERRO: supabase não carregou do CDN', true)
-  throw new Error('Supabase CDN não carregado')
-}
-
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
 const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
 
-// ✅ NÃO USAR O NOME "supabase"
-const db = window.supabase.createClient(
+const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 )
 
-log('Supabase conectado ✅')
+/* ================= REFS ================= */
+const overlay = document.getElementById('overlay')
+const mapa = document.getElementById('mapa')
+const viewport = document.getElementById('viewport')
+const listaRes = document.getElementById('listaReservaveis')
+const listaNao = document.getElementById('listaNaoReservaveis')
+const modalReserva = document.getElementById('modalReserva')
 
-/* =================== BOTÕES =================== */
-document.getElementById('btnInserir').onclick = inserir
-document.getElementById('btnListar').onclick = listar
+const clienteNome = document.getElementById('clienteNome')
+const clienteCelular = document.getElementById('clienteCelular')
+const qtdPessoas = document.getElementById('qtdPessoas')
 
-async function inserir(){
-  log('Inserindo registro...')
+let selecionado=null
+let reservando=null
 
-  const { data, error } = await db
-    .from('mapa_mesas')
-    .insert({
-      elemento_id: '71805376-fdae-44cd-a498-18e00cc86e37',
-      x: Math.floor(Math.random()*500),
-      y: Math.floor(Math.random()*300)
-    })
-    .select()
-
-  if(error){
-    log(error, true)
-  }else{
-    log(data)
-  }
+/* ================= PAN ================= */
+let panning=false,startX,scrollLeft
+viewport.onmousedown=e=>{
+  if(e.target.closest('.item-mapa')) return
+  panning=true
+  startX=e.pageX
+  scrollLeft=viewport.scrollLeft
 }
+viewport.onmousemove=e=>{
+  if(!panning) return
+  viewport.scrollLeft=scrollLeft-(e.pageX-startX)
+}
+viewport.onmouseup=viewport.onmouseleave=()=>panning=false
 
-async function listar(){
-  log('Buscando registros...')
-
-  const { data, error } = await db
-    .from('mapa_mesas')
+/* ================= ELEMENTOS ================= */
+async function carregarElementos(){
+  const { data, error } = await supabase
+    .from('elementos_mapa')
     .select('*')
-    .order('criado_em', { ascending:false })
+    .eq('ativo', true)
 
-  if(error){
-    log(error, true)
-  }else{
-    log(data)
+  if(error) throw error
+
+  data.forEach(el=>{
+    const div=document.createElement('div')
+    div.className='elemento'
+    div.draggable=true
+    div.innerHTML=`<img src="${el.url_da_imagem}">`
+
+    div.ondragstart=e=>{
+      e.dataTransfer.setData('elemento_id', el.id)
+      e.dataTransfer.setData('reservavel', el.tipo==='reservavel')
+      e.dataTransfer.setData('url', el.url_da_imagem)
+    }
+
+    ;(el.tipo==='reservavel'?listaRes:listaNao).appendChild(div)
+  })
+}
+
+/* ================= MAPA ================= */
+async function carregarMapa(){
+  const { data, error } = await supabase
+    .from('mapa_mesas')
+    .select(`
+      id, x, y, cliente, celular, pessoas, reservado,
+      elementos_mapa ( id, url_da_imagem, tipo )
+    `)
+
+  if(error) throw error
+
+  data.forEach(d=>{
+    criarItem(
+      d.elementos_mapa.id,
+      d.elementos_mapa.url_da_imagem,
+      d.elementos_mapa.tipo==='reservavel',
+      d.x, d.y,
+      d
+    )
+  })
+}
+
+/* ================= ITEM ================= */
+function criarItem(id,url,reservavel,x,y,data={}){
+  const item=document.createElement('div')
+  item.className='item-mapa'
+  item.dataset.elemento_id=id
+  item.style.left=x+'px'
+  item.style.top=y+'px'
+
+  item.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
+
+  if(data.reservado){
+    item.classList.add('reservado')
+    item.querySelector('.nome-reserva').textContent=
+      `${data.cliente} • ${data.pessoas} pessoas`
+  }
+
+  item.onclick=()=>{
+    document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
+    item.classList.add('selected')
+    selecionado=item
+  }
+
+  if(reservavel){
+    item.ondblclick=()=>{
+      reservando=item
+      clienteNome.value=data.cliente||''
+      clienteCelular.value=data.celular||''
+      qtdPessoas.value=data.pessoas||2
+      modalReserva.classList.add('active')
+    }
+  }
+
+  drag(item)
+  mapa.appendChild(item)
+}
+
+/* ================= DRAG ================= */
+function drag(el){
+  let x=0,y=0
+  el.onmousedown=e=>{
+    e.stopPropagation()
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      x=ev.clientX;y=ev.clientY
+    }
+    document.onmouseup=()=>document.onmousemove=null
   }
 }
+
+/* ================= RESERVA ================= */
+function salvarReserva(){
+  reservando.classList.add('reservado')
+  reservando.querySelector('.nome-reserva').textContent=
+    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+  fecharReserva()
+}
+function fecharReserva(){
+  reservando=null
+  modalReserva.classList.remove('active')
+}
+
+/* ================= REMOVER ================= */
+function removerSelecionado(){
+  if(selecionado){
+    selecionado.remove()
+    selecionado=null
+  }
+}
+
+/* ================= INIT ================= */
+(async()=>{
+  try{
+    await carregarElementos()
+    await carregarMapa()
+    overlay.classList.add('hidden')
+  }catch(err){
+    overlay.innerHTML = `<h2>Erro</h2><small>${err.message}</small>`
+    console.error(err)
+  }
+})()
 </script>
 
 </body>
