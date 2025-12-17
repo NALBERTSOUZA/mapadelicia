@@ -6,30 +6,58 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{margin:0;font-family:Arial;background:#f4f6fb}
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f4f6fb
+}
 header{
-  height:60px;background:#fff;display:flex;align-items:center;
-  justify-content:space-between;padding:0 20px;border-bottom:1px solid #ddd
+  height:60px;
+  background:#fff;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  border-bottom:1px solid #ddd
 }
 .actions{display:flex;gap:10px;align-items:center}
 button{
-  padding:8px 14px;border:none;border-radius:6px;
-  background:#111827;color:#fff;font-weight:600;cursor:pointer
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  background:#111827;
+  color:#fff;
+  font-weight:600;
+  cursor:pointer
 }
 
 /* TOGGLE */
 .toggle{
-  width:60px;height:30px;background:#dc2626;border-radius:30px;
-  position:relative;cursor:pointer
+  width:60px;
+  height:30px;
+  background:#dc2626;
+  border-radius:30px;
+  position:relative;
+  cursor:pointer
 }
 .toggle::after{
-  content:'';width:24px;height:24px;background:#fff;border-radius:50%;
-  position:absolute;top:3px;left:33px;transition:.2s
+  content:'';
+  width:24px;
+  height:24px;
+  background:#fff;
+  border-radius:50%;
+  position:absolute;
+  top:3px;
+  left:33px;
+  transition:.2s
 }
 .toggle.on{background:#16a34a}
 .toggle.on::after{left:3px}
 
-#canvas{position:relative;height:calc(100vh - 60px)}
+#canvas{
+  position:relative;
+  height:calc(100vh - 60px)
+}
 
 /* MESA */
 .mesa{
@@ -40,11 +68,11 @@ button{
   align-items:center;
   justify-content:center;
   text-align:center;
-  box-sizing:border-box;
+  box-sizing:border-box
 }
 .mesa.reservada{
   background:#dcfce7;
-  border-color:#16a34a;
+  border-color:#16a34a
 }
 
 .info-reserva{
@@ -52,33 +80,61 @@ button{
   font-weight:700;
   color:#065f46;
   pointer-events:none;
-  line-height:1.2;
+  line-height:1.2
 }
 
 /* RESIZE */
 .resize{
-  width:12px;height:12px;background:#111827;
-  position:absolute;right:-6px;bottom:-6px;cursor:se-resize
+  width:12px;
+  height:12px;
+  background:#111827;
+  position:absolute;
+  right:-6px;
+  bottom:-6px;
+  cursor:se-resize
 }
 
 /* CADEIRA */
 .cadeira{
-  position:absolute;width:26px;height:10px;
-  background:#111827;border-radius:6px;
+  position:absolute;
+  width:26px;
+  height:10px;
+  background:#111827;
+  border-radius:6px;
   transform-origin:center center
 }
 
 /* MODAL */
 .modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.4);
-  display:none;align-items:center;justify-content:center;z-index:20
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:20
 }
 .modal-box{
-  background:#fff;padding:20px;width:320px;border-radius:10px
+  background:#fff;
+  padding:20px;
+  width:320px;
+  border-radius:10px
 }
-.modal-box label{display:block;margin-top:10px}
-.modal-box input{width:100%;padding:8px;margin-top:4px}
-.modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:15px}
+.modal-box label{
+  display:block;
+  margin-top:10px
+}
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin-top:4px
+}
+.modal-actions{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  margin-top:15px
+}
 </style>
 </head>
 
@@ -113,30 +169,30 @@ button{
 </div>
 
 <script>
-let modoEditar=true;
-let mesaAtual=null;
+let modoEditar = true;
+let mesaAtual = null;
 
-const canvas=document.getElementById('canvas');
-const toggle=document.getElementById('toggle');
-const label=document.getElementById('label');
-const modalReserva=document.getElementById('modalReserva');
+const canvas = document.getElementById('canvas');
+const toggle = document.getElementById('toggle');
+const label = document.getElementById('label');
+const modalReserva = document.getElementById('modalReserva');
 
 /* TOGGLE */
-toggle.onclick=()=>{
-  modoEditar=!modoEditar;
-  toggle.classList.toggle('on',modoEditar);
-  label.innerText=modoEditar?'Editar':'Ao vivo';
+toggle.onclick = () => {
+  modoEditar = !modoEditar;
+  toggle.classList.toggle('on', modoEditar);
+  label.innerText = modoEditar ? 'Editar' : 'Ao vivo';
 };
 
 /* CRIAR MESA */
-btnAdd.onclick=()=>{
-  const m=document.createElement('div');
-  m.className='mesa';
-  m.style.width='160px';
-  m.style.height='90px';
-  m.style.left='200px';
-  m.style.top='200px';
-  m.dataset.cadeiras=4;
+btnAdd.onclick = () => {
+  const m = document.createElement('div');
+  m.className = 'mesa';
+  m.style.width = '160px';
+  m.style.height = '90px';
+  m.style.left = '200px';
+  m.style.top = '200px';
+  m.dataset.cadeiras = 4;
 
   gerarMesa(m);
   dragMesa(m);
@@ -145,20 +201,21 @@ btnAdd.onclick=()=>{
 
 /* GERAR MESA */
 function gerarMesa(m){
-  m.innerHTML='';
-  const w=m.offsetWidth,h=m.offsetHeight;
-  const qtd=+m.dataset.cadeiras;
+  m.innerHTML = '';
+  const w = m.offsetWidth;
+  const h = m.offsetHeight;
+  const qtd = +m.dataset.cadeiras;
 
   for(let i=1;i<=qtd;i++){
-    const pos=(i/(qtd+1))*w;
+    const pos = (i/(qtd+1))*w;
     m.appendChild(criarCadeira(pos-13,-15,0));
     m.appendChild(criarCadeira(pos-13,h+5,180));
   }
 
   if(m.dataset.nome){
-    const info=document.createElement('div');
-    info.className='info-reserva';
-    info.innerHTML=`${m.dataset.nome}<br>${m.dataset.celular}`;
+    const info = document.createElement('div');
+    info.className = 'info-reserva';
+    info.innerHTML = `${m.dataset.nome}<br>${m.dataset.celular}`;
     m.appendChild(info);
   }
 
@@ -167,20 +224,20 @@ function gerarMesa(m){
 
 /* CADEIRA */
 function criarCadeira(x,y,rot){
-  const c=document.createElement('div');
-  c.className='cadeira';
-  c.style.left=x+'px';
-  c.style.top=y+'px';
-  c.style.transform=`rotate(${rot}deg)`;
+  const c = document.createElement('div');
+  c.className = 'cadeira';
+  c.style.left = x+'px';
+  c.style.top = y+'px';
+  c.style.transform = `rotate(${rot}deg)`;
   return c;
 }
 
 /* DRAG + JUNÇÃO */
 function dragMesa(m){
-  let ativo=false,ox=0,oy=0;
+  let ativo=false, ox=0, oy=0;
 
   m.addEventListener('mousedown',e=>{
-    if(!modoEditar)return;
+    if(!modoEditar) return;
     ativo=true;
     mesaAtual=m;
     ox=e.clientX-m.offsetLeft;
@@ -188,13 +245,13 @@ function dragMesa(m){
   });
 
   document.addEventListener('mousemove',e=>{
-    if(!ativo)return;
+    if(!ativo) return;
     m.style.left=(e.clientX-ox)+'px';
     m.style.top=(e.clientY-oy-60)+'px';
   });
 
   document.addEventListener('mouseup',()=>{
-    if(!ativo)return;
+    if(!ativo) return;
     ativo=false;
     verificarJuncao(m);
   });
@@ -210,7 +267,7 @@ function dragMesa(m){
 /* JUNÇÃO */
 function verificarJuncao(m){
   document.querySelectorAll('.mesa').forEach(o=>{
-    if(o===m)return;
+    if(o===m) return;
 
     const r1=m.getBoundingClientRect();
     const r2=o.getBoundingClientRect();
@@ -223,11 +280,11 @@ function verificarJuncao(m){
     );
 
     if(colide){
-      o.dataset.cadeiras=+o.dataset.cadeiras + +m.dataset.cadeiras;
+      o.dataset.cadeiras = +o.dataset.cadeiras + +m.dataset.cadeiras;
 
       if(m.dataset.nome){
-        o.dataset.nome=m.dataset.nome;
-        o.dataset.celular=m.dataset.celular;
+        o.dataset.nome = m.dataset.nome;
+        o.dataset.celular = m.dataset.celular;
         o.classList.add('reservada');
       }
 
@@ -245,13 +302,13 @@ function addResize(m){
 
   let r=false;
   rs.onmousedown=e=>{
-    if(!modoEditar)return;
+    if(!modoEditar) return;
     e.stopPropagation();
     r=true;
   };
 
   document.onmousemove=e=>{
-    if(!r)return;
+    if(!r) return;
     m.style.width=Math.max(120,e.clientX-m.offsetLeft)+'px';
     m.style.height=Math.max(80,e.clientY-m.offsetTop-60)+'px';
     gerarMesa(m);
