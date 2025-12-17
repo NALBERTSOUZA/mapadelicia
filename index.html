@@ -6,58 +6,30 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f4f6fb
-}
+body{margin:0;font-family:Arial;background:#f4f6fb}
 header{
-  height:60px;
-  background:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 20px;
-  border-bottom:1px solid #ddd
+  height:60px;background:#fff;display:flex;align-items:center;
+  justify-content:space-between;padding:0 20px;border-bottom:1px solid #ddd
 }
 .actions{display:flex;gap:10px;align-items:center}
 button{
-  padding:8px 14px;
-  border:none;
-  border-radius:6px;
-  background:#111827;
-  color:#fff;
-  font-weight:600;
-  cursor:pointer
+  padding:8px 14px;border:none;border-radius:6px;
+  background:#111827;color:#fff;font-weight:600;cursor:pointer
 }
 
 /* TOGGLE */
 .toggle{
-  width:60px;
-  height:30px;
-  background:#dc2626;
-  border-radius:30px;
-  position:relative;
-  cursor:pointer
+  width:60px;height:30px;background:#dc2626;border-radius:30px;
+  position:relative;cursor:pointer
 }
 .toggle::after{
-  content:'';
-  width:24px;
-  height:24px;
-  background:#fff;
-  border-radius:50%;
-  position:absolute;
-  top:3px;
-  left:33px;
-  transition:.2s
+  content:'';width:24px;height:24px;background:#fff;border-radius:50%;
+  position:absolute;top:3px;left:33px;transition:.2s
 }
 .toggle.on{background:#16a34a}
 .toggle.on::after{left:3px}
 
-#canvas{
-  position:relative;
-  height:calc(100vh - 60px)
-}
+#canvas{position:relative;height:calc(100vh - 60px)}
 
 /* MESA */
 .mesa{
@@ -74,6 +46,7 @@ button{
   background:#dcfce7;
   border-color:#16a34a
 }
+.redonda{border-radius:50%}
 
 .info-reserva{
   font-size:12px;
@@ -85,56 +58,33 @@ button{
 
 /* RESIZE */
 .resize{
-  width:12px;
-  height:12px;
-  background:#111827;
-  position:absolute;
-  right:-6px;
-  bottom:-6px;
-  cursor:se-resize
+  width:12px;height:12px;background:#111827;
+  position:absolute;right:-6px;bottom:-6px;cursor:se-resize
 }
 
 /* CADEIRA */
 .cadeira{
-  position:absolute;
-  width:26px;
-  height:10px;
-  background:#111827;
-  border-radius:6px;
+  position:absolute;width:26px;height:10px;
+  background:#111827;border-radius:6px;
   transform-origin:center center
 }
 
+/* ELEMENTOS */
+.elemento{position:absolute;background:#9ca3af}
+.linha{width:140px;height:4px}
+.degrau{width:80px;height:20px;background:#6b7280}
+
 /* MODAL */
 .modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:20
+  position:fixed;inset:0;background:rgba(0,0,0,.4);
+  display:none;align-items:center;justify-content:center;z-index:20
 }
 .modal-box{
-  background:#fff;
-  padding:20px;
-  width:320px;
-  border-radius:10px
+  background:#fff;padding:20px;width:320px;border-radius:10px
 }
-.modal-box label{
-  display:block;
-  margin-top:10px
-}
-.modal-box input{
-  width:100%;
-  padding:8px;
-  margin-top:4px
-}
-.modal-actions{
-  display:flex;
-  justify-content:space-between;
-  gap:10px;
-  margin-top:15px
-}
+.modal-box label{display:block;margin-top:10px}
+.modal-box input,select{width:100%;padding:8px;margin-top:4px}
+.modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:15px}
 </style>
 </head>
 
@@ -144,193 +94,208 @@ button{
   <strong id="label">Editar</strong>
   <div class="actions">
     <button id="btnAdd">+ Mesa</button>
+    <button id="btnLinha">+ Linha</button>
+    <button id="btnDegrau">+ Degrau</button>
     <div id="toggle" class="toggle on"></div>
   </div>
 </header>
 
 <div id="canvas"></div>
 
+<!-- MODAL MESA -->
+<div class="modal" id="modalMesa">
+  <div class="modal-box">
+    <h3>Nova Mesa</h3>
+
+    <label>Formato</label>
+    <select id="formato">
+      <option value="retangular">Retangular</option>
+      <option value="redonda">Redonda</option>
+    </select>
+
+    <label>Cadeiras</label>
+    <input type="number" id="cadeiras" value="4" min="2">
+
+    <label id="lblRaio" style="display:none">Raio (redonda)</label>
+    <input type="number" id="raio" value="60" style="display:none">
+
+    <div class="modal-actions">
+      <button onclick="modalMesa.style.display='none'">Cancelar</button>
+      <button onclick="criarMesa()">Criar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL RESERVA -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
-    <h3>Reserva da Mesa</h3>
+    <h3>Reserva</h3>
 
-    <label>Nome do Cliente</label>
+    <label>Nome</label>
     <input id="resNome">
 
     <label>Celular</label>
     <input id="resCelular">
 
     <div class="modal-actions">
-      <button onclick="excluirReserva()">Excluir reserva</button>
+      <button onclick="excluirReserva()">Excluir</button>
       <button onclick="salvarReserva()">Salvar</button>
     </div>
   </div>
 </div>
 
 <script>
-let modoEditar = true;
-let mesaAtual = null;
+let modoEditar=true;
+let mesaAtual=null;
 
-const canvas = document.getElementById('canvas');
-const toggle = document.getElementById('toggle');
-const label = document.getElementById('label');
-const modalReserva = document.getElementById('modalReserva');
-
-/* TOGGLE */
-toggle.onclick = () => {
-  modoEditar = !modoEditar;
-  toggle.classList.toggle('on', modoEditar);
-  label.innerText = modoEditar ? 'Editar' : 'Ao vivo';
+toggle.onclick=()=>{
+  modoEditar=!modoEditar;
+  toggle.classList.toggle('on',modoEditar);
+  label.innerText=modoEditar?'Editar':'Ao vivo';
+  document.querySelectorAll('.actions button').forEach(b=>{
+    b.style.display=modoEditar?'inline-block':'none';
+  });
 };
 
-/* CRIAR MESA */
-btnAdd.onclick = () => {
-  const m = document.createElement('div');
-  m.className = 'mesa';
-  m.style.width = '160px';
-  m.style.height = '90px';
-  m.style.left = '200px';
-  m.style.top = '200px';
-  m.dataset.cadeiras = 4;
+/* ELEMENTOS */
+btnLinha.onclick=()=>addElemento('linha');
+btnDegrau.onclick=()=>addElemento('degrau');
 
-  gerarMesa(m);
-  dragMesa(m);
-  canvas.appendChild(m);
-};
-
-/* GERAR MESA */
-function gerarMesa(m){
-  m.innerHTML = '';
-  const w = m.offsetWidth;
-  const h = m.offsetHeight;
-  const qtd = +m.dataset.cadeiras;
-
-  for(let i=1;i<=qtd;i++){
-    const pos = (i/(qtd+1))*w;
-    m.appendChild(criarCadeira(pos-13,-15,0));
-    m.appendChild(criarCadeira(pos-13,h+5,180));
-  }
-
-  if(m.dataset.nome){
-    const info = document.createElement('div');
-    info.className = 'info-reserva';
-    info.innerHTML = `${m.dataset.nome}<br>${m.dataset.celular}`;
-    m.appendChild(info);
-  }
-
-  addResize(m);
+function addElemento(tipo){
+  if(!modoEditar)return;
+  const el=document.createElement('div');
+  el.className=`elemento ${tipo}`;
+  el.style.left='200px';
+  el.style.top='200px';
+  drag(el);
+  canvas.appendChild(el);
 }
 
-/* CADEIRA */
+/* MESA */
+btnAdd.onclick=()=>modalMesa.style.display='flex';
+
+formato.onchange=()=>{
+  const r=formato.value==='redonda';
+  lblRaio.style.display=raio.style.display=r?'block':'none';
+};
+
+function criarMesa(){
+  const m=document.createElement('div');
+  const f=formato.value;
+  m.className=`mesa ${f}`;
+  m.style.left='200px';
+  m.style.top='200px';
+  m.dataset.cadeiras=cadeiras.value;
+
+  if(f==='redonda'){
+    m.style.width=m.style.height=(raio.value*2)+'px';
+    gerarRedonda(m);
+  }else{
+    m.style.width='160px';
+    m.style.height='90px';
+    gerarRetangular(m);
+  }
+
+  drag(m);
+  m.ondblclick=()=>abrirReserva(m);
+  canvas.appendChild(m);
+  modalMesa.style.display='none';
+}
+
+/* CADEIRAS */
 function criarCadeira(x,y,rot){
-  const c = document.createElement('div');
-  c.className = 'cadeira';
-  c.style.left = x+'px';
-  c.style.top = y+'px';
-  c.style.transform = `rotate(${rot}deg)`;
+  const c=document.createElement('div');
+  c.className='cadeira';
+  c.style.left=x+'px';
+  c.style.top=y+'px';
+  c.style.transform=`rotate(${rot}deg)`;
   return c;
 }
 
-/* DRAG + JUNÇÃO */
-function dragMesa(m){
-  let ativo=false, ox=0, oy=0;
-
-  m.addEventListener('mousedown',e=>{
-    if(!modoEditar) return;
-    ativo=true;
-    mesaAtual=m;
-    ox=e.clientX-m.offsetLeft;
-    oy=e.clientY-m.offsetTop;
-  });
-
-  document.addEventListener('mousemove',e=>{
-    if(!ativo) return;
-    m.style.left=(e.clientX-ox)+'px';
-    m.style.top=(e.clientY-oy-60)+'px';
-  });
-
-  document.addEventListener('mouseup',()=>{
-    if(!ativo) return;
-    ativo=false;
-    verificarJuncao(m);
-  });
-
-  m.ondblclick=()=>{
-    mesaAtual=m;
-    resNome.value=m.dataset.nome||'';
-    resCelular.value=m.dataset.celular||'';
-    modalReserva.style.display='flex';
-  };
+function gerarRetangular(m){
+  m.innerHTML='';
+  const w=m.offsetWidth,h=m.offsetHeight,q=+m.dataset.cadeiras;
+  for(let i=1;i<=q;i++){
+    const p=(i/(q+1))*w;
+    m.appendChild(criarCadeira(p-13,-15,0));
+    m.appendChild(criarCadeira(p-13,h+5,180));
+  }
+  infoReserva(m);resize(m);
 }
 
-/* JUNÇÃO */
-function verificarJuncao(m){
-  document.querySelectorAll('.mesa').forEach(o=>{
-    if(o===m) return;
-
-    const r1=m.getBoundingClientRect();
-    const r2=o.getBoundingClientRect();
-
-    const colide=!(
-      r1.right<r2.left ||
-      r1.left>r2.right ||
-      r1.bottom<r2.top ||
-      r1.top>r2.bottom
-    );
-
-    if(colide){
-      o.dataset.cadeiras = +o.dataset.cadeiras + +m.dataset.cadeiras;
-
-      if(m.dataset.nome){
-        o.dataset.nome = m.dataset.nome;
-        o.dataset.celular = m.dataset.celular;
-        o.classList.add('reservada');
-      }
-
-      gerarMesa(o);
-      m.remove();
-    }
-  });
-}
-
-/* RESIZE */
-function addResize(m){
-  const rs=document.createElement('div');
-  rs.className='resize';
-  m.appendChild(rs);
-
-  let r=false;
-  rs.onmousedown=e=>{
-    if(!modoEditar) return;
-    e.stopPropagation();
-    r=true;
-  };
-
-  document.onmousemove=e=>{
-    if(!r) return;
-    m.style.width=Math.max(120,e.clientX-m.offsetLeft)+'px';
-    m.style.height=Math.max(80,e.clientY-m.offsetTop-60)+'px';
-    gerarMesa(m);
-  };
-  document.onmouseup=()=>r=false;
+function gerarRedonda(m){
+  m.innerHTML='';
+  const r=m.offsetWidth/2,c=r,d=r-10,q=+m.dataset.cadeiras;
+  for(let i=0;i<q;i++){
+    const a=(2*Math.PI/q)*i;
+    m.appendChild(criarCadeira(
+      c+Math.cos(a)*d-13,
+      c+Math.sin(a)*d-5,
+      a*180/Math.PI+90
+    ));
+  }
+  infoReserva(m);resize(m);
 }
 
 /* RESERVA */
+function abrirReserva(m){
+  mesaAtual=m;
+  resNome.value=m.dataset.nome||'';
+  resCelular.value=m.dataset.celular||'';
+  modalReserva.style.display='flex';
+}
 function salvarReserva(){
   mesaAtual.dataset.nome=resNome.value;
   mesaAtual.dataset.celular=resCelular.value;
   mesaAtual.classList.add('reservada');
-  gerarMesa(mesaAtual);
+  mesaAtual.classList.contains('redonda')?gerarRedonda(mesaAtual):gerarRetangular(mesaAtual);
   modalReserva.style.display='none';
 }
-
 function excluirReserva(){
   delete mesaAtual.dataset.nome;
   delete mesaAtual.dataset.celular;
   mesaAtual.classList.remove('reservada');
-  gerarMesa(mesaAtual);
+  mesaAtual.classList.contains('redonda')?gerarRedonda(mesaAtual):gerarRetangular(mesaAtual);
   modalReserva.style.display='none';
+}
+function infoReserva(m){
+  if(m.dataset.nome){
+    const d=document.createElement('div');
+    d.className='info-reserva';
+    d.innerHTML=`${m.dataset.nome}<br>${m.dataset.celular}`;
+    m.appendChild(d);
+  }
+}
+
+/* DRAG */
+function drag(el){
+  let a=false,ox=0,oy=0;
+  el.onmousedown=e=>{
+    if(!modoEditar)return;
+    a=true;ox=e.clientX-el.offsetLeft;oy=e.clientY-el.offsetTop;
+  };
+  document.onmousemove=e=>{
+    if(!a)return;
+    el.style.left=(e.clientX-ox)+'px';
+    el.style.top=(e.clientY-oy-60)+'px';
+  };
+  document.onmouseup=()=>a=false;
+}
+
+/* RESIZE */
+function resize(m){
+  const rs=document.createElement('div');
+  rs.className='resize';
+  m.appendChild(rs);
+  let r=false;
+  rs.onmousedown=e=>{e.stopPropagation();r=true};
+  document.onmousemove=e=>{
+    if(!r)return;
+    m.style.width=Math.max(80,e.clientX-m.offsetLeft)+'px';
+    m.style.height=Math.max(80,e.clientY-m.offsetTop-60)+'px';
+    m.classList.contains('redonda')?gerarRedonda(m):gerarRetangular(m);
+  };
+  document.onmouseup=()=>r=false;
 }
 </script>
 
