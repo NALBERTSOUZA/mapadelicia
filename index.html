@@ -46,6 +46,26 @@ button{
 
 button.secondary{background:#334155}
 
+/* ELEMENTOS */
+.elementos{
+  margin-top:20px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.elemento{
+  background:#1e293b;
+  padding:10px;
+  border-radius:6px;
+  cursor:grab;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:13px;
+  border:1px dashed #475569;
+}
+
 /* MAPA */
 main{flex:1;padding:20px}
 
@@ -123,7 +143,7 @@ main{flex:1;padding:20px}
   display:block;
 }
 
-.modal-box input,select{
+.modal-box input{
   width:100%;
   padding:8px;
   margin-top:4px;
@@ -141,56 +161,33 @@ main{flex:1;padding:20px}
 
 <aside>
   <h2>Mapa de Mesas</h2>
-  <button onclick="abrirModalMesa()">➕ Adicionar Mesa</button>
   <button class="secondary" onclick="removerMesa()">🗑️ Remover Mesa</button>
+
+  <div class="elementos">
+    <div class="elemento" draggable="true" data-tipo="quadrada">🟦 Mesa Quadrada (2)</div>
+    <div class="elemento" draggable="true" data-tipo="retangular">🟧 Mesa Retangular (4)</div>
+    <div class="elemento" draggable="true" data-tipo="redonda">⚪ Mesa Redonda</div>
+  </div>
 </aside>
 
 <main>
   <div id="mapa"></div>
 </main>
 
-<!-- MODAL MESA -->
-<div class="modal" id="modalMesa">
+<!-- MODAL REDONDA -->
+<div class="modal" id="modalRedonda">
   <div class="modal-box">
-    <h3>Mesa</h3>
+    <h3>Mesa Redonda</h3>
 
-    <label>Nome</label>
-    <input id="nomeMesa">
+    <label>Raio (px)</label>
+    <input id="raioMesa" type="number" value="35">
 
-    <label>Tipo</label>
-    <select id="tipoMesa" onchange="toggleRedonda()">
-      <option value="quadrada">Quadrada</option>
-      <option value="retangular">Retangular</option>
-      <option value="redonda">Redonda</option>
-    </select>
-
-    <label id="labelRaio" style="display:none">Raio da mesa (px)</label>
-    <input id="raioMesa" type="number" value="35" style="display:none">
-
-    <label id="labelQtd" style="display:none">Quantidade de cadeiras</label>
-    <input id="qtdCadeiras" type="number" value="6" min="1" style="display:none">
+    <label>Quantidade de cadeiras</label>
+    <input id="qtdCadeiras" type="number" value="6" min="1">
 
     <div class="modal-actions">
-      <button onclick="salvarMesa()">Salvar</button>
-      <button class="secondary" onclick="fecharModalMesa()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL RESERVA -->
-<div class="modal" id="modalReserva">
-  <div class="modal-box">
-    <h3>Reserva</h3>
-
-    <label>Cliente</label>
-    <input id="clienteNome">
-
-    <label>Telefone</label>
-    <input id="clienteTelefone">
-
-    <div class="modal-actions">
-      <button onclick="salvarReserva()">Salvar</button>
-      <button class="secondary" onclick="fecharModalReserva()">Cancelar</button>
+      <button onclick="confirmarRedonda()">Confirmar</button>
+      <button class="secondary" onclick="fecharRedonda()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -198,65 +195,74 @@ main{flex:1;padding:20px}
 <script>
 const mapa=document.getElementById('mapa')
 let selecionada=null
+let pendente=null
 
-function toggleRedonda(){
-  const show = tipoMesa.value === 'redonda'
-  labelRaio.style.display = show ? 'block' : 'none'
-  raioMesa.style.display  = show ? 'block' : 'none'
-  labelQtd.style.display  = show ? 'block' : 'none'
-  qtdCadeiras.style.display = show ? 'block' : 'none'
+/* DRAG DOS ELEMENTOS */
+document.querySelectorAll('.elemento').forEach(el=>{
+  el.ondragstart=e=>{
+    e.dataTransfer.setData('tipo',el.dataset.tipo)
+  }
+})
+
+mapa.ondragover=e=>e.preventDefault()
+
+mapa.ondrop=e=>{
+  e.preventDefault()
+  const tipo=e.dataTransfer.getData('tipo')
+  const x=e.offsetX
+  const y=e.offsetY
+
+  if(tipo==='redonda'){
+    pendente={x,y}
+    modalRedonda.classList.add('active')
+  }else{
+    criarMesa(tipo,x,y)
+  }
 }
 
-function abrirModalMesa(){
-  nomeMesa.value=''
-  tipoMesa.value='quadrada'
-  raioMesa.value=35
-  qtdCadeiras.value=6
-  toggleRedonda()
-  modalMesa.classList.add('active')
-}
-
-function fecharModalMesa(){modalMesa.classList.remove('active')}
-
-function salvarMesa(){
+/* CRIAÇÃO */
+function criarMesa(tipo,x,y){
   const wrap=document.createElement('div')
-  wrap.className='mesa-wrapper '+tipoMesa.value
-  wrap.style.left='40px'
-  wrap.style.top='40px'
+  wrap.className='mesa-wrapper '+tipo
+  wrap.style.left=x+'px'
+  wrap.style.top=y+'px'
 
   const mesa=document.createElement('div')
   mesa.className='mesa'
-  mesa.textContent=nomeMesa.value||'Mesa'
+  mesa.textContent='Mesa'
 
-  if(tipoMesa.value==='redonda'){
-    const r = Number(raioMesa.value)
-    const qtd = Number(qtdCadeiras.value)
+  if(tipo==='redonda'){
+    const r=Number(raioMesa.value)
+    const qtd=Number(qtdCadeiras.value)
     mesa.style.width=r*2+'px'
     mesa.style.height=r*2+'px'
-    criarCadeirasCirculo(wrap, r, qtd)
+    criarCadeirasCirculo(wrap,r,qtd)
   }else{
-    criarCadeirasLados(wrap, tipoMesa.value)
+    criarCadeirasLados(wrap,tipo)
   }
 
   wrap.appendChild(mesa)
   mapa.appendChild(wrap)
-  ativar(wrap, mesa)
+  ativar(wrap,mesa)
   drag(wrap)
-  fecharModalMesa()
 }
 
+/* CONFIRMA REDONDA */
+function confirmarRedonda(){
+  criarMesa('redonda',pendente.x,pendente.y)
+  fecharRedonda()
+}
+
+function fecharRedonda(){
+  pendente=null
+  modalRedonda.classList.remove('active')
+}
+
+/* CADEIRAS */
 function criarCadeirasLados(wrap,tipo){
-  const pos = tipo === 'retangular'
-    ? [
-        [30, -10],  // topo esquerda
-        [60, -10],  // topo direita
-        [30, 60],   // baixo esquerda
-        [60, 60]    // baixo direita
-      ]
-    : [
-        [26, -10],
-        [26, 60]
-      ]
+  const pos = tipo==='retangular'
+    ? [[30,-10],[60,-10],[30,60],[60,60]]
+    : [[26,-10],[26,60]]
 
   pos.forEach(p=>{
     const c=document.createElement('div')
@@ -267,39 +273,27 @@ function criarCadeirasLados(wrap,tipo){
   })
 }
 
-function criarCadeirasCirculo(wrap, r, qtd){
-  const dist = r + 6
-
+function criarCadeirasCirculo(wrap,r,qtd){
+  const dist=r+6
   for(let i=0;i<qtd;i++){
-    const ang = (i / qtd) * Math.PI * 2
+    const ang=(i/qtd)*Math.PI*2
     const c=document.createElement('div')
     c.className='chair'
-
-    const cx = r + Math.cos(ang) * dist
-    const cy = r + Math.sin(ang) * dist
-
-    c.style.left = cx + 'px'
-    c.style.top  = cy + 'px'
-
-    const rot = ang * (180 / Math.PI) + 90
-    c.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`
-    c.style.transformOrigin = 'center center'
-
+    c.style.left=(r+Math.cos(ang)*dist)+'px'
+    c.style.top =(r+Math.sin(ang)*dist)+'px'
+    const rot=ang*(180/Math.PI)+90
+    c.style.transform=`translate(-50%,-50%) rotate(${rot}deg)`
     wrap.appendChild(c)
   }
 }
 
+/* INTERAÇÃO */
 function ativar(wrap,mesa){
   wrap.onclick=()=>{
     document.querySelectorAll('.mesa-wrapper').forEach(m=>m.classList.remove('selected'))
     wrap.classList.add('selected')
     selecionada=wrap
   }
-
-  wrap.ondblclick=()=>{
-    modalReserva.classList.add('active')
-  }
-
   wrap.mesa=mesa
 }
 
@@ -307,22 +301,13 @@ function removerMesa(){
   if(selecionada){selecionada.remove();selecionada=null}
 }
 
-function salvarReserva(){
-  if(!selecionada)return
-  selecionada.mesa.classList.add('reservada')
-  selecionada.mesa.textContent=clienteNome.value
-  modalReserva.classList.remove('active')
-}
-
-function fecharModalReserva(){modalReserva.classList.remove('active')}
-
 function drag(el){
   let x=0,y=0
   el.onmousedown=e=>{
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
       el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
     document.onmouseup=()=>document.onmousemove=null
