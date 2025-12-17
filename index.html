@@ -46,12 +46,8 @@ button{
 /* CADEIRA */
 .cadeira{
   position:absolute;width:26px;height:10px;
-  background:#111827;border-radius:6px;cursor:pointer;
+  background:#111827;border-radius:6px;
   transform-origin:center center
-}
-.nome{
-  position:absolute;top:12px;left:50%;
-  transform:translateX(-50%);font-size:10px;white-space:nowrap
 }
 
 /* ELEMENTOS */
@@ -127,8 +123,7 @@ button{
     <input type="number" id="lugares">
 
     <div id="aviso" class="warn" style="display:none">
-      Quantidade maior que os assentos desta mesa.<br>
-      Você poderá juntar outra mesa depois.
+      Quantidade maior que os assentos desta mesa.
     </div>
 
     <div class="modal-actions">
@@ -201,10 +196,11 @@ function criarMesa(){
   const rs=document.createElement('div');
   rs.className='resize';
   m.appendChild(rs);
-  resize(m,rs);
-  drag(m);
 
-  m.ondblclick=e=>{
+  drag(m);
+  resize(m,rs);
+
+  m.ondblclick=()=>{
     if(!modoEditar)return;
     mesaAtual=m;
     modalReserva.style.display='flex';
@@ -248,40 +244,52 @@ lugares.oninput=()=>{
 };
 
 function fecharReserva(){modalReserva.style.display='none'}
-
 function salvarReserva(){
   mesaAtual.style.borderColor='#16a34a';
   fecharReserva();
 }
 
-/* DRAG */
+/* DRAG PROFISSIONAL */
 function drag(el){
-  let m=false,ox,oy;
-  el.onmousedown=e=>{
+  let ativo=false,ox=0,oy=0;
+
+  el.addEventListener('mousedown',e=>{
     if(!modoEditar)return;
-    m=true;ox=e.offsetX;oy=e.offsetY;
-  };
-  document.onmousemove=e=>{
-    if(!m)return;
-    el.style.left=(e.pageX-ox)+'px';
-    el.style.top=(e.pageY-oy-60)+'px';
-  };
-  document.onmouseup=()=>m=false;
+    ativo=true;
+    ox=e.clientX-el.offsetLeft;
+    oy=e.clientY-el.offsetTop;
+    el.style.zIndex=5;
+  });
+
+  document.addEventListener('mousemove',e=>{
+    if(!ativo)return;
+    el.style.left=(e.clientX-ox)+'px';
+    el.style.top=(e.clientY-oy-60)+'px';
+  });
+
+  document.addEventListener('mouseup',()=>{
+    ativo=false;
+    el.style.zIndex='';
+  });
 }
 
-/* RESIZE */
-function resize(m,h){
+/* RESIZE PROFISSIONAL */
+function resize(mesa,handle){
   let r=false;
-  h.onmousedown=e=>{
+
+  handle.addEventListener('mousedown',e=>{
+    if(!modoEditar)return;
     e.stopPropagation();
     r=true;
-  };
-  document.onmousemove=e=>{
+  });
+
+  document.addEventListener('mousemove',e=>{
     if(!r)return;
-    m.style.width=(e.pageX-m.offsetLeft)+'px';
-    m.style.height=(e.pageY-m.offsetTop-60)+'px';
-  };
-  document.onmouseup=()=>r=false;
+    mesa.style.width=Math.max(60,e.clientX-mesa.offsetLeft)+'px';
+    mesa.style.height=Math.max(60,e.clientY-mesa.offsetTop-60)+'px';
+  });
+
+  document.addEventListener('mouseup',()=>r=false);
 }
 </script>
 
