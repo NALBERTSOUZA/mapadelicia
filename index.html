@@ -248,12 +248,10 @@ function salvarMesa(){
 function criarCadeirasLados(wrap,tipo){
   const pos = tipo === 'retangular'
     ? [
-        [30, -10],
-        [60, -10],
-        [30, 60],
-        [60, 60],
-        [-10, 30],
-        [90, 30]
+        [30, -10],  // topo esquerda
+        [60, -10],  // topo direita
+        [30, 60],   // baixo esquerda
+        [60, 60]    // baixo direita
       ]
     : [
         [26, -10],
