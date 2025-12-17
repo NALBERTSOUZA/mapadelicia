@@ -251,9 +251,11 @@ function criarCadeirasLados(wrap,tipo){
     wrap.appendChild(c)
   })
 }
+
+
 function criarCadeirasCirculo(wrap, r){
   const qtd = 6
-  const dist = r + 14 // distância da cadeira até a mesa
+  const dist = r + 6   // 👈 AQUI CONTROLA O QUÃO JUNTO DO CÍRCULO
 
   for(let i = 0; i < qtd; i++){
     const ang = (i / qtd) * Math.PI * 2
@@ -261,15 +263,14 @@ function criarCadeirasCirculo(wrap, r){
     const c = document.createElement('div')
     c.className = 'chair'
 
-    // posição correta (centro da cadeira)
     const cx = r + Math.cos(ang) * dist
     const cy = r + Math.sin(ang) * dist
 
     c.style.left = cx + 'px'
     c.style.top  = cy + 'px'
 
-    // 🔥 ROTAÇÃO TANGENCIAL AO CÍRCULO
-    const rot = (ang * 180 / Math.PI) + 180
+    // 🔁 ROTACÃO IGUAL ANTES (RADIAL)
+    const rot = ang * (180 / Math.PI) + 90
 
     c.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`
     c.style.transformOrigin = 'center center'
@@ -277,6 +278,7 @@ function criarCadeirasCirculo(wrap, r){
     wrap.appendChild(c)
   }
 }
+
 
 
 
