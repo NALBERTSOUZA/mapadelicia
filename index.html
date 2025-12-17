@@ -35,7 +35,7 @@ button{
 .mesa{
   position:absolute;background:#e5e7eb;border:3px solid #9ca3af;
 }
-.retangular{width:160px;height:90px}
+.retangular{}
 .redonda{border-radius:50%}
 
 .resize{
@@ -108,41 +108,13 @@ button{
   </div>
 </div>
 
-<!-- MODAL RESERVA -->
-<div class="modal" id="modalReserva">
-  <div class="modal-box">
-    <h3>Reserva</h3>
-
-    <label>Cliente</label>
-    <input id="cliente">
-
-    <label>Telefone</label>
-    <input id="telefone">
-
-    <label>Lugares</label>
-    <input type="number" id="lugares">
-
-    <div id="aviso" class="warn" style="display:none">
-      Quantidade maior que os assentos desta mesa.
-    </div>
-
-    <div class="modal-actions">
-      <button onclick="fecharReserva()">Cancelar</button>
-      <button onclick="salvarReserva()">Salvar</button>
-    </div>
-  </div>
-</div>
-
 <script>
 let modoEditar=true;
 const canvas=document.getElementById('canvas');
 const toggle=document.getElementById('toggle');
 const label=document.getElementById('label');
 const modalMesa=document.getElementById('modalMesa');
-const modalReserva=document.getElementById('modalReserva');
-let mesaAtual=null;
 
-/* TOGGLE */
 toggle.onclick=()=>{
   modoEditar=!modoEditar;
   toggle.classList.toggle('on',modoEditar);
@@ -157,7 +129,7 @@ btnLinha.onclick=()=>addElemento('linha');
 btnDegrau.onclick=()=>addElemento('degrau');
 
 function addElemento(tipo){
-  if(!modoEditar) return;
+  if(!modoEditar)return;
   const el=document.createElement('div');
   el.className=`elemento ${tipo}`;
   el.style.left='200px';
@@ -188,24 +160,14 @@ function criarMesa(){
 
   if(f==='redonda'){
     m.style.width=m.style.height=(r*2)+'px';
-    gerarRedonda(m,qtd,r);
+    gerarRedonda(m,qtd);
   }else{
+    m.style.width='160px';
+    m.style.height='90px';
     gerarRetangular(m);
   }
 
-  const rs=document.createElement('div');
-  rs.className='resize';
-  m.appendChild(rs);
-
   drag(m);
-  resize(m,rs);
-
-  m.ondblclick=()=>{
-    if(!modoEditar)return;
-    mesaAtual=m;
-    modalReserva.style.display='flex';
-  };
-
   canvas.appendChild(m);
   fecharMesa();
 }
@@ -221,74 +183,76 @@ function criarCadeira(x,y,rot){
 }
 
 function gerarRetangular(m){
-  m.appendChild(criarCadeira(30,-15,0));
-  m.appendChild(criarCadeira(100,-15,0));
-  m.appendChild(criarCadeira(30,95,180));
-  m.appendChild(criarCadeira(100,95,180));
+  m.innerHTML='';
+  const w=m.offsetWidth,h=m.offsetHeight;
+
+  m.appendChild(criarCadeira(w*0.25-13,-15,0));
+  m.appendChild(criarCadeira(w*0.75-13,-15,0));
+  m.appendChild(criarCadeira(w*0.25-13,h+5,180));
+  m.appendChild(criarCadeira(w*0.75-13,h+5,180));
+
+  const rs=document.createElement('div');
+  rs.className='resize';
+  m.appendChild(rs);
+  resize(m,rs);
 }
 
-function gerarRedonda(m,qtd,r){
-  const c=r,d=r-5;
+function gerarRedonda(m,qtd){
+  m.innerHTML='';
+  const r=m.offsetWidth/2,c=r,d=r-10;
+
   for(let i=0;i<qtd;i++){
     const a=(2*Math.PI/qtd)*i;
-    const x=c+Math.cos(a)*d-13;
-    const y=c+Math.sin(a)*d-5;
-    const rot=(a*180/Math.PI)+90;
-    m.appendChild(criarCadeira(x,y,rot));
+    m.appendChild(
+      criarCadeira(
+        c+Math.cos(a)*d-13,
+        c+Math.sin(a)*d-5,
+        a*180/Math.PI+90
+      )
+    );
   }
+
+  const rs=document.createElement('div');
+  rs.className='resize';
+  m.appendChild(rs);
+  resize(m,rs);
 }
 
-/* RESERVA */
-lugares.oninput=()=>{
-  aviso.style.display=+lugares.value > +mesaAtual.dataset.cadeiras?'block':'none';
-};
-
-function fecharReserva(){modalReserva.style.display='none'}
-function salvarReserva(){
-  mesaAtual.style.borderColor='#16a34a';
-  fecharReserva();
-}
-
-/* DRAG PROFISSIONAL */
+/* DRAG */
 function drag(el){
-  let ativo=false,ox=0,oy=0;
-
+  let a=false,ox=0,oy=0;
   el.addEventListener('mousedown',e=>{
     if(!modoEditar)return;
-    ativo=true;
+    a=true;
     ox=e.clientX-el.offsetLeft;
     oy=e.clientY-el.offsetTop;
-    el.style.zIndex=5;
+    el.style.zIndex=10;
   });
-
   document.addEventListener('mousemove',e=>{
-    if(!ativo)return;
+    if(!a)return;
     el.style.left=(e.clientX-ox)+'px';
     el.style.top=(e.clientY-oy-60)+'px';
   });
-
-  document.addEventListener('mouseup',()=>{
-    ativo=false;
-    el.style.zIndex='';
-  });
+  document.addEventListener('mouseup',()=>{a=false;el.style.zIndex=''});
 }
 
-/* RESIZE PROFISSIONAL */
-function resize(mesa,handle){
+/* RESIZE */
+function resize(m,handle){
   let r=false;
-
   handle.addEventListener('mousedown',e=>{
     if(!modoEditar)return;
     e.stopPropagation();
     r=true;
   });
-
   document.addEventListener('mousemove',e=>{
     if(!r)return;
-    mesa.style.width=Math.max(60,e.clientX-mesa.offsetLeft)+'px';
-    mesa.style.height=Math.max(60,e.clientY-mesa.offsetTop-60)+'px';
-  });
+    m.style.width=Math.max(80,e.clientX-m.offsetLeft)+'px';
+    m.style.height=Math.max(80,e.clientY-m.offsetTop-60)+'px';
 
+    m.classList.contains('retangular')
+      ? gerarRetangular(m)
+      : gerarRedonda(m,+m.dataset.cadeiras);
+  });
   document.addEventListener('mouseup',()=>r=false);
 }
 </script>
