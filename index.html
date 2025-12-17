@@ -46,7 +46,7 @@ button{
 
 button.secondary{background:#334155}
 
-/* MAPA */
+/* MAPA (viewport) */
 main{flex:1;padding:20px}
 
 #mapa{
@@ -56,6 +56,17 @@ main{flex:1;padding:20px}
   height:100%;
   border-radius:12px;
   overflow:hidden;
+  cursor:grab;
+}
+
+/* CANVAS INFINITO */
+#canvas{
+  position:absolute;
+  left:0;
+  top:0;
+  width:5000px;
+  height:5000px;
+  transform-origin:0 0;
 }
 
 /* MESA */
@@ -146,10 +157,12 @@ main{flex:1;padding:20px}
 </aside>
 
 <main>
-  <div id="mapa"></div>
+  <div id="mapa">
+    <div id="canvas"></div>
+  </div>
 </main>
 
-<!-- MODAL MESA -->
+<!-- MODAIS (mantidos iguais) -->
 <div class="modal" id="modalMesa">
   <div class="modal-box">
     <h3>Mesa</h3>
@@ -177,7 +190,6 @@ main{flex:1;padding:20px}
   </div>
 </div>
 
-<!-- MODAL RESERVA -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
@@ -197,14 +209,50 @@ main{flex:1;padding:20px}
 
 <script>
 const mapa=document.getElementById('mapa')
-let selecionada=null
+const canvas=document.getElementById('canvas')
 
+let selecionada=null
+let scale=1
+let offsetX=0
+let offsetY=0
+let pan=false
+let startX,startY
+
+/* ZOOM */
+mapa.addEventListener('wheel',e=>{
+  e.preventDefault()
+  scale+= e.deltaY * -0.001
+  scale=Math.min(Math.max(.3,scale),3)
+  atualizarTransform()
+})
+
+/* PAN */
+mapa.addEventListener('mousedown',e=>{
+  if(e.target!==mapa) return
+  pan=true
+  startX=e.clientX-offsetX
+  startY=e.clientY-offsetY
+})
+
+window.addEventListener('mouseup',()=>pan=false)
+window.addEventListener('mousemove',e=>{
+  if(!pan) return
+  offsetX=e.clientX-startX
+  offsetY=e.clientY-startY
+  atualizarTransform()
+})
+
+function atualizarTransform(){
+  canvas.style.transform=`translate(${offsetX}px,${offsetY}px) scale(${scale})`
+}
+
+/* ===== MESA ===== */
 function toggleRedonda(){
-  const show = tipoMesa.value === 'redonda'
-  labelRaio.style.display = show ? 'block' : 'none'
-  raioMesa.style.display  = show ? 'block' : 'none'
-  labelQtd.style.display  = show ? 'block' : 'none'
-  qtdCadeiras.style.display = show ? 'block' : 'none'
+  const show=tipoMesa.value==='redonda'
+  labelRaio.style.display=show?'block':'none'
+  raioMesa.style.display=show?'block':'none'
+  labelQtd.style.display=show?'block':'none'
+  qtdCadeiras.style.display=show?'block':'none'
 }
 
 function abrirModalMesa(){
@@ -221,32 +269,32 @@ function fecharModalMesa(){modalMesa.classList.remove('active')}
 function salvarMesa(){
   const wrap=document.createElement('div')
   wrap.className='mesa-wrapper '+tipoMesa.value
-  wrap.style.left='40px'
-  wrap.style.top='40px'
+  wrap.style.left='2500px'
+  wrap.style.top='2500px'
 
   const mesa=document.createElement('div')
   mesa.className='mesa'
   mesa.textContent=nomeMesa.value||'Mesa'
 
   if(tipoMesa.value==='redonda'){
-    const r = Number(raioMesa.value)
-    const qtd = Number(qtdCadeiras.value)
+    const r=Number(raioMesa.value)
+    const qtd=Number(qtdCadeiras.value)
     mesa.style.width=r*2+'px'
     mesa.style.height=r*2+'px'
-    criarCadeirasCirculo(wrap, r, qtd)
+    criarCadeirasCirculo(wrap,r,qtd)
   }else{
-    criarCadeirasLados(wrap, tipoMesa.value)
+    criarCadeirasLados(wrap,tipoMesa.value)
   }
 
   wrap.appendChild(mesa)
-  mapa.appendChild(wrap)
-  ativar(wrap, mesa)
+  canvas.appendChild(wrap)
+  ativar(wrap,mesa)
   drag(wrap)
   fecharModalMesa()
 }
 
 function criarCadeirasLados(wrap,tipo){
-  const pos = tipo==='retangular'
+  const pos= tipo==='retangular'
     ? [[36,-10],[36,60],[-10,26],[90,26]]
     : [[26,-10],[26,60]]
 
@@ -259,24 +307,16 @@ function criarCadeirasLados(wrap,tipo){
   })
 }
 
-function criarCadeirasCirculo(wrap, r, qtd){
-  const dist = r + 6
-
+function criarCadeirasCirculo(wrap,r,qtd){
+  const dist=r+6
   for(let i=0;i<qtd;i++){
-    const ang = (i / qtd) * Math.PI * 2
+    const ang=(i/qtd)*Math.PI*2
     const c=document.createElement('div')
     c.className='chair'
-
-    const cx = r + Math.cos(ang) * dist
-    const cy = r + Math.sin(ang) * dist
-
-    c.style.left = cx + 'px'
-    c.style.top  = cy + 'px'
-
-    const rot = ang * (180 / Math.PI) + 90
-    c.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`
-    c.style.transformOrigin = 'center center'
-
+    c.style.left=(r+Math.cos(ang)*dist)+'px'
+    c.style.top =(r+Math.sin(ang)*dist)+'px'
+    const rot=ang*(180/Math.PI)+90
+    c.style.transform=`translate(-50%,-50%) rotate(${rot}deg)`
     wrap.appendChild(c)
   }
 }
@@ -287,11 +327,7 @@ function ativar(wrap,mesa){
     wrap.classList.add('selected')
     selecionada=wrap
   }
-
-  wrap.ondblclick=()=>{
-    modalReserva.classList.add('active')
-  }
-
+  wrap.ondblclick=()=>modalReserva.classList.add('active')
   wrap.mesa=mesa
 }
 
@@ -308,13 +344,15 @@ function salvarReserva(){
 
 function fecharModalReserva(){modalReserva.classList.remove('active')}
 
+/* DRAG MESA */
 function drag(el){
   let x=0,y=0
   el.onmousedown=e=>{
+    e.stopPropagation()
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      el.style.left=el.offsetLeft+(ev.clientX-x)/scale+'px'
+      el.style.top =el.offsetTop +(ev.clientY-y)/scale+'px'
       x=ev.clientX;y=ev.clientY
     }
     document.onmouseup=()=>document.onmousemove=null
