@@ -40,7 +40,6 @@ button{
   align-items:center;
   justify-content:center;
   text-align:center;
-  padding:6px;
   box-sizing:border-box;
 }
 .mesa.reservada{
@@ -49,14 +48,13 @@ button{
 }
 
 .info-reserva{
-  font-size:11px;
-  font-weight:600;
+  font-size:12px;
+  font-weight:700;
   color:#065f46;
-  line-height:1.2;
   pointer-events:none;
+  line-height:1.2;
 }
 
-/* FORMAS */
 .redonda{border-radius:50%}
 
 /* RESIZE */
@@ -72,11 +70,6 @@ button{
   transform-origin:center center
 }
 
-/* ELEMENTOS */
-.elemento{position:absolute;background:#9ca3af}
-.linha{width:140px;height:4px}
-.degrau{width:80px;height:20px;background:#6b7280}
-
 /* MODAL */
 .modal{
   position:fixed;inset:0;background:rgba(0,0,0,.4);
@@ -86,8 +79,8 @@ button{
   background:#fff;padding:20px;width:320px;border-radius:10px
 }
 .modal-box label{display:block;margin-top:10px}
-.modal-box input,select{width:100%;padding:8px;margin-top:4px}
-.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:15px}
+.modal-box input{width:100%;padding:8px;margin-top:4px}
+.modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:15px}
 </style>
 </head>
 
@@ -97,42 +90,16 @@ button{
   <strong id="label">Editar</strong>
   <div class="actions">
     <button id="btnAdd">+ Mesa</button>
-    <button id="btnLinha">+ Linha</button>
-    <button id="btnDegrau">+ Degrau</button>
     <div id="toggle" class="toggle on"></div>
   </div>
 </header>
 
 <div id="canvas"></div>
 
-<!-- MODAL MESA -->
-<div class="modal" id="modalMesa">
-  <div class="modal-box">
-    <h3>Nova Mesa</h3>
-
-    <label>Formato</label>
-    <select id="formato">
-      <option value="retangular">Retangular</option>
-      <option value="redonda">Redonda</option>
-    </select>
-
-    <label>Cadeiras</label>
-    <input type="number" id="cadeiras" value="4" min="2">
-
-    <label id="lblRaio" style="display:none">Raio (redonda)</label>
-    <input type="number" id="raio" value="60" style="display:none">
-
-    <div class="modal-actions">
-      <button onclick="fecharMesa()">Cancelar</button>
-      <button onclick="criarMesa()">Criar</button>
-    </div>
-  </div>
-</div>
-
 <!-- MODAL RESERVA -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
-    <h3>Reservar Mesa</h3>
+    <h3>Reserva da Mesa</h3>
 
     <label>Nome do Cliente</label>
     <input id="resNome">
@@ -141,7 +108,7 @@ button{
     <input id="resCelular">
 
     <div class="modal-actions">
-      <button onclick="fecharReserva()">Cancelar</button>
+      <button onclick="excluirReserva()">Excluir reserva</button>
       <button onclick="salvarReserva()">Salvar</button>
     </div>
   </div>
@@ -154,7 +121,6 @@ let mesaAtual=null;
 const canvas=document.getElementById('canvas');
 const toggle=document.getElementById('toggle');
 const label=document.getElementById('label');
-const modalMesa=document.getElementById('modalMesa');
 const modalReserva=document.getElementById('modalReserva');
 
 /* TOGGLE */
@@ -162,66 +128,22 @@ toggle.onclick=()=>{
   modoEditar=!modoEditar;
   toggle.classList.toggle('on',modoEditar);
   label.innerText=modoEditar?'Editar':'Ao vivo';
-  document.querySelectorAll('.actions button').forEach(b=>{
-    b.style.display=modoEditar?'inline-block':'none';
-  });
 };
 
-/* ELEMENTOS */
-btnLinha.onclick=()=>addElemento('linha');
-btnDegrau.onclick=()=>addElemento('degrau');
-
-function addElemento(tipo){
-  if(!modoEditar)return;
-  const el=document.createElement('div');
-  el.className=`elemento ${tipo}`;
-  el.style.left='200px';
-  el.style.top='200px';
-  drag(el);
-  canvas.appendChild(el);
-}
-
-/* MESA */
-btnAdd.onclick=()=>modalMesa.style.display='flex';
-function fecharMesa(){modalMesa.style.display='none'}
-
-formato.onchange=()=>{
-  const r=formato.value==='redonda';
-  lblRaio.style.display=raio.style.display=r?'block':'none';
-};
-
-function criarMesa(){
-  const f=formato.value;
-  const qtd=+cadeiras.value;
-  const r=+raio.value;
-
+/* CRIAR MESA */
+btnAdd.onclick=()=>{
   const m=document.createElement('div');
-  m.className=`mesa ${f}`;
+  m.className='mesa';
+  m.style.width='160px';
+  m.style.height='90px';
   m.style.left='200px';
   m.style.top='200px';
-  m.dataset.cadeiras=qtd;
+  m.dataset.cadeiras=4;
 
-  if(f==='redonda'){
-    m.style.width=m.style.height=(r*2)+'px';
-    gerarRedonda(m,qtd);
-  }else{
-    m.style.width='160px';
-    m.style.height='90px';
-    gerarRetangular(m);
-  }
-
-  m.ondblclick=()=>{
-    if(!modoEditar)return;
-    mesaAtual=m;
-    resNome.value=m.dataset.nome||'';
-    resCelular.value=m.dataset.celular||'';
-    modalReserva.style.display='flex';
-  };
-
-  drag(m);
+  gerarRetangular(m);
+  dragMesa(m);
   canvas.appendChild(m);
-  fecharMesa();
-}
+};
 
 /* CADEIRAS */
 function criarCadeira(x,y,rot){
@@ -236,74 +158,84 @@ function criarCadeira(x,y,rot){
 function gerarRetangular(m){
   m.innerHTML='';
   const w=m.offsetWidth,h=m.offsetHeight;
+  const qtd=+m.dataset.cadeiras;
 
-  m.appendChild(criarCadeira(w*0.25-13,-15,0));
-  m.appendChild(criarCadeira(w*0.75-13,-15,0));
-  m.appendChild(criarCadeira(w*0.25-13,h+5,180));
-  m.appendChild(criarCadeira(w*0.75-13,h+5,180));
-
-  inserirInfo(m);
-  addResize(m);
-}
-
-function gerarRedonda(m,qtd){
-  m.innerHTML='';
-  const r=m.offsetWidth/2,c=r,d=r-10;
-
-  for(let i=0;i<qtd;i++){
-    const a=(2*Math.PI/qtd)*i;
-    m.appendChild(criarCadeira(
-      c+Math.cos(a)*d-13,
-      c+Math.sin(a)*d-5,
-      a*180/Math.PI+90
-    ));
+  for(let i=1;i<=qtd;i++){
+    const pos=(i/(qtd+1))*w;
+    m.appendChild(criarCadeira(pos-13,-15,0));
+    m.appendChild(criarCadeira(pos-13,h+5,180));
   }
 
-  inserirInfo(m);
-  addResize(m);
-}
-
-/* INFO RESERVA */
-function inserirInfo(m){
   if(m.dataset.nome){
     const info=document.createElement('div');
     info.className='info-reserva';
     info.innerHTML=`${m.dataset.nome}<br>${m.dataset.celular}`;
     m.appendChild(info);
   }
+
+  addResize(m);
 }
 
-/* RESERVA */
-function fecharReserva(){modalReserva.style.display='none'}
+/* DRAG + JUNÇÃO */
+function dragMesa(m){
+  let ativo=false,ox=0,oy=0;
 
-function salvarReserva(){
-  mesaAtual.dataset.nome=resNome.value;
-  mesaAtual.dataset.celular=resCelular.value;
-  mesaAtual.classList.add('reservada');
-
-  mesaAtual.classList.contains('redonda')
-    ? gerarRedonda(mesaAtual,+mesaAtual.dataset.cadeiras)
-    : gerarRetangular(mesaAtual);
-
-  fecharReserva();
-}
-
-/* DRAG */
-function drag(el){
-  let a=false,ox=0,oy=0;
-  el.addEventListener('mousedown',e=>{
+  m.onmousedown=e=>{
     if(!modoEditar)return;
-    a=true;
-    ox=e.clientX-el.offsetLeft;
-    oy=e.clientY-el.offsetTop;
-    el.style.zIndex=10;
+    ativo=true;
+    mesaAtual=m;
+    ox=e.clientX-m.offsetLeft;
+    oy=e.clientY-m.offsetTop;
+  };
+
+  document.onmousemove=e=>{
+    if(!ativo)return;
+    m.style.left=(e.clientX-ox)+'px';
+    m.style.top=(e.clientY-oy-60)+'px';
+  };
+
+  document.onmouseup=()=>{
+    if(!ativo)return;
+    ativo=false;
+    verificarJuncao(m);
+  };
+
+  m.ondblclick=()=>{
+    mesaAtual=m;
+    resNome.value=m.dataset.nome||'';
+    resCelular.value=m.dataset.celular||'';
+    modalReserva.style.display='flex';
+  };
+}
+
+/* JUNÇÃO DE MESAS */
+function verificarJuncao(m){
+  document.querySelectorAll('.mesa').forEach(o=>{
+    if(o===m)return;
+
+    const r1=m.getBoundingClientRect();
+    const r2=o.getBoundingClientRect();
+
+    const colide=!(
+      r1.right<r2.left ||
+      r1.left>r2.right ||
+      r1.bottom<r2.top ||
+      r1.top>r2.bottom
+    );
+
+    if(colide){
+      o.dataset.cadeiras=+o.dataset.cadeiras + +m.dataset.cadeiras;
+
+      if(m.dataset.nome){
+        o.dataset.nome=m.dataset.nome;
+        o.dataset.celular=m.dataset.celular;
+        o.classList.add('reservada');
+      }
+
+      gerarRetangular(o);
+      m.remove();
+    }
   });
-  document.addEventListener('mousemove',e=>{
-    if(!a)return;
-    el.style.left=(e.clientX-ox)+'px';
-    el.style.top=(e.clientY-oy-60)+'px';
-  });
-  document.addEventListener('mouseup',()=>{a=false;el.style.zIndex=''});
 }
 
 /* RESIZE */
@@ -313,22 +245,36 @@ function addResize(m){
   m.appendChild(rs);
 
   let r=false;
-  rs.addEventListener('mousedown',e=>{
+  rs.onmousedown=e=>{
     if(!modoEditar)return;
     e.stopPropagation();
     r=true;
-  });
+  };
 
-  document.addEventListener('mousemove',e=>{
+  document.onmousemove=e=>{
     if(!r)return;
-    m.style.width=Math.max(80,e.clientX-m.offsetLeft)+'px';
+    m.style.width=Math.max(120,e.clientX-m.offsetLeft)+'px';
     m.style.height=Math.max(80,e.clientY-m.offsetTop-60)+'px';
+    gerarRetangular(m);
+  };
+  document.onmouseup=()=>r=false;
+}
 
-    m.classList.contains('redonda')
-      ? gerarRedonda(m,+m.dataset.cadeiras)
-      : gerarRetangular(m);
-  });
-  document.addEventListener('mouseup',()=>r=false);
+/* RESERVA */
+function salvarReserva(){
+  mesaAtual.dataset.nome=resNome.value;
+  mesaAtual.dataset.celular=resCelular.value;
+  mesaAtual.classList.add('reservada');
+  gerarRetangular(mesaAtual);
+  modalReserva.style.display='none';
+}
+
+function excluirReserva(){
+  delete mesaAtual.dataset.nome;
+  delete mesaAtual.dataset.celular;
+  mesaAtual.classList.remove('reservada');
+  gerarRetangular(mesaAtual);
+  modalReserva.style.display='none';
 }
 </script>
 
