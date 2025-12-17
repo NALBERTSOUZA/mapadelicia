@@ -78,16 +78,30 @@ input{
   pointer-events:none;
 }
 
-/* MAPA */
-main{flex:1;padding:20px}
+/* MAIN */
+main{
+  flex:1;
+  overflow:hidden;
+}
 
+/* VIEWPORT (AREA VISÍVEL) */
+#viewport{
+  width:100%;
+  height:100%;
+  overflow:scroll;
+  cursor:grab;
+  background:#e5e7eb;
+}
+
+/* MAPA INFINITO */
 #mapa{
   position:relative;
+  width:5000px;
+  height:5000px;
   background:#fff;
   border:2px dashed var(--border);
-  height:100%;
   border-radius:12px;
-  overflow:hidden;
+  transform-origin:0 0;
 }
 
 /* ITEM NO MAPA */
@@ -172,7 +186,9 @@ main{flex:1;padding:20px}
 </aside>
 
 <main>
-  <div id="mapa"></div>
+  <div id="viewport">
+    <div id="mapa"></div>
+  </div>
 </main>
 
 <!-- MODAL RESERVA -->
@@ -184,7 +200,7 @@ main{flex:1;padding:20px}
     <input id="clienteNome">
 
     <label>Celular</label>
-    <input id="clienteCelular" placeholder="(DDD) 99999-9999">
+    <input id="clienteCelular">
 
     <label>Quantidade de Pessoas</label>
     <input id="qtdPessoas" type="number" min="1" value="2">
@@ -201,6 +217,7 @@ main{flex:1;padding:20px}
 // REFERÊNCIAS
 // =====================================================
 const mapa = document.getElementById('mapa')
+const viewport = document.getElementById('viewport')
 const listaRes = document.getElementById('listaReservaveis')
 const listaNao = document.getElementById('listaNaoReservaveis')
 const modalReserva = document.getElementById('modalReserva')
@@ -211,6 +228,53 @@ const qtdPessoas = document.getElementById('qtdPessoas')
 
 let selecionado = null
 let reservando = null
+
+// =====================================================
+// ZOOM COM MOUSE
+// =====================================================
+let scale = 1
+
+viewport.addEventListener('wheel', e=>{
+  if(!e.target.closest('#mapa')) return
+  e.preventDefault()
+
+  const delta = e.deltaY < 0 ? 0.1 : -0.1
+  scale = Math.min(Math.max(0.3, scale + delta), 2)
+
+  mapa.style.transform = `scale(${scale})`
+},{ passive:false })
+
+// =====================================================
+// PAN (ARRASTAR MAPA)
+// =====================================================
+let panning = false
+let startX, startY, scrollLeft, scrollTop
+
+viewport.addEventListener('mousedown', e=>{
+  if(e.target.closest('.item-mapa')) return
+  panning = true
+  viewport.style.cursor = 'grabbing'
+  startX = e.pageX
+  startY = e.pageY
+  scrollLeft = viewport.scrollLeft
+  scrollTop = viewport.scrollTop
+})
+
+viewport.addEventListener('mousemove', e=>{
+  if(!panning) return
+  viewport.scrollLeft = scrollLeft - (e.pageX - startX)
+  viewport.scrollTop  = scrollTop  - (e.pageY - startY)
+})
+
+viewport.addEventListener('mouseup', ()=>{
+  panning = false
+  viewport.style.cursor = 'grab'
+})
+
+viewport.addEventListener('mouseleave', ()=>{
+  panning = false
+  viewport.style.cursor = 'grab'
+})
 
 // =====================================================
 // ELEMENTOS PADRÃO
@@ -229,14 +293,12 @@ const naoReservaveisPadrao = [
 ]
 
 // =====================================================
-// CRIAR ELEMENTO NO PAINEL
+// PAINEL DE ELEMENTOS
 // =====================================================
 function addElemento(url, reservavel){
   const el = document.createElement('div')
   el.className = 'elemento'
   el.draggable = true
-  el.dataset.url = url
-  el.dataset.reservavel = reservavel
   el.innerHTML = `<img src="${url}">`
 
   el.ondragstart = e=>{
@@ -248,17 +310,23 @@ function addElemento(url, reservavel){
 }
 
 // =====================================================
-// DROP NO MAPA
+// DROP NO MAPA (AJUSTADO PARA PAN + ZOOM)
 // =====================================================
 mapa.ondragover = e=>e.preventDefault()
 
 mapa.ondrop = e=>{
   e.preventDefault()
+
+  const rect = mapa.getBoundingClientRect()
+
+  const x = (e.clientX - rect.left + viewport.scrollLeft) / scale
+  const y = (e.clientY - rect.top  + viewport.scrollTop ) / scale
+
   criarItem(
     e.dataTransfer.getData('url'),
     e.dataTransfer.getData('reservavel') === 'true',
-    e.offsetX,
-    e.offsetY
+    x,
+    y
   )
 }
 
@@ -272,10 +340,7 @@ function criarItem(url, reservavel, x, y){
   item.style.left = x+'px'
   item.style.top  = y+'px'
 
-  item.innerHTML = `
-    <img src="${url}">
-    <div class="nome-reserva"></div>
-  `
+  item.innerHTML = `<img src="${url}"><div class="nome-reserva"></div>`
 
   item.onclick = ()=>{
     document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
@@ -298,19 +363,33 @@ function criarItem(url, reservavel, x, y){
 }
 
 // =====================================================
+// DRAG DAS MESAS
+// =====================================================
+function drag(el){
+  let x=0,y=0
+  el.onmousedown=e=>{
+    e.stopPropagation()
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left = el.offsetLeft + (ev.clientX-x)/scale + 'px'
+      el.style.top  = el.offsetTop  + (ev.clientY-y)/scale + 'px'
+      x=ev.clientX;y=ev.clientY
+    }
+    document.onmouseup=()=>document.onmousemove=null
+  }
+}
+
+// =====================================================
 // RESERVA
 // =====================================================
 function salvarReserva(){
   if(!reservando) return
-
   reservando.dataset.cliente = clienteNome.value
   reservando.dataset.celular = clienteCelular.value
   reservando.dataset.pessoas = qtdPessoas.value
-
   reservando.classList.add('reservado')
   reservando.querySelector('.nome-reserva').textContent =
-    `${clienteNome.value} • ${qtdPessoas.value}pessoas`
-
+    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
   fecharReserva()
 }
 
@@ -330,26 +409,10 @@ function removerSelecionado(){
 }
 
 // =====================================================
-// DRAG
+// INIT
 // =====================================================
-function drag(el){
-  let x=0,y=0
-  el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>document.onmousemove=null
-  }
-}
-
-// =====================================================
-// INICIALIZA
-// =====================================================
-reservaveisPadrao.forEach(url => addElemento(url, true))
-naoReservaveisPadrao.forEach(url => addElemento(url, false))
+reservaveisPadrao.forEach(url => addElemento(url,true))
+naoReservaveisPadrao.forEach(url => addElemento(url,false))
 </script>
 
 </body>
