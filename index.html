@@ -10,6 +10,7 @@
   --bg:#f4f6f8;
   --primary:#2563eb;
   --border:#dcdfe4;
+  --green:#16a34a;
 }
 
 *{box-sizing:border-box}
@@ -24,14 +25,14 @@ body{
 
 /* SIDEBAR */
 aside{
-  width:260px;
+  width:280px;
   background:#0f172a;
   color:#fff;
   padding:16px;
   overflow-y:auto;
 }
 
-h2{margin-top:0}
+h2,h3{margin-top:0}
 
 button{
   width:100%;
@@ -54,8 +55,9 @@ input{
 /* ELEMENTOS */
 .elementos{
   display:grid;
-  grid-template-columns:repeat(3, 1fr);
+  grid-template-columns:repeat(3,1fr);
   gap:10px;
+  margin-bottom:16px;
 }
 
 .elemento{
@@ -70,8 +72,8 @@ input{
 }
 
 .elemento img{
-  width:48px;
-  height:48px;
+  width:42px;
+  height:42px;
   object-fit:contain;
   pointer-events:none;
 }
@@ -92,6 +94,7 @@ main{flex:1;padding:20px}
 .item-mapa{
   position:absolute;
   cursor:grab;
+  text-align:center;
 }
 
 .item-mapa img{
@@ -105,6 +108,54 @@ main{flex:1;padding:20px}
   outline:2px solid var(--primary);
   border-radius:6px;
 }
+
+.item-mapa.reservado{
+  outline:2px solid var(--green);
+}
+
+.nome-reserva{
+  font-size:11px;
+  margin-top:2px;
+  font-weight:600;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.modal.active{display:flex}
+
+
+
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:300px;
+  border-radius:10px;
+}
+
+.modal-box label{
+  font-size:13px;
+  margin-top:10px;
+  display:block;
+}
+
+.modal-box input{
+  width:100%;
+  padding:8px;
+  margin-top:4px;
+}
+
+.modal-actions{
+  margin-top:15px;
+  display:flex;
+  gap:10px;
+}
 </style>
 </head>
 
@@ -115,71 +166,91 @@ main{flex:1;padding:20px}
 
   <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
-  <label>Adicionar elemento (URL PNG)</label>
-  <input id="urlElemento" placeholder="https://.../elemento.png">
-  <button onclick="adicionarElemento()">Adicionar</button>
+  <h3>Reserváveis</h3>
+  <input id="urlReservavel" placeholder="URL PNG (mesa, lounge)">
+  <button onclick="addElemento(urlReservavel.value, true)">Adicionar</button>
+  <div class="elementos" id="listaReservaveis"></div>
 
-  <div class="elementos" id="listaElementos"></div>
+  <h3>Não Reserváveis</h3>
+  <input id="urlNaoReservavel" placeholder="URL PNG (decoração)">
+  <button onclick="addElemento(urlNaoReservavel.value, false)">Adicionar</button>
+  <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
 
 <main>
   <div id="mapa"></div>
 </main>
 
+<!-- MODAL RESERVA -->
+<div class="modal" id="modalReserva">
+  <div class="modal-box">
+    <h3>Reserva</h3>
+
+    <label>Nome</label>
+    <input id="clienteNome">
+
+    <div class="modal-actions">
+      <button onclick="salvarReserva()">Salvar</button>
+      <button onclick="fecharReserva()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const mapa = document.getElementById('mapa')
-const lista = document.getElementById('listaElementos')
+const listaRes = document.getElementById('listaReservaveis')
+const listaNao = document.getElementById('listaNaoReservaveis')
 let selecionado = null
-
-/* ===== ELEMENTOS PADRÃO (PNG) ===== */
-const elementosPadrao = [
-  'https://cdn-icons-png.flaticon.com/512/3075/3075977.png',
-  'https://cdn-icons-png.flaticon.com/512/3075/3075908.png',
-  'https://cdn-icons-png.flaticon.com/512/3075/3075858.png',
-  'https://cdn-icons-png.flaticon.com/512/3075/3075932.png',
-  'https://cdn-icons-png.flaticon.com/512/3075/3075928.png'
-]
-
-elementosPadrao.forEach(url => criarElemento(url))
+let reservando = null
 
 /* ===== CRIAR ELEMENTO NO PAINEL ===== */
-function criarElemento(url){
+function addElemento(url, reservavel){
+  url = url.trim()
+  if(!url) return
+
   const el = document.createElement('div')
   el.className = 'elemento'
   el.draggable = true
   el.dataset.url = url
+  el.dataset.reservavel = reservavel
   el.innerHTML = `<img src="${url}">`
 
   el.ondragstart = e=>{
     e.dataTransfer.setData('url', url)
+    e.dataTransfer.setData('reservavel', reservavel)
   }
 
-  lista.appendChild(el)
-}
+  (reservavel ? listaRes : listaNao).appendChild(el)
 
-function adicionarElemento(){
-  const url = urlElemento.value.trim()
-  if(!url) return
-  criarElemento(url)
-  urlElemento.value=''
+  if(reservavel) urlReservavel.value=''
+  else urlNaoReservavel.value=''
 }
 
 /* ===== DROP NO MAPA ===== */
-mapa.ondragover = e => e.preventDefault()
+mapa.ondragover = e=>e.preventDefault()
 
 mapa.ondrop = e=>{
   e.preventDefault()
-  const url = e.dataTransfer.getData('url')
-  criarItemMapa(url, e.offsetX, e.offsetY)
+  criarItem(
+    e.dataTransfer.getData('url'),
+    e.dataTransfer.getData('reservavel') === 'true',
+    e.offsetX,
+    e.offsetY
+  )
 }
 
 /* ===== ITEM NO MAPA ===== */
-function criarItemMapa(url,x,y){
+function criarItem(url, reservavel, x, y){
   const item = document.createElement('div')
   item.className = 'item-mapa'
-  item.style.left = x + 'px'
-  item.style.top  = y + 'px'
-  item.innerHTML = `<img src="${url}">`
+  item.dataset.reservavel = reservavel
+  item.style.left = x+'px'
+  item.style.top  = y+'px'
+
+  item.innerHTML = `
+    <img src="${url}">
+    <div class="nome-reserva"></div>
+  `
 
   item.onclick = ()=>{
     document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
@@ -187,8 +258,30 @@ function criarItemMapa(url,x,y){
     selecionado = item
   }
 
+  if(reservavel){
+    item.ondblclick = ()=>{
+      reservando = item
+      clienteNome.value = item.dataset.cliente || ''
+      modalReserva.classList.add('active')
+    }
+  }
+
   drag(item)
   mapa.appendChild(item)
+}
+
+/* ===== RESERVA ===== */
+function salvarReserva(){
+  if(!reservando) return
+  reservando.dataset.cliente = clienteNome.value
+  reservando.classList.add('reservado')
+  reservando.querySelector('.nome-reserva').textContent = clienteNome.value
+  fecharReserva()
+}
+
+function fecharReserva(){
+  reservando = null
+  modalReserva.classList.remove('active')
 }
 
 /* ===== REMOVER ===== */
