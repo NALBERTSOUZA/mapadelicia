@@ -221,6 +221,11 @@ main{
 </div>
 
 <script>
+// =========================
+// API URL (SEU GAS)
+// =========================
+const API_URL = 'https://script.google.com/macros/s/AKfycbxLTpC3DERRsAIyBOMXzEMruTcPbwHKha4v_Vvqk_Wrrk6dDLkFwfTG9yGGEIL6jbA/exec'
+
 // =====================================================
 // REFERÊNCIAS
 // =====================================================
@@ -313,10 +318,8 @@ mapa.ondrop = e => {
   let y = e.clientY - rect.top
 
   const MESA_W = 150
-  const MESA_H = 150
 
   x -= MESA_W / 2
-  y -= MESA_H / 2
 
   criarItem(
     e.dataTransfer.getData('url'),
@@ -341,78 +344,4 @@ function criarItem(url, reservavel, x, y){
     <div class="nome-reserva"></div>
   `
 
-  item.onclick = ()=>{
-    document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
-    item.classList.add('selected')
-    selecionado = item
-  }
-
-  if(reservavel){
-    item.ondblclick = ()=>{
-      reservando = item
-      clienteNome.value = item.dataset.cliente || ''
-      clienteCelular.value = item.dataset.celular || ''
-      qtdPessoas.value = item.dataset.pessoas || 2
-      modalReserva.classList.add('active')
-    }
-  }
-
-  drag(item)
-  mapa.appendChild(item)
-}
-
-// =====================================================
-// DRAG DAS MESAS
-// =====================================================
-function drag(el){
-  let x=0,y=0
-  el.onmousedown=e=>{
-    e.stopPropagation()
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left = el.offsetLeft + (ev.clientX-x) + 'px'
-      el.style.top  = el.offsetTop  + (ev.clientY-y) + 'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>document.onmousemove=null
-  }
-}
-
-// =====================================================
-// RESERVA
-// =====================================================
-function salvarReserva(){
-  if(!reservando) return
-  reservando.dataset.cliente = clienteNome.value
-  reservando.dataset.celular = clienteCelular.value
-  reservando.dataset.pessoas = qtdPessoas.value
-  reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent =
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
-  fecharReserva()
-}
-
-function fecharReserva(){
-  reservando = null
-  modalReserva.classList.remove('active')
-}
-
-// =====================================================
-// REMOVER
-// =====================================================
-function removerSelecionado(){
-  if(selecionado){
-    selecionado.remove()
-    selecionado = null
-  }
-}
-
-// =====================================================
-// INIT
-// =====================================================
-reservaveisPadrao.forEach(url => addElemento(url,true))
-naoReservaveisPadrao.forEach(url => addElemento(url,false))
-</script>
-
-</body>
-</html>
+  item.onclick = ()=>{…}
