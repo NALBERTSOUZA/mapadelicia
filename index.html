@@ -2,281 +2,91 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Mesas • Restaurante</title>
+<title>Teste Supabase</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{
-  --bg:#f4f6f8;
-  --primary:#2563eb;
-  --border:#dcdfe4;
-  --green:#16a34a;
-}
-*{box-sizing:border-box}
 body{
-  margin:0;
-  font-family:Inter, Arial, sans-serif;
-  background:var(--bg);
-  display:flex;
-  height:100vh;
+  font-family: Arial, sans-serif;
+  padding:20px;
 }
-aside{
-  width:280px;
-  background:#0f172a;
-  color:#fff;
-  padding:16px;
-  overflow-y:auto;
-}
-h2,h3{margin-top:0}
 button{
-  width:100%;
+  padding:10px 16px;
+  margin-right:10px;
+}
+pre{
+  background:#111;
+  color:#0f0;
   padding:10px;
-  margin-bottom:10px;
-  border:none;
-  border-radius:6px;
-  background:var(--primary);
-  color:#fff;
-  font-weight:600;
-  cursor:pointer;
-}
-.elementos{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-}
-.elemento{
-  background:#020617;
-  border:1px dashed #475569;
-  border-radius:6px;
-  padding:6px;
-  cursor:grab;
-  display:flex;
-  justify-content:center;
-}
-.elemento img{
-  width:42px;
-  pointer-events:none;
-}
-main{flex:1;overflow:hidden}
-#viewport{
-  width:100%;
-  height:100%;
-  overflow-x:auto;
-  overflow-y:hidden;
-  cursor:grab;
-  background:#e5e7eb;
-}
-#mapa{
-  position:relative;
-  width:6000px;
-  height:100%;
-  background:#fff;
-  border:2px dashed var(--border);
-}
-.item-mapa{
-  position:absolute;
-  width:150px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  cursor:grab;
-}
-.item-mapa img{
-  width:150px;
-  pointer-events:none;
-}
-.item-mapa.selected img{outline:2px solid var(--primary)}
-.item-mapa.reservado img{outline:2px solid var(--green)}
-.nome-reserva{
-  font-size:12px;
-  font-weight:600;
-  margin-top:4px;
-  white-space:nowrap;
+  margin-top:20px;
+  max-height:300px;
+  overflow:auto;
 }
 </style>
 </head>
 
 <body>
 
-<aside>
-  <h2>Elementos</h2>
-  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
+<h2>Teste Supabase – mapa_mesas</h2>
 
-  <h3>Reserváveis</h3>
-  <div class="elementos" id="listaReservaveis"></div>
+<button onclick="inserir()">Inserir Registro</button>
+<button onclick="listar()">Listar Registros</button>
 
-  <h3>Não Reserváveis</h3>
-  <div class="elementos" id="listaNaoReservaveis"></div>
-</aside>
-
-<main>
-  <div id="viewport">
-    <div id="mapa"></div>
-  </div>
-</main>
+<pre id="log">Aguardando ação...</pre>
 
 <script>
-// ===================== SUPABASE =====================
+// ================== SUPABASE ==================
 const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
 const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const supabase = supabaseJs.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+)
 
-// ===================== REFS =====================
-const mapa = document.getElementById('mapa')
-const viewport = document.getElementById('viewport')
-const listaRes = document.getElementById('listaReservaveis')
-const listaNao = document.getElementById('listaNaoReservaveis')
-
-let selecionado = null
-
-// ===================== PAN HORIZONTAL =====================
-let panning=false,startX,scrollLeft
-viewport.onmousedown=e=>{
-  if(e.target.closest('.item-mapa')) return
-  panning=true
-  startX=e.pageX
-  scrollLeft=viewport.scrollLeft
+const log = msg => {
+  document.getElementById('log').textContent =
+    typeof msg === 'string'
+      ? msg
+      : JSON.stringify(msg, null, 2)
 }
-viewport.onmousemove=e=>{
-  if(!panning) return
-  viewport.scrollLeft = scrollLeft - (e.pageX-startX)
-}
-viewport.onmouseup=viewport.onmouseleave=()=>panning=false
 
-// ===================== CARREGAR ELEMENTOS =====================
-async function carregarElementos(){
+// ================== TESTE INSERT ==================
+async function inserir(){
+  log('Inserindo...')
+
   const { data, error } = await supabase
-    .from('elementos_mapa')
-    .select('*')
-    .eq('ativo', true)
+    .from('mapa_mesas')
+    .insert({
+      elemento_id: '71805376-fdae-44cd-a498-18e00cc86e37', // ID REAL DA SUA TABELA
+      x: Math.floor(Math.random()*500),
+      y: Math.floor(Math.random()*300)
+    })
+    .select()
 
   if(error){
-    console.error('Erro ao carregar elementos:', error)
-    return
-  }
-
-  data.forEach(el=>{
-    const div = document.createElement('div')
-    div.className = 'elemento'
-    div.draggable = true
-    div.innerHTML = `<img src="${el.url_da_imagem}">`
-
-    div.ondragstart = e=>{
-      e.dataTransfer.setData('elemento_id', el.id)
-      e.dataTransfer.setData('url', el.url_da_imagem)
-      e.dataTransfer.setData('reservavel', el.tipo === 'reservavel')
-    }
-
-    ;(el.tipo === 'reservavel' ? listaRes : listaNao).appendChild(div)
-  })
-}
-
-// ===================== DROP NO MAPA =====================
-mapa.ondragover = e => e.preventDefault()
-
-mapa.ondrop = e=>{
-  e.preventDefault()
-  const rect = mapa.getBoundingClientRect()
-  const x = e.clientX - rect.left + viewport.scrollLeft - 75
-  const y = e.clientY - rect.top
-
-  criarItem(
-    e.dataTransfer.getData('elemento_id'),
-    e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('reservavel') === 'true',
-    x,y
-  )
-  salvarMapa()
-}
-
-// ===================== ITEM =====================
-function criarItem(elemento_id, url, reservavel, x, y){
-  const item = document.createElement('div')
-  item.className = 'item-mapa'
-  item.dataset.elemento_id = elemento_id
-  item.style.left = x+'px'
-  item.style.top = y+'px'
-  item.innerHTML = `<img src="${url}"><div class="nome-reserva"></div>`
-
-  item.onclick = ()=>{
-    document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
-    item.classList.add('selected')
-    selecionado = item
-  }
-
-  drag(item)
-  mapa.appendChild(item)
-}
-
-// ===================== DRAG ITEM =====================
-function drag(el){
-  let x=0,y=0
-  el.onmousedown=e=>{
-    e.stopPropagation()
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left = el.offsetLeft + (ev.clientX-x)+'px'
-      el.style.top  = el.offsetTop  + (ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>{
-      document.onmousemove=null
-      salvarMapa()
-    }
+    log(error)
+  }else{
+    log(data)
   }
 }
 
-// ===================== REMOVER =====================
-function removerSelecionado(){
-  if(selecionado){
-    selecionado.remove()
-    selecionado=null
-    salvarMapa()
-  }
-}
+// ================== TESTE SELECT ==================
+async function listar(){
+  log('Carregando registros...')
 
-// ===================== SALVAR MAPA =====================
-async function salvarMapa(){
-  await supabase.from('mapa_mesas').delete().neq('id','')
-
-  const itens=[]
-  document.querySelectorAll('.item-mapa').forEach(i=>{
-    itens.push({
-      elemento_id: i.dataset.elemento_id,
-      x: parseInt(i.style.left),
-      y: parseInt(i.style.top)
-    })
-  })
-
-  if(itens.length){
-    await supabase.from('mapa_mesas').insert(itens)
-  }
-}
-
-// ===================== CARREGAR MAPA =====================
-async function carregarMapa(){
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('mapa_mesas')
-    .select(`
-      x,y,
-      elementos_mapa ( id, url_da_imagem )
-    `)
+    .select('*')
+    .order('criado_em', { ascending:false })
 
-  data.forEach(d=>{
-    criarItem(
-      d.elementos_mapa.id,
-      d.elementos_mapa.url_da_imagem,
-      true,
-      d.x,
-      d.y
-    )
-  })
+  if(error){
+    log(error)
+  }else{
+    log(data)
+  }
 }
-
-// ===================== INIT =====================
-carregarElementos().then(carregarMapa)
 </script>
 
 </body>
