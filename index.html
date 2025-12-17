@@ -252,17 +252,28 @@ function criarCadeirasLados(wrap,tipo){
   })
 }
 
-function criarCadeirasCirculo(wrap,r){
-  const qtd=6
-  for(let i=0;i<qtd;i++){
-    const ang=(i/qtd)*Math.PI*2
-    const c=document.createElement('div')
-    c.className='chair'
-    c.style.left=(r+Math.cos(ang)*(r+12))+'px'
-    c.style.top=(r+Math.sin(ang)*(r+12))+'px'
+function criarCadeirasCirculo(wrap, r){
+  const qtd = 6
+
+  for(let i = 0; i < qtd; i++){
+    const ang = (i / qtd) * Math.PI * 2
+
+    const c = document.createElement('div')
+    c.className = 'chair'
+
+    const dist = r + 12
+
+    c.style.left = (r + Math.cos(ang) * dist) + 'px'
+    c.style.top  = (r + Math.sin(ang) * dist) + 'px'
+
+    // 🔥 AQUI FAZ A CADEIRA SEGUIR O ÂNGULO
+    const rotacao = ang * (180 / Math.PI) + 90
+    c.style.transform = `rotate(${rotacao}deg)`
+
     wrap.appendChild(c)
   }
 }
+
 
 function ativar(wrap,mesa){
   wrap.onclick=()=>{
