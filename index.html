@@ -152,7 +152,7 @@ main{flex:1;overflow:hidden}
 // ===================== SUPABASE =====================
 const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
 const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 // ===================== REFS =====================
 const mapa = document.getElementById('mapa')
@@ -167,7 +167,7 @@ const qtdPessoas = document.getElementById('qtdPessoas')
 let selecionado = null
 let reservando = null
 
-// ===================== PAN HORIZONTAL =====================
+// ===================== PAN =====================
 let panning=false,startX,scrollLeft
 viewport.onmousedown=e=>{
   if(e.target.closest('.item-mapa')) return
@@ -181,7 +181,7 @@ viewport.onmousemove=e=>{
 }
 viewport.onmouseup=viewport.onmouseleave=()=>panning=false
 
-// ===================== CARREGAR ELEMENTOS =====================
+// ===================== ELEMENTOS =====================
 async function carregarElementos(){
   const { data } = await supabase
     .from('elementos_mapa')
@@ -192,13 +192,13 @@ async function carregarElementos(){
     const div=document.createElement('div')
     div.className='elemento'
     div.draggable=true
-    div.innerHTML=`<img src="${el.imagem_url}">`
+    div.innerHTML=`<img src="${el.url_da_imagem}">`
     div.ondragstart=e=>{
       e.dataTransfer.setData('elemento_id', el.id)
-      e.dataTransfer.setData('reservavel', el.tipo==='reservavel')
-      e.dataTransfer.setData('url', el.imagem_url)
+      e.dataTransfer.setData('reservavel', el.tipo === 'reservavel')
+      e.dataTransfer.setData('url', el.url_da_imagem)
     }
-    ;(el.tipo==='reservavel'?listaRes:listaNao).appendChild(div)
+    ;(el.tipo === 'reservavel' ? listaRes : listaNao).appendChild(div)
   })
 }
 
@@ -248,7 +248,7 @@ function criarItem(elemento_id,url,reservavel,x,y){
   mapa.appendChild(item)
 }
 
-// ===================== DRAG ITEM =====================
+// ===================== DRAG =====================
 function drag(el){
   let x=0,y=0
   el.onmousedown=e=>{
@@ -297,8 +297,8 @@ async function salvarMapa(){
       elemento_id:i.dataset.elemento_id,
       x:parseInt(i.style.left),
       y:parseInt(i.style.top),
-      cliente:i.dataset.cliente||'',
-      celular:i.dataset.celular||'',
+      cliente:i.dataset.cliente||null,
+      celular:i.dataset.celular||null,
       pessoas:i.dataset.pessoas||null,
       reservado:i.classList.contains('reservado')
     })
@@ -311,13 +311,13 @@ async function carregarMapa(){
     .from('mapa_mesas')
     .select(`
       x,y,cliente,celular,pessoas,reservado,
-      elementos_mapa ( id, imagem_url )
+      elementos_mapa ( id, url_da_imagem )
     `)
 
   data.forEach(d=>{
     criarItem(
       d.elementos_mapa.id,
-      d.elementos_mapa.imagem_url,
+      d.elementos_mapa.url_da_imagem,
       true,
       d.x,d.y
     )
