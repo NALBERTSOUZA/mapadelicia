@@ -10,7 +10,6 @@
   --bg:#f4f6f8;
   --primary:#2563eb;
   --border:#dcdfe4;
-  --green:#16a34a;
 }
 
 *{box-sizing:border-box}
@@ -25,12 +24,14 @@ body{
 
 /* SIDEBAR */
 aside{
-  width:300px;
+  width:260px;
   background:#0f172a;
   color:#fff;
-  padding:20px;
+  padding:16px;
   overflow-y:auto;
 }
+
+h2{margin-top:0}
 
 button{
   width:100%;
@@ -44,46 +45,34 @@ button{
   font-weight:600;
 }
 
-button.secondary{background:#334155}
-
 input{
   width:100%;
   padding:8px;
-  margin-bottom:10px;
+  margin-bottom:8px;
 }
 
 /* ELEMENTOS */
 .elementos{
-  display:flex;
-  flex-direction:column;
-  gap:12px;
+  display:grid;
+  grid-template-columns:repeat(3, 1fr);
+  gap:10px;
 }
 
 .elemento{
   background:#020617;
   border:1px dashed #475569;
-  border-radius:8px;
+  border-radius:6px;
+  padding:6px;
   cursor:grab;
-  overflow:hidden;
-  height:110px;
-  position:relative;
-}
-
-.elemento span{
-  position:absolute;
-  bottom:4px;
-  left:6px;
-  right:6px;
-  font-size:11px;
-  background:rgba(0,0,0,.6);
-  padding:3px 6px;
-  border-radius:4px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 .elemento img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
+  width:48px;
+  height:48px;
+  object-fit:contain;
   pointer-events:none;
 }
 
@@ -99,68 +88,22 @@ main{flex:1;padding:20px}
   overflow:hidden;
 }
 
-/* MESA / ELEMENTO NO MAPA */
-.mesa-wrapper{
+/* ITEM NO MAPA */
+.item-mapa{
   position:absolute;
   cursor:grab;
 }
 
-.mesa{
-  background:#e5e7eb;
-  border:2px solid #9ca3af;
-  padding:6px;
-  min-width:60px;
-  min-height:60px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:12px;
-  font-weight:600;
+.item-mapa img{
+  width:60px;
+  height:60px;
+  object-fit:contain;
+  pointer-events:none;
 }
 
-.mesa.reservada{
-  background:var(--green);
-  color:#fff;
-}
-
-.selected .mesa{
-  border-color:var(--primary);
-}
-
-/* MODAL */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
-.modal.active{display:flex}
-
-.modal-box{
-  background:#fff;
-  padding:20px;
-  width:320px;
-  border-radius:10px;
-}
-
-.modal-box label{
-  font-size:13px;
-  margin-top:10px;
-  display:block;
-}
-
-.modal-box input{
-  width:100%;
-  padding:8px;
-  margin-top:4px;
-}
-
-.modal-actions{
-  margin-top:15px;
-  display:flex;
-  gap:10px;
+.item-mapa.selected{
+  outline:2px solid var(--primary);
+  border-radius:6px;
 }
 </style>
 </head>
@@ -168,12 +111,12 @@ main{flex:1;padding:20px}
 <body>
 
 <aside>
-  <h2>Elementos do Restaurante</h2>
+  <h2>Elementos</h2>
 
-  <button class="secondary" onclick="removerMesa()">🗑️ Remover Selecionado</button>
+  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
-  <label>Adicionar novo elemento (URL)</label>
-  <input id="urlElemento" placeholder="https://imagem-ou-card...">
+  <label>Adicionar elemento (URL PNG)</label>
+  <input id="urlElemento" placeholder="https://.../elemento.png">
   <button onclick="adicionarElemento()">Adicionar</button>
 
   <div class="elementos" id="listaElementos"></div>
@@ -183,124 +126,76 @@ main{flex:1;padding:20px}
   <div id="mapa"></div>
 </main>
 
-<!-- MODAL RESERVA -->
-<div class="modal" id="modalReserva">
-  <div class="modal-box">
-    <h3>Reserva</h3>
-
-    <label>Cliente</label>
-    <input id="clienteNome">
-
-    <label>Telefone</label>
-    <input id="clienteTelefone">
-
-    <div class="modal-actions">
-      <button onclick="salvarReserva()">Salvar</button>
-      <button class="secondary" onclick="fecharReserva()">Cancelar</button>
-    </div>
-  </div>
-</div>
-
 <script>
 const mapa = document.getElementById('mapa')
 const lista = document.getElementById('listaElementos')
-let selecionada = null
+let selecionado = null
 
-/* ===== ELEMENTOS PADRÃO (URLs PÚBLICAS) ===== */
+/* ===== ELEMENTOS PADRÃO (PNG) ===== */
 const elementosPadrao = [
-  { nome:'Mesa Quadrada', url:'https://images.unsplash.com/photo-1600891964599-f61ba0e24092' },
-  { nome:'Mesa Retangular', url:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5' },
-  { nome:'Mesa Redonda', url:'https://images.unsplash.com/photo-1544148103-0773bf10d330' },
-  { nome:'Cadeiras', url:'https://images.unsplash.com/photo-1582582621959-48d27397dc69' },
-  { nome:'Área do Restaurante', url:'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c' },
-  { nome:'Divisória / Parede', url:'https://images.unsplash.com/photo-1618213839348-1c99c34f3a1d' }
+  'https://cdn-icons-png.flaticon.com/512/3075/3075977.png',
+  'https://cdn-icons-png.flaticon.com/512/3075/3075908.png',
+  'https://cdn-icons-png.flaticon.com/512/3075/3075858.png',
+  'https://cdn-icons-png.flaticon.com/512/3075/3075932.png',
+  'https://cdn-icons-png.flaticon.com/512/3075/3075928.png'
 ]
 
-elementosPadrao.forEach(e=>criarElemento(e.url,e.nome))
+elementosPadrao.forEach(url => criarElemento(url))
 
-/* ===== CRIAR ELEMENTO ===== */
-function criarElemento(url,nome){
+/* ===== CRIAR ELEMENTO NO PAINEL ===== */
+function criarElemento(url){
   const el = document.createElement('div')
-  el.className='elemento'
-  el.draggable=true
-  el.dataset.url=url
-  el.innerHTML = `
-    <img src="${url}">
-    <span>${nome}</span>
-  `
-  el.ondragstart = ev => {
-    ev.dataTransfer.setData('url', url)
+  el.className = 'elemento'
+  el.draggable = true
+  el.dataset.url = url
+  el.innerHTML = `<img src="${url}">`
+
+  el.ondragstart = e=>{
+    e.dataTransfer.setData('url', url)
   }
+
   lista.appendChild(el)
 }
 
 function adicionarElemento(){
-  const url=urlElemento.value.trim()
+  const url = urlElemento.value.trim()
   if(!url) return
-  criarElemento(url,'Elemento Custom')
+  criarElemento(url)
   urlElemento.value=''
 }
 
 /* ===== DROP NO MAPA ===== */
 mapa.ondragover = e => e.preventDefault()
-mapa.ondrop = e => {
+
+mapa.ondrop = e=>{
   e.preventDefault()
   const url = e.dataTransfer.getData('url')
-  criarMesa(url, e.offsetX, e.offsetY)
+  criarItemMapa(url, e.offsetX, e.offsetY)
 }
 
-/* ===== CRIAR NO MAPA ===== */
-function criarMesa(url,x,y){
-  const wrap=document.createElement('div')
-  wrap.className='mesa-wrapper'
-  wrap.style.left=x+'px'
-  wrap.style.top=y+'px'
+/* ===== ITEM NO MAPA ===== */
+function criarItemMapa(url,x,y){
+  const item = document.createElement('div')
+  item.className = 'item-mapa'
+  item.style.left = x + 'px'
+  item.style.top  = y + 'px'
+  item.innerHTML = `<img src="${url}">`
 
-  const mesa=document.createElement('div')
-  mesa.className='mesa'
-  mesa.textContent='Mesa'
-
-  wrap.appendChild(mesa)
-  mapa.appendChild(wrap)
-  ativarMesa(wrap,mesa)
-  drag(wrap)
-}
-
-/* ===== RESERVA INDIVIDUAL ===== */
-function ativarMesa(wrap,mesa){
-  wrap.onclick=()=>{
-    document.querySelectorAll('.mesa-wrapper').forEach(m=>m.classList.remove('selected'))
-    wrap.classList.add('selected')
-    selecionada=wrap
+  item.onclick = ()=>{
+    document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
+    item.classList.add('selected')
+    selecionado = item
   }
 
-  wrap.ondblclick=()=>{
-    clienteNome.value = wrap.dataset.cliente || ''
-    clienteTelefone.value = wrap.dataset.telefone || ''
-    modalReserva.classList.add('active')
-  }
-
-  wrap.mesa=mesa
-}
-
-function salvarReserva(){
-  if(!selecionada) return
-  selecionada.dataset.cliente = clienteNome.value
-  selecionada.dataset.telefone = clienteTelefone.value
-  selecionada.mesa.classList.add('reservada')
-  selecionada.mesa.textContent = clienteNome.value || 'Reservado'
-  modalReserva.classList.remove('active')
-}
-
-function fecharReserva(){
-  modalReserva.classList.remove('active')
+  drag(item)
+  mapa.appendChild(item)
 }
 
 /* ===== REMOVER ===== */
-function removerMesa(){
-  if(selecionada){
-    selecionada.remove()
-    selecionada=null
+function removerSelecionado(){
+  if(selecionado){
+    selecionado.remove()
+    selecionado = null
   }
 }
 
