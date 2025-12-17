@@ -92,14 +92,13 @@ main{
   overflow-y:hidden;
   cursor:grab;
   background:#e5e7eb;
-  white-space:nowrap;
 }
 
-/* MAPA — MUITO LARGO, ALTURA FIXA */
+/* MAPA — LARGO, ALTURA FIXA */
 #mapa{
   position:relative;
-  width:6000px;     /* largura “infinita” */
-  height:100%;      /* trava altura */
+  width:6000px;
+  height:100%;
   background:#fff;
   border:2px dashed var(--border);
   border-radius:12px;
@@ -109,7 +108,10 @@ main{
 .item-mapa{
   position:absolute;
   cursor:grab;
-  text-align:center;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:150px;
 }
 
 .item-mapa img{
@@ -119,19 +121,24 @@ main{
   pointer-events:none;
 }
 
-.item-mapa.selected{
+/* BORDAS SOMENTE NA IMAGEM */
+.item-mapa.selected img{
   outline:2px solid var(--primary);
-  border-radius:6px;
+  border-radius:8px;
 }
 
-.item-mapa.reservado{
+.item-mapa.reservado img{
   outline:2px solid var(--green);
+  border-radius:8px;
 }
 
 .nome-reserva{
-  font-size:11px;
-  margin-top:2px;
+  font-size:12px;
+  margin-top:4px;
+  line-height:1.1;
   font-weight:600;
+  color:#111;
+  white-space:nowrap;
 }
 
 /* MODAL */
@@ -293,16 +300,23 @@ function addElemento(url, reservavel){
 }
 
 // =====================================================
-// DROP NO MAPA
+// DROP NO MAPA — CENTRALIZADO NO CURSOR
 // =====================================================
-mapa.ondragover = e=>e.preventDefault()
+mapa.ondragover = e => e.preventDefault()
 
-mapa.ondrop = e=>{
+mapa.ondrop = e => {
   e.preventDefault()
 
   const rect = mapa.getBoundingClientRect()
-  const x = e.clientX - rect.left + viewport.scrollLeft
-  const y = e.clientY - rect.top
+
+  let x = e.clientX - rect.left + viewport.scrollLeft
+  let y = e.clientY - rect.top
+
+  const MESA_W = 150
+  const MESA_H = 150
+
+  x -= MESA_W / 2
+  y -= MESA_H / 2
 
   criarItem(
     e.dataTransfer.getData('url'),
@@ -319,10 +333,13 @@ function criarItem(url, reservavel, x, y){
   const item = document.createElement('div')
   item.className = 'item-mapa'
   item.dataset.reservavel = reservavel
-  item.style.left = x+'px'
-  item.style.top  = y+'px'
+  item.style.left = x + 'px'
+  item.style.top  = y + 'px'
 
-  item.innerHTML = `<img src="${url}"><div class="nome-reserva"></div>`
+  item.innerHTML = `
+    <img src="${url}">
+    <div class="nome-reserva"></div>
+  `
 
   item.onclick = ()=>{
     document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
@@ -353,8 +370,8 @@ function drag(el){
     e.stopPropagation()
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
-      el.style.left = el.offsetLeft + (ev.clientX-x)+'px'
-      el.style.top  = el.offsetTop  + (ev.clientY-y)+'px'
+      el.style.left = el.offsetLeft + (ev.clientX-x) + 'px'
+      el.style.top  = el.offsetTop  + (ev.clientY-y) + 'px'
       x=ev.clientX;y=ev.clientY
     }
     document.onmouseup=()=>document.onmousemove=null
