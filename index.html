@@ -33,27 +33,18 @@ button{
 
 /* MESA */
 .mesa{
-  position:absolute;
-  background:#e5e7eb;
-  border:3px solid #9ca3af;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  box-sizing:border-box
+  position:absolute;background:#e5e7eb;border:3px solid #9ca3af;
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;box-sizing:border-box
 }
 .mesa.reservada{
-  background:#dcfce7;
-  border-color:#16a34a
+  background:#dcfce7;border-color:#16a34a
 }
 .redonda{border-radius:50%}
 
 .info-reserva{
-  font-size:12px;
-  font-weight:700;
-  color:#065f46;
-  pointer-events:none;
-  line-height:1.2
+  font-size:12px;font-weight:700;color:#065f46;
+  pointer-events:none;line-height:1.2
 }
 
 /* RESIZE */
@@ -84,7 +75,9 @@ button{
 }
 .modal-box label{display:block;margin-top:10px}
 .modal-box input,select{width:100%;padding:8px;margin-top:4px}
-.modal-actions{display:flex;justify-content:space-between;gap:10px;margin-top:15px}
+.modal-actions{
+  display:flex;justify-content:space-between;gap:10px;margin-top:15px
+}
 </style>
 </head>
 
@@ -129,9 +122,9 @@ button{
 <!-- MODAL RESERVA -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
-    <h3>Reserva</h3>
+    <h3>Reserva da Mesa</h3>
 
-    <label>Nome</label>
+    <label>Nome do Cliente</label>
     <input id="resNome">
 
     <label>Celular</label>
@@ -148,6 +141,7 @@ button{
 let modoEditar=true;
 let mesaAtual=null;
 
+/* TOGGLE */
 toggle.onclick=()=>{
   modoEditar=!modoEditar;
   toggle.classList.toggle('on',modoEditar);
@@ -248,14 +242,18 @@ function salvarReserva(){
   mesaAtual.dataset.nome=resNome.value;
   mesaAtual.dataset.celular=resCelular.value;
   mesaAtual.classList.add('reservada');
-  mesaAtual.classList.contains('redonda')?gerarRedonda(mesaAtual):gerarRetangular(mesaAtual);
+  mesaAtual.classList.contains('redonda')
+    ? gerarRedonda(mesaAtual)
+    : gerarRetangular(mesaAtual);
   modalReserva.style.display='none';
 }
 function excluirReserva(){
   delete mesaAtual.dataset.nome;
   delete mesaAtual.dataset.celular;
   mesaAtual.classList.remove('reservada');
-  mesaAtual.classList.contains('redonda')?gerarRedonda(mesaAtual):gerarRetangular(mesaAtual);
+  mesaAtual.classList.contains('redonda')
+    ? gerarRedonda(mesaAtual)
+    : gerarRetangular(mesaAtual);
   modalReserva.style.display='none';
 }
 function infoReserva(m){
@@ -293,7 +291,9 @@ function resize(m){
     if(!r)return;
     m.style.width=Math.max(80,e.clientX-m.offsetLeft)+'px';
     m.style.height=Math.max(80,e.clientY-m.offsetTop-60)+'px';
-    m.classList.contains('redonda')?gerarRedonda(m):gerarRetangular(m);
+    m.classList.contains('redonda')
+      ? gerarRedonda(m)
+      : gerarRetangular(m);
   };
   document.onmouseup=()=>r=false;
 }
