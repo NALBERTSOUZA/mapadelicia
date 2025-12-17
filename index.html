@@ -24,9 +24,7 @@ pre{
   max-height:300px;
   overflow:auto;
 }
-.error{
-  color:#ff4d4d;
-}
+.error{ color:#ff4d4d; }
 </style>
 </head>
 
@@ -34,73 +32,76 @@ pre{
 
 <h2>Teste Supabase – mapa_mesas</h2>
 
-<button onclick="inserir()">Inserir Registro</button>
-<button onclick="listar()">Listar Registros</button>
+<button id="btnInserir">Inserir Registro</button>
+<button id="btnListar">Listar Registros</button>
 
-<pre id="log">Aguardando ação...</pre>
+<pre id="log">Página carregada.</pre>
 
 <script>
-// ================== SUPABASE ==================
-const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
-const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
-
-// ✅ OBJETO CORRETO
-const supabase = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-)
-
+/* =================== TESTE JS =================== */
 const logEl = document.getElementById('log')
-
-function log(msg, isError=false){
-  logEl.className = isError ? 'error' : ''
+const log = (msg, err=false)=>{
+  logEl.className = err ? 'error' : ''
   logEl.textContent =
     typeof msg === 'string'
       ? msg
       : JSON.stringify(msg, null, 2)
 }
 
-// ================== TESTE INSERT ==================
+log('JS carregado com sucesso ✅')
+
+/* =================== SUPABASE =================== */
+if(!window.supabase){
+  log('ERRO: supabase não carregou do CDN', true)
+  throw new Error('Supabase CDN não carregado')
+}
+
+const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
+const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
+
+// ✅ NÃO USAR O NOME "supabase"
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+)
+
+log('Supabase conectado ✅')
+
+/* =================== BOTÕES =================== */
+document.getElementById('btnInserir').onclick = inserir
+document.getElementById('btnListar').onclick = listar
+
 async function inserir(){
   log('Inserindo registro...')
 
-  try{
-    const { data, error } = await supabase
-      .from('mapa_mesas')
-      .insert({
-        elemento_id: '71805376-fdae-44cd-a498-18e00cc86e37',
-        x: Math.floor(Math.random()*500),
-        y: Math.floor(Math.random()*300)
-      })
-      .select()
+  const { data, error } = await db
+    .from('mapa_mesas')
+    .insert({
+      elemento_id: '71805376-fdae-44cd-a498-18e00cc86e37',
+      x: Math.floor(Math.random()*500),
+      y: Math.floor(Math.random()*300)
+    })
+    .select()
 
-    if(error){
-      log(error, true)
-    }else{
-      log(data)
-    }
-  }catch(err){
-    log(err, true)
+  if(error){
+    log(error, true)
+  }else{
+    log(data)
   }
 }
 
-// ================== TESTE SELECT ==================
 async function listar(){
   log('Buscando registros...')
 
-  try{
-    const { data, error } = await supabase
-      .from('mapa_mesas')
-      .select('*')
-      .order('criado_em', { ascending:false })
+  const { data, error } = await db
+    .from('mapa_mesas')
+    .select('*')
+    .order('criado_em', { ascending:false })
 
-    if(error){
-      log(error, true)
-    }else{
-      log(data)
-    }
-  }catch(err){
-    log(err, true)
+  if(error){
+    log(error, true)
+  }else{
+    log(data)
   }
 }
 </script>
