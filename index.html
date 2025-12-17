@@ -48,7 +48,7 @@ button.secondary{background:#334155}
 
 /* ELEMENTOS */
 .elementos{
-  margin-top:20px;
+  margin-top:15px;
   display:flex;
   flex-direction:column;
   gap:10px;
@@ -59,10 +59,7 @@ button.secondary{background:#334155}
   padding:10px;
   border-radius:6px;
   cursor:grab;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:13px;
+  text-align:center;
   border:1px dashed #475569;
 }
 
@@ -94,6 +91,7 @@ main{flex:1;padding:20px}
   font-size:12px;
   font-weight:600;
   text-align:center;
+  padding:4px;
 }
 
 .mesa.reservada{
@@ -192,50 +190,68 @@ main{flex:1;padding:20px}
   </div>
 </div>
 
-<script>
-const mapa=document.getElementById('mapa')
-let selecionada=null
-let pendente=null
+<!-- MODAL RESERVA -->
+<div class="modal" id="modalReserva">
+  <div class="modal-box">
+    <h3>Reserva</h3>
 
-/* DRAG DOS ELEMENTOS */
+    <label>Cliente</label>
+    <input id="clienteNome">
+
+    <label>Telefone</label>
+    <input id="clienteTelefone">
+
+    <div class="modal-actions">
+      <button onclick="salvarReserva()">Salvar</button>
+      <button class="secondary" onclick="fecharReserva()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const mapa = document.getElementById('mapa')
+let selecionada = null
+let pendente = null
+
+/* ===== DRAG ELEMENTOS ===== */
 document.querySelectorAll('.elemento').forEach(el=>{
-  el.ondragstart=e=>{
-    e.dataTransfer.setData('tipo',el.dataset.tipo)
+  el.ondragstart = e=>{
+    e.dataTransfer.setData('tipo', el.dataset.tipo)
   }
 })
 
-mapa.ondragover=e=>e.preventDefault()
+mapa.ondragover = e => e.preventDefault()
 
-mapa.ondrop=e=>{
+mapa.ondrop = e =>{
   e.preventDefault()
-  const tipo=e.dataTransfer.getData('tipo')
-  const x=e.offsetX
-  const y=e.offsetY
+  const tipo = e.dataTransfer.getData('tipo')
+  const x = e.offsetX
+  const y = e.offsetY
 
-  if(tipo==='redonda'){
-    pendente={x,y}
+  if(tipo === 'redonda'){
+    pendente = {x,y}
     modalRedonda.classList.add('active')
   }else{
     criarMesa(tipo,x,y)
   }
 }
 
-/* CRIAÇÃO */
+/* ===== CRIAR MESA ===== */
 function criarMesa(tipo,x,y){
-  const wrap=document.createElement('div')
-  wrap.className='mesa-wrapper '+tipo
-  wrap.style.left=x+'px'
-  wrap.style.top=y+'px'
+  const wrap = document.createElement('div')
+  wrap.className = 'mesa-wrapper ' + tipo
+  wrap.style.left = x + 'px'
+  wrap.style.top  = y + 'px'
 
-  const mesa=document.createElement('div')
-  mesa.className='mesa'
-  mesa.textContent='Mesa'
+  const mesa = document.createElement('div')
+  mesa.className = 'mesa'
+  mesa.textContent = 'Mesa'
 
-  if(tipo==='redonda'){
-    const r=Number(raioMesa.value)
-    const qtd=Number(qtdCadeiras.value)
-    mesa.style.width=r*2+'px'
-    mesa.style.height=r*2+'px'
+  if(tipo === 'redonda'){
+    const r = Number(raioMesa.value)
+    const qtd = Number(qtdCadeiras.value)
+    mesa.style.width = r*2 + 'px'
+    mesa.style.height = r*2 + 'px'
     criarCadeirasCirculo(wrap,r,qtd)
   }else{
     criarCadeirasLados(wrap,tipo)
@@ -243,74 +259,98 @@ function criarMesa(tipo,x,y){
 
   wrap.appendChild(mesa)
   mapa.appendChild(wrap)
-  ativar(wrap,mesa)
+  ativarMesa(wrap,mesa)
   drag(wrap)
 }
 
-/* CONFIRMA REDONDA */
+/* ===== CONFIRMAR REDONDA ===== */
 function confirmarRedonda(){
-  criarMesa('redonda',pendente.x,pendente.y)
+  criarMesa('redonda', pendente.x, pendente.y)
   fecharRedonda()
 }
 
 function fecharRedonda(){
-  pendente=null
+  pendente = null
   modalRedonda.classList.remove('active')
 }
 
-/* CADEIRAS */
+/* ===== CADEIRAS ===== */
 function criarCadeirasLados(wrap,tipo){
-  const pos = tipo==='retangular'
+  const pos = tipo === 'retangular'
     ? [[30,-10],[60,-10],[30,60],[60,60]]
     : [[26,-10],[26,60]]
 
   pos.forEach(p=>{
-    const c=document.createElement('div')
-    c.className='chair'
-    c.style.left=p[0]+'px'
-    c.style.top=p[1]+'px'
+    const c = document.createElement('div')
+    c.className = 'chair'
+    c.style.left = p[0] + 'px'
+    c.style.top  = p[1] + 'px'
     wrap.appendChild(c)
   })
 }
 
 function criarCadeirasCirculo(wrap,r,qtd){
-  const dist=r+6
+  const dist = r + 6
   for(let i=0;i<qtd;i++){
-    const ang=(i/qtd)*Math.PI*2
-    const c=document.createElement('div')
-    c.className='chair'
-    c.style.left=(r+Math.cos(ang)*dist)+'px'
-    c.style.top =(r+Math.sin(ang)*dist)+'px'
-    const rot=ang*(180/Math.PI)+90
-    c.style.transform=`translate(-50%,-50%) rotate(${rot}deg)`
+    const ang = (i/qtd) * Math.PI * 2
+    const c = document.createElement('div')
+    c.className = 'chair'
+    c.style.left = (r + Math.cos(ang)*dist) + 'px'
+    c.style.top  = (r + Math.sin(ang)*dist) + 'px'
+    const rot = ang * (180/Math.PI) + 90
+    c.style.transform = `translate(-50%,-50%) rotate(${rot}deg)`
     wrap.appendChild(c)
   }
 }
 
-/* INTERAÇÃO */
-function ativar(wrap,mesa){
-  wrap.onclick=()=>{
+/* ===== SELEÇÃO / RESERVA ===== */
+function ativarMesa(wrap,mesa){
+  wrap.onclick = ()=>{
     document.querySelectorAll('.mesa-wrapper').forEach(m=>m.classList.remove('selected'))
     wrap.classList.add('selected')
-    selecionada=wrap
+    selecionada = wrap
   }
-  wrap.mesa=mesa
+
+  wrap.ondblclick = ()=>{
+    modalReserva.classList.add('active')
+  }
+
+  wrap.mesa = mesa
 }
 
+function salvarReserva(){
+  if(!selecionada) return
+  selecionada.mesa.classList.add('reservada')
+  selecionada.mesa.textContent = clienteNome.value || 'Reservado'
+  modalReserva.classList.remove('active')
+}
+
+function fecharReserva(){
+  modalReserva.classList.remove('active')
+}
+
+/* ===== REMOVER ===== */
 function removerMesa(){
-  if(selecionada){selecionada.remove();selecionada=null}
+  if(selecionada){
+    selecionada.remove()
+    selecionada = null
+  }
 }
 
+/* ===== DRAG MESA ===== */
 function drag(el){
   let x=0,y=0
-  el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
+  el.onmousedown = e=>{
+    e.stopPropagation()
+    x = e.clientX
+    y = e.clientY
+    document.onmousemove = ev=>{
+      el.style.left = el.offsetLeft + (ev.clientX - x) + 'px'
+      el.style.top  = el.offsetTop  + (ev.clientY - y) + 'px'
+      x = ev.clientX
+      y = ev.clientY
     }
-    document.onmouseup=()=>document.onmousemove=null
+    document.onmouseup = ()=> document.onmousemove = null
   }
 }
 </script>
