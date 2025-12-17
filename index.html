@@ -11,6 +11,7 @@
   --primary:#2563eb;
   --border:#dcdfe4;
   --green:#16a34a;
+  --chair:#111827;
 }
 
 *{box-sizing:border-box}
@@ -31,10 +32,6 @@ aside{
   padding:20px;
 }
 
-aside h2{
-  margin:0 0 20px;
-}
-
 button{
   width:100%;
   padding:10px;
@@ -47,15 +44,10 @@ button{
   font-weight:600;
 }
 
-button.secondary{
-  background:#334155;
-}
+button.secondary{background:#334155}
 
 /* MAPA */
-main{
-  flex:1;
-  padding:20px;
-}
+main{flex:1;padding:20px}
 
 #mapa{
   position:relative;
@@ -67,19 +59,21 @@ main{
 }
 
 /* MESA */
+.mesa-wrapper{
+  position:absolute;
+  cursor:grab;
+}
+
 .mesa{
   position:absolute;
+  background:#e5e7eb;
+  border:2px solid #9ca3af;
   display:flex;
   align-items:center;
   justify-content:center;
-  text-align:center;
-  padding:5px;
   font-size:12px;
   font-weight:600;
-  cursor:grab;
-  user-select:none;
-  background:#e5e7eb;
-  border:2px solid #9ca3af;
+  text-align:center;
 }
 
 .mesa.reservada{
@@ -87,18 +81,22 @@ main{
   color:#fff;
 }
 
-.mesa.selected{
+.selected .mesa{
   border-color:var(--primary);
-  box-shadow:0 0 0 2px rgba(37,99,235,.3);
 }
 
 /* FORMATOS */
-.quadrada{ width:60px; height:60px; }
-.retangular{ width:90px; height:60px; }
-.redonda{
-  width:70px;
-  height:70px;
-  border-radius:50%;
+.quadrada .mesa{width:60px;height:60px}
+.retangular .mesa{width:90px;height:60px}
+.redonda .mesa{border-radius:50%}
+
+/* CADEIRAS */
+.chair{
+  position:absolute;
+  width:18px;
+  height:8px;
+  background:var(--chair);
+  border-radius:4px;
 }
 
 /* MODAL */
@@ -110,7 +108,6 @@ main{
   align-items:center;
   justify-content:center;
 }
-
 .modal.active{display:flex}
 
 .modal-box{
@@ -120,15 +117,13 @@ main{
   border-radius:10px;
 }
 
-.modal-box h3{margin-top:0}
-
 .modal-box label{
   font-size:13px;
   margin-top:10px;
   display:block;
 }
 
-.modal-box input, .modal-box select{
+.modal-box input,select{
   width:100%;
   padding:8px;
   margin-top:4px;
@@ -159,18 +154,18 @@ main{
   <div class="modal-box">
     <h3>Mesa</h3>
 
-    <label>Nome da Mesa</label>
+    <label>Nome</label>
     <input id="nomeMesa">
 
     <label>Tipo</label>
-    <select id="tipoMesa" onchange="toggleLugares()">
-      <option value="quadrada">Quadrada (2)</option>
-      <option value="retangular">Retangular (4)</option>
+    <select id="tipoMesa" onchange="toggleRedonda()">
+      <option value="quadrada">Quadrada</option>
+      <option value="retangular">Retangular</option>
       <option value="redonda">Redonda</option>
     </select>
 
-    <label id="labelLugares" style="display:none">Quantidade de Lugares</label>
-    <input id="lugaresMesa" type="number" value="4" style="display:none">
+    <label id="labelRaio" style="display:none">Raio da mesa (px)</label>
+    <input id="raioMesa" type="number" value="35" style="display:none">
 
     <div class="modal-actions">
       <button onclick="salvarMesa()">Salvar</button>
@@ -184,110 +179,128 @@ main{
   <div class="modal-box">
     <h3>Reserva</h3>
 
-    <label>Nome do Cliente</label>
+    <label>Cliente</label>
     <input id="clienteNome">
 
     <label>Telefone</label>
     <input id="clienteTelefone">
 
     <div class="modal-actions">
-      <button onclick="salvarReserva()">Salvar Reserva</button>
+      <button onclick="salvarReserva()">Salvar</button>
       <button class="secondary" onclick="fecharModalReserva()">Cancelar</button>
     </div>
   </div>
 </div>
 
 <script>
-const mapa = document.getElementById('mapa')
-let mesaSelecionada = null
-let mesaEditando = null
+const mapa=document.getElementById('mapa')
+let selecionada=null
 
-/* ===== MESA ===== */
+function toggleRedonda(){
+  const show=tipoMesa.value==='redonda'
+  labelRaio.style.display=show?'block':'none'
+  raioMesa.style.display=show?'block':'none'
+}
+
 function abrirModalMesa(){
-  mesaEditando = null
   nomeMesa.value=''
   tipoMesa.value='quadrada'
-  lugaresMesa.value=4
-  toggleLugares()
+  raioMesa.value=35
+  toggleRedonda()
   modalMesa.classList.add('active')
 }
 
-function fecharModalMesa(){
-  modalMesa.classList.remove('active')
-}
-
-function toggleLugares(){
-  const show = tipoMesa.value === 'redonda'
-  labelLugares.style.display = show?'block':'none'
-  lugaresMesa.style.display = show?'block':'none'
-}
+function fecharModalMesa(){modalMesa.classList.remove('active')}
 
 function salvarMesa(){
-  const mesa = document.createElement('div')
-  mesa.className = 'mesa ' + tipoMesa.value
-  mesa.textContent = nomeMesa.value || 'Mesa'
-  mesa.dataset.nome = nomeMesa.value
-  mesa.dataset.tipo = tipoMesa.value
-  mesa.dataset.lugares = tipoMesa.value==='redonda'?lugaresMesa.value:(tipoMesa.value==='quadrada'?2:4)
+  const wrap=document.createElement('div')
+  wrap.className='mesa-wrapper '+tipoMesa.value
+  wrap.style.left='40px'
+  wrap.style.top='40px'
 
-  mesa.style.left='20px'
-  mesa.style.top='20px'
+  const mesa=document.createElement('div')
+  mesa.className='mesa'
+  mesa.textContent=nomeMesa.value||'Mesa'
 
-  mapa.appendChild(mesa)
-  ativarMesa(mesa)
-  drag(mesa)
+  if(tipoMesa.value==='redonda'){
+    const r=Number(raioMesa.value)
+    mesa.style.width=r*2+'px'
+    mesa.style.height=r*2+'px'
+    criarCadeirasCirculo(wrap,r)
+  }else{
+    criarCadeirasLados(wrap,tipoMesa.value)
+  }
+
+  wrap.appendChild(mesa)
+  mapa.appendChild(wrap)
+  ativar(wrap,mesa)
+  drag(wrap)
   fecharModalMesa()
 }
 
-function ativarMesa(mesa){
-  mesa.onclick = ()=>{
-    document.querySelectorAll('.mesa').forEach(m=>m.classList.remove('selected'))
-    mesa.classList.add('selected')
-    mesaSelecionada = mesa
+function criarCadeirasLados(wrap,tipo){
+  const pos= tipo==='retangular'
+    ? [[36,-10],[36,60],[ -10,26],[90,26]]
+    : [[26,-10],[26,60]]
+
+  pos.forEach(p=>{
+    const c=document.createElement('div')
+    c.className='chair'
+    c.style.left=p[0]+'px'
+    c.style.top=p[1]+'px'
+    wrap.appendChild(c)
+  })
+}
+
+function criarCadeirasCirculo(wrap,r){
+  const qtd=6
+  for(let i=0;i<qtd;i++){
+    const ang=(i/qtd)*Math.PI*2
+    const c=document.createElement('div')
+    c.className='chair'
+    c.style.left=(r+Math.cos(ang)*(r+12))+'px'
+    c.style.top=(r+Math.sin(ang)*(r+12))+'px'
+    wrap.appendChild(c)
+  }
+}
+
+function ativar(wrap,mesa){
+  wrap.onclick=()=>{
+    document.querySelectorAll('.mesa-wrapper').forEach(m=>m.classList.remove('selected'))
+    wrap.classList.add('selected')
+    selecionada=wrap
   }
 
-  mesa.ondblclick = ()=>{
-    mesaSelecionada = mesa
-    clienteNome.value = mesa.dataset.cliente || ''
-    clienteTelefone.value = mesa.dataset.telefone || ''
+  wrap.ondblclick=()=>{
     modalReserva.classList.add('active')
   }
+
+  wrap.mesa=mesa
 }
 
 function removerMesa(){
-  if(!mesaSelecionada) return
-  mesaSelecionada.remove()
-  mesaSelecionada = null
-}
-
-/* ===== RESERVA ===== */
-function fecharModalReserva(){
-  modalReserva.classList.remove('active')
+  if(selecionada){selecionada.remove();selecionada=null}
 }
 
 function salvarReserva(){
-  if(!mesaSelecionada) return
-
-  mesaSelecionada.dataset.cliente = clienteNome.value
-  mesaSelecionada.dataset.telefone = clienteTelefone.value
-  mesaSelecionada.classList.add('reservada')
-  mesaSelecionada.textContent = clienteNome.value
-
-  fecharModalReserva()
+  if(!selecionada)return
+  selecionada.mesa.classList.add('reservada')
+  selecionada.mesa.textContent=clienteNome.value
+  modalReserva.classList.remove('active')
 }
 
-/* ===== DRAG ===== */
+function fecharModalReserva(){modalReserva.classList.remove('active')}
+
 function drag(el){
   let x=0,y=0
-  el.onmousedown = e=>{
-    if(e.detail>1) return
-    x=e.clientX; y=e.clientY
-    document.onmousemove = ev=>{
-      el.style.left = el.offsetLeft + (ev.clientX-x) + 'px'
-      el.style.top = el.offsetTop + (ev.clientY-y) + 'px'
-      x=ev.clientX; y=ev.clientY
+  el.onmousedown=e=>{
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup = ()=>document.onmousemove=null
+    document.onmouseup=()=>document.onmousemove=null
   }
 }
 </script>
