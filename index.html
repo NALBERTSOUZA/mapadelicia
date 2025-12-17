@@ -1,168 +1,266 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentação: Mapa de Mesas</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            line-height: 1.6;
-            background: #fafafa;
-            color: #333;
-        }
-        h1, h2 {
-            color: #2c3e50;
-        }
-        .section {
-            margin-bottom: 40px;
-        }
-        .feature-list {
-            list-style: disc inside;
-        }
-        .code-block {
-            background: #f0f0f0;
-            padding: 15px;
-            border-radius: 8px;
-            font-family: Consolas, monospace;
-        }
-        nav a {
-            display: block;
-            margin-bottom: 8px;
-            color: #2980b9;
-            text-decoration: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>Mapa de Mesas • Restaurante</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --bg:#f4f6f8;
+  --card:#ffffff;
+  --primary:#2563eb;
+  --border:#dcdfe4;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Inter, Arial, sans-serif;
+  background:var(--bg);
+  display:flex;
+  height:100vh;
+}
+
+/* SIDEBAR */
+aside{
+  width:280px;
+  background:#0f172a;
+  color:#fff;
+  padding:20px;
+}
+
+aside h2{
+  margin:0 0 20px;
+  font-size:18px;
+}
+
+button{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+
+button.secondary{
+  background:#334155;
+}
+
+/* MAPA */
+main{
+  flex:1;
+  padding:20px;
+}
+
+#mapa{
+  position:relative;
+  background:#fff;
+  border:2px dashed var(--border);
+  height:100%;
+  border-radius:12px;
+  overflow:hidden;
+}
+
+/* MESA */
+.mesa{
+  position:absolute;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:12px;
+  font-weight:600;
+  cursor:grab;
+  user-select:none;
+  background:#e5e7eb;
+  border:2px solid #9ca3af;
+}
+
+.mesa.selected{
+  border-color:var(--primary);
+  box-shadow:0 0 0 2px rgba(37,99,235,.3);
+}
+
+/* FORMATOS */
+.quadrada{ width:60px; height:60px; }
+.retangular{ width:90px; height:60px; }
+.redonda{
+  width:70px;
+  height:70px;
+  border-radius:50%;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+.modal.active{display:flex}
+
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:320px;
+  border-radius:10px;
+}
+
+.modal-box h3{
+  margin-top:0;
+}
+
+.modal-box label{
+  font-size:13px;
+  display:block;
+  margin-top:10px;
+}
+
+.modal-box input, .modal-box select{
+  width:100%;
+  padding:8px;
+  margin-top:4px;
+}
+
+.modal-actions{
+  margin-top:15px;
+  display:flex;
+  gap:10px;
+}
+</style>
 </head>
+
 <body>
 
-    <h1>📌 Documentação: Mapa de Mesas</h1>
+<aside>
+  <h2>Mapa de Mesas</h2>
+  <button onclick="abrirModal()">➕ Adicionar Mesa</button>
+  <button class="secondary" onclick="removerMesa()">🗑️ Remover Mesa</button>
+</aside>
 
-    <nav class="section">
-        <h2>📍 Índice</h2>
-        <a href="#overview">Visão Geral</a>
-        <a href="#layout">1. Criação de Layout</a>
-        <a href="#mesas">2. Tipos de Mesas</a>
-        <a href="#interacao">3. Interação no Mapa</a>
-        <a href="#integracoes">4. Integrações e Reservas</a>
-        <a href="#status">5. Status e Cores</a>
-        <a href="#customizacao">6. Customização</a>
-        <a href="#relatorios">7. Relatórios e Insights</a>
-        <a href="#api">8. Exemplo de Código / API</a>
-    </nav>
+<main>
+  <div id="mapa"></div>
+</main>
 
-    <section id="overview" class="section">
-        <h2>🌟 Visão Geral</h2>
-        <p>O mapa de mesas é uma funcionalidade visual que representa o salão do restaurante, permitindo posicionar mesas,
-           ver seu status, gerenciar reservas e otimizar ocupação de assentos.</p>
-    </section>
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <h3>Mesa</h3>
 
-    <section id="layout" class="section">
-        <h2>1. Criação de Layout</h2>
-        <ul class="feature-list">
-            <li>Adicionar áreas distintas (salão interno, varanda, bar)</li>
-            <li>Arrastar e posicionar mesas livremente no plano</li>
-            <li>Grade de alinhamento automática para melhor organização</li>
-            <li>Zoom in / zoom out e navegação suave</li>
-        </ul>
-    </section>
+    <label>Nome da Mesa</label>
+    <input id="nomeMesa">
 
-    <section id="mesas" class="section">
-        <h2>2. Tipos de Mesas</h2>
-        <ul class="feature-list">
-            <li>Mesas quadradas</li>
-            <li>Mesas retangulares</li>
-            <li>Mesas redondas com opção de definir número de lugares</li>
-            <li>Mesas personalizadas com rótulo e número de assentos</li>
-        </ul>
-    </section>
+    <label>Tipo</label>
+    <select id="tipoMesa" onchange="toggleLugares()">
+      <option value="quadrada">Quadrada (2)</option>
+      <option value="retangular">Retangular (4)</option>
+      <option value="redonda">Redonda</option>
+    </select>
 
-    <section id="interacao" class="section">
-        <h2>3. Interação no Mapa</h2>
-        <ul class="feature-list">
-            <li>Clique para editar mesa</li>
-            <li>Arrastar para mover</li>
-            <li>Arrastar reserva para uma mesa específica</li>
-            <li>Tooltip com informações da mesa/reserva</li>
-        </ul>
-    </section>
+    <label id="labelLugares" style="display:none">Quantidade de Lugares</label>
+    <input id="lugaresMesa" type="number" min="1" value="4" style="display:none">
 
-    <section id="integracoes" class="section">
-        <h2>4. Integrações e Reservas</h2>
-        <ul class="feature-list">
-            <li>Widget de reservas online</li>
-            <li>Reservas via Google / Facebook / Instagram</li>
-            <li>Recepção automática de reservas no mapa</li>
-            <li>Lista de espera sincronizada com o mapa</li>
-        </ul>
-    </section>
+    <div class="modal-actions">
+      <button onclick="salvarMesa()">Salvar</button>
+      <button class="secondary" onclick="fecharModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
 
-    <section id="status" class="section">
-        <h2>5. Status e Cores</h2>
-        <ul class="feature-list">
-            <li>Status visual de cada mesa (livre, ocupada, reservada, limpeza)</li>
-            <li>Cores personalizáveis para cada status</li>
-            <li>Indicadores visuais de tempo de ocupação</li>
-            <li>Notificações ao mudar status</li>
-        </ul>
-    </section>
+<script>
+const mapa = document.getElementById('mapa')
+let mesaSelecionada = null
+let editando = null
 
-    <section id="customizacao" class="section">
-        <h2>6. Customização</h2>
-        <ul class="feature-list">
-            <li>Definir nome da mesa</li>
-            <li>Quantidade de lugares por mesa</li>
-            <li>Tags/áreas específicas (VIP, Festa, Bar)</li>
-            <li>Configuração visual de ícones e tamanhos</li>
-        </ul>
-    </section>
+function abrirModal(){
+  editando = mesaSelecionada
+  document.getElementById('modal').classList.add('active')
 
-    <section id="relatorios" class="section">
-        <h2>7. Relatórios e Insights</h2>
-        <ul class="feature-list">
-            <li>Occupação por horário</li>
-            <li>Mesas mais utilizadas</li>
-            <li>Gráficos de performance diária/semanal</li>
-            <li>Analytics integrado com reservas</li>
-        </ul>
-    </section>
-
-    <section id="api" class="section">
-        <h2>8. Exemplo de Código / API</h2>
-        <p>Exemplo de bloco de configuração de mesas via JSON (para um sistema personalizado):</p>
-        <div class="code-block">
-            <pre>
-{
-  "tables": [
-    {
-      "id": "mesa-01",
-      "type": "retangular",
-      "seats": 4,
-      "position": { "x": 100, "y": 150 },
-      "status": "livre"
-    },
-    {
-      "id": "mesa-02",
-      "type": "quadrada",
-      "seats": 2,
-      "position": { "x": 200, "y": 150 },
-      "status": "reservada"
-    },
-    {
-      "id": "mesa-03",
-      "type": "redonda",
-      "seats": 6,
-      "position": { "x": 100, "y": 300 },
-      "status": "ocupada"
-    }
-  ]
+  if(editando){
+    nomeMesa.value = editando.dataset.nome
+    tipoMesa.value = editando.dataset.tipo
+    lugaresMesa.value = editando.dataset.lugares
+    toggleLugares()
+  }else{
+    nomeMesa.value=''
+    tipoMesa.value='quadrada'
+    lugaresMesa.value=4
+    toggleLugares()
+  }
 }
-            </pre>
-        </div>
 
-        <p>Este JSON poderia ser consumido por um renderizador de mapa no front-end (canvas/SVG/WebGL).</p>
-    </section>
+function fecharModal(){
+  document.getElementById('modal').classList.remove('active')
+}
+
+function toggleLugares(){
+  const tipo = tipoMesa.value
+  const show = tipo === 'redonda'
+  labelLugares.style.display = show ? 'block':'none'
+  lugaresMesa.style.display = show ? 'block':'none'
+}
+
+function salvarMesa(){
+  let mesa = editando || document.createElement('div')
+  mesa.className = 'mesa ' + tipoMesa.value
+  mesa.textContent = nomeMesa.value || 'Mesa'
+  mesa.dataset.nome = nomeMesa.value
+  mesa.dataset.tipo = tipoMesa.value
+  mesa.dataset.lugares = tipoMesa.value === 'redonda' ? lugaresMesa.value :
+                         tipoMesa.value === 'quadrada' ? 2 : 4
+
+  if(!editando){
+    mesa.style.left='20px'
+    mesa.style.top='20px'
+    mapa.appendChild(mesa)
+    ativarMesa(mesa)
+    drag(mesa)
+  }
+
+  fecharModal()
+  editando=null
+}
+
+function ativarMesa(mesa){
+  mesa.onclick = ()=>{
+    document.querySelectorAll('.mesa').forEach(m=>m.classList.remove('selected'))
+    mesa.classList.add('selected')
+    mesaSelecionada = mesa
+  }
+}
+
+function removerMesa(){
+  if(mesaSelecionada){
+    mesaSelecionada.remove()
+    mesaSelecionada=null
+  }
+}
+
+function drag(el){
+  let x=0,y=0,dx=0,dy=0
+  el.onmousedown = e=>{
+    x=e.clientX; y=e.clientY
+    document.onmousemove = ev=>{
+      dx = x-ev.clientX
+      dy = y-ev.clientY
+      x=ev.clientX; y=ev.clientY
+      el.style.left = el.offsetLeft - dx + 'px'
+      el.style.top = el.offsetTop - dy + 'px'
+    }
+    document.onmouseup = ()=>{
+      document.onmousemove=null
+    }
+  }
+}
+</script>
 
 </body>
 </html>
