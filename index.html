@@ -46,13 +46,6 @@ button{
   font-weight:600;
 }
 
-input{
-  width:100%;
-  padding:8px;
-  margin-bottom:8px;
-}
-
-/* ELEMENTOS */
 .elementos{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -74,7 +67,6 @@ input{
 .elemento img{
   width:42px;
   height:42px;
-  object-fit:contain;
   pointer-events:none;
 }
 
@@ -90,7 +82,7 @@ main{flex:1;padding:20px}
   overflow:hidden;
 }
 
-/* ITEM NO MAPA */
+/* ITEM */
 .item-mapa{
   position:absolute;
   cursor:grab;
@@ -100,7 +92,6 @@ main{flex:1;padding:20px}
 .item-mapa img{
   width:150px;
   height:150px;
-  object-fit:contain;
   pointer-events:none;
 }
 
@@ -109,14 +100,32 @@ main{flex:1;padding:20px}
   border-radius:6px;
 }
 
+.item-mapa.group-selected{
+  outline:2px solid var(--green);
+  border-radius:6px;
+}
+
 .item-mapa.reservado{
   outline:2px solid var(--green);
 }
 
 .nome-reserva{
-  font-size:11px;
-  margin-top:2px;
-  font-weight:600;
+  font-size:12px;
+  font-weight:700;
+  margin-top:4px;
+}
+
+/* NOME DO GRUPO */
+.grupo-nome{
+  position:absolute;
+  background:rgba(22,163,74,.95);
+  color:#fff;
+  padding:6px 10px;
+  border-radius:8px;
+  font-size:13px;
+  font-weight:700;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
 }
 
 /* MODAL */
@@ -133,27 +142,12 @@ main{flex:1;padding:20px}
 .modal-box{
   background:#fff;
   padding:20px;
-  width:300px;
+  width:320px;
   border-radius:10px;
 }
-
-.modal-box label{
-  font-size:13px;
-  margin-top:10px;
-  display:block;
-}
-
-.modal-box input{
-  width:100%;
-  padding:8px;
-  margin-top:4px;
-}
-
-.modal-actions{
-  margin-top:15px;
-  display:flex;
-  gap:10px;
-}
+.modal-box label{display:block;margin-top:10px;font-size:13px}
+.modal-box input{width:100%;padding:8px;margin-top:4px}
+.modal-actions{display:flex;gap:10px;margin-top:15px}
 </style>
 </head>
 
@@ -161,7 +155,6 @@ main{flex:1;padding:20px}
 
 <aside>
   <h2>Elementos</h2>
-
   <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
   <h3>Reserváveis</h3>
@@ -184,7 +177,7 @@ main{flex:1;padding:20px}
     <input id="clienteNome">
 
     <label>Celular</label>
-    <input id="clienteCelular" placeholder="(DDD) 99999-9999">
+    <input id="clienteCelular">
 
     <label>Quantidade de Pessoas</label>
     <input id="qtdPessoas" type="number" min="1" value="2">
@@ -197,9 +190,6 @@ main{flex:1;padding:20px}
 </div>
 
 <script>
-// =====================================================
-// REFERÊNCIAS
-// =====================================================
 const mapa = document.getElementById('mapa')
 const listaRes = document.getElementById('listaReservaveis')
 const listaNao = document.getElementById('listaNaoReservaveis')
@@ -211,10 +201,9 @@ const qtdPessoas = document.getElementById('qtdPessoas')
 
 let selecionado = null
 let reservando = null
+let selecionados = []
+let grupoLabel = null
 
-// =====================================================
-// ELEMENTOS PADRÃO
-// =====================================================
 const reservaveisPadrao = [
   'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
   'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
@@ -223,72 +212,68 @@ const reservaveisPadrao = [
 
 const naoReservaveisPadrao = [
   'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
-  'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
-  'https://cdn-icons-png.flaticon.com/512/2331/2331941.png',
-  'https://cdn-icons-png.flaticon.com/512/1946/1946436.png'
+  'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
 
-// =====================================================
-// CRIAR ELEMENTO NO PAINEL
-// =====================================================
-function addElemento(url, reservavel){
-  const el = document.createElement('div')
-  el.className = 'elemento'
-  el.draggable = true
-  el.dataset.url = url
-  el.dataset.reservavel = reservavel
-  el.innerHTML = `<img src="${url}">`
-
-  el.ondragstart = e=>{
-    e.dataTransfer.setData('url', url)
-    e.dataTransfer.setData('reservavel', reservavel)
+function addElemento(url,reservavel){
+  const el=document.createElement('div')
+  el.className='elemento'
+  el.draggable=true
+  el.dataset.url=url
+  el.dataset.reservavel=reservavel
+  el.innerHTML=`<img src="${url}">`
+  el.ondragstart=e=>{
+    e.dataTransfer.setData('url',url)
+    e.dataTransfer.setData('reservavel',reservavel)
   }
-
-  (reservavel ? listaRes : listaNao).appendChild(el)
+  (reservavel?listaRes:listaNao).appendChild(el)
 }
 
-// =====================================================
-// DROP NO MAPA
-// =====================================================
-mapa.ondragover = e=>e.preventDefault()
-
-mapa.ondrop = e=>{
+mapa.ondragover=e=>e.preventDefault()
+mapa.ondrop=e=>{
   e.preventDefault()
   criarItem(
     e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('reservavel') === 'true',
-    e.offsetX,
-    e.offsetY
+    e.dataTransfer.getData('reservavel')==='true',
+    e.offsetX,e.offsetY
   )
 }
 
-// =====================================================
-// ITEM NO MAPA
-// =====================================================
-function criarItem(url, reservavel, x, y){
-  const item = document.createElement('div')
-  item.className = 'item-mapa'
-  item.dataset.reservavel = reservavel
-  item.style.left = x+'px'
-  item.style.top  = y+'px'
+function criarItem(url,reservavel,x,y){
+  const item=document.createElement('div')
+  item.className='item-mapa'
+  item.dataset.reservavel=reservavel
+  item.style.left=x+'px'
+  item.style.top=y+'px'
+  item.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
 
-  item.innerHTML = `
-    <img src="${url}">
-    <div class="nome-reserva"></div>
-  `
-
-  item.onclick = ()=>{
-    document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
-    item.classList.add('selected')
-    selecionado = item
+  item.onclick=e=>{
+    if(e.ctrlKey){
+      if(selecionados.includes(item)){
+        item.classList.remove('group-selected')
+        selecionados=selecionados.filter(i=>i!==item)
+      }else{
+        item.classList.add('group-selected')
+        selecionados.push(item)
+      }
+      atualizarGrupo()
+    }else{
+      document.querySelectorAll('.item-mapa').forEach(i=>{
+        i.classList.remove('selected','group-selected')
+      })
+      selecionados=[]
+      removerGrupo()
+      item.classList.add('selected')
+      selecionado=item
+    }
   }
 
   if(reservavel){
-    item.ondblclick = ()=>{
-      reservando = item
-      clienteNome.value = item.dataset.cliente || ''
-      clienteCelular.value = item.dataset.celular || ''
-      qtdPessoas.value = item.dataset.pessoas || 2
+    item.ondblclick=()=>{
+      reservando=item
+      clienteNome.value=item.dataset.cliente||''
+      clienteCelular.value=item.dataset.celular||''
+      qtdPessoas.value=item.dataset.pessoas||2
       modalReserva.classList.add('active')
     }
   }
@@ -297,59 +282,74 @@ function criarItem(url, reservavel, x, y){
   mapa.appendChild(item)
 }
 
-// =====================================================
-// RESERVA
-// =====================================================
+function atualizarGrupo(){
+  removerGrupo()
+  if(selecionados.length<2) return
+
+  let minX=Infinity,minY=Infinity,maxX=0,maxY=0
+  selecionados.forEach(el=>{
+    const r=el.getBoundingClientRect()
+    const m=mapa.getBoundingClientRect()
+    const cx=r.left-m.left+r.width/2
+    const cy=r.top-m.top+r.height/2
+    minX=Math.min(minX,cx)
+    minY=Math.min(minY,cy)
+    maxX=Math.max(maxX,cx)
+    maxY=Math.max(maxY,cy)
+  })
+
+  grupoLabel=document.createElement('div')
+  grupoLabel.className='grupo-nome'
+  grupoLabel.textContent='Mesas Unidas'
+  grupoLabel.style.left=(minX+maxX)/2+'px'
+  grupoLabel.style.top=(minY+maxY)/2+'px'
+  mapa.appendChild(grupoLabel)
+}
+
+function removerGrupo(){
+  if(grupoLabel){grupoLabel.remove();grupoLabel=null}
+}
+
 function salvarReserva(){
-  if(!reservando) return
-
-  reservando.dataset.cliente = clienteNome.value
-  reservando.dataset.celular = clienteCelular.value
-  reservando.dataset.pessoas = qtdPessoas.value
-
+  if(!reservando)return
+  reservando.dataset.cliente=clienteNome.value
+  reservando.dataset.celular=clienteCelular.value
+  reservando.dataset.pessoas=qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent =
-    `${clienteNome.value} • ${qtdPessoas.value}pessoas`
+  reservando.querySelector('.nome-reserva').textContent=
+    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
 
+  if(selecionados.length>1 && grupoLabel){
+    grupoLabel.textContent=
+      `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+  }
   fecharReserva()
 }
 
 function fecharReserva(){
-  reservando = null
+  reservando=null
   modalReserva.classList.remove('active')
 }
 
-// =====================================================
-// REMOVER
-// =====================================================
 function removerSelecionado(){
-  if(selecionado){
-    selecionado.remove()
-    selecionado = null
-  }
+  if(selecionado){selecionado.remove();selecionado=null}
 }
 
-// =====================================================
-// DRAG
-// =====================================================
 function drag(el){
   let x=0,y=0
   el.onmousedown=e=>{
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
       el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
     document.onmouseup=()=>document.onmousemove=null
   }
 }
 
-// =====================================================
-// INICIALIZA
-// =====================================================
-reservaveisPadrao.forEach(url => addElemento(url, true))
-naoReservaveisPadrao.forEach(url => addElemento(url, false))
+reservaveisPadrao.forEach(u=>addElemento(u,true))
+naoReservaveisPadrao.forEach(u=>addElemento(u,false))
 </script>
 
 </body>
