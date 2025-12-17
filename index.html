@@ -8,9 +8,9 @@
 <style>
 :root{
   --bg:#f4f6f8;
-  --card:#ffffff;
   --primary:#2563eb;
   --border:#dcdfe4;
+  --green:#16a34a;
 }
 
 *{box-sizing:border-box}
@@ -33,7 +33,6 @@ aside{
 
 aside h2{
   margin:0 0 20px;
-  font-size:18px;
 }
 
 button{
@@ -73,12 +72,19 @@ main{
   display:flex;
   align-items:center;
   justify-content:center;
+  text-align:center;
+  padding:5px;
   font-size:12px;
   font-weight:600;
   cursor:grab;
   user-select:none;
   background:#e5e7eb;
   border:2px solid #9ca3af;
+}
+
+.mesa.reservada{
+  background:var(--green);
+  color:#fff;
 }
 
 .mesa.selected{
@@ -114,14 +120,12 @@ main{
   border-radius:10px;
 }
 
-.modal-box h3{
-  margin-top:0;
-}
+.modal-box h3{margin-top:0}
 
 .modal-box label{
   font-size:13px;
-  display:block;
   margin-top:10px;
+  display:block;
 }
 
 .modal-box input, .modal-box select{
@@ -142,7 +146,7 @@ main{
 
 <aside>
   <h2>Mapa de Mesas</h2>
-  <button onclick="abrirModal()">➕ Adicionar Mesa</button>
+  <button onclick="abrirModalMesa()">➕ Adicionar Mesa</button>
   <button class="secondary" onclick="removerMesa()">🗑️ Remover Mesa</button>
 </aside>
 
@@ -150,8 +154,8 @@ main{
   <div id="mapa"></div>
 </main>
 
-<!-- MODAL -->
-<div class="modal" id="modal">
+<!-- MODAL MESA -->
+<div class="modal" id="modalMesa">
   <div class="modal-box">
     <h3>Mesa</h3>
 
@@ -166,11 +170,29 @@ main{
     </select>
 
     <label id="labelLugares" style="display:none">Quantidade de Lugares</label>
-    <input id="lugaresMesa" type="number" min="1" value="4" style="display:none">
+    <input id="lugaresMesa" type="number" value="4" style="display:none">
 
     <div class="modal-actions">
       <button onclick="salvarMesa()">Salvar</button>
-      <button class="secondary" onclick="fecharModal()">Cancelar</button>
+      <button class="secondary" onclick="fecharModalMesa()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL RESERVA -->
+<div class="modal" id="modalReserva">
+  <div class="modal-box">
+    <h3>Reserva</h3>
+
+    <label>Nome do Cliente</label>
+    <input id="clienteNome">
+
+    <label>Telefone</label>
+    <input id="clienteTelefone">
+
+    <div class="modal-actions">
+      <button onclick="salvarReserva()">Salvar Reserva</button>
+      <button class="secondary" onclick="fecharModalReserva()">Cancelar</button>
     </div>
   </div>
 </div>
@@ -178,55 +200,43 @@ main{
 <script>
 const mapa = document.getElementById('mapa')
 let mesaSelecionada = null
-let editando = null
+let mesaEditando = null
 
-function abrirModal(){
-  editando = mesaSelecionada
-  document.getElementById('modal').classList.add('active')
-
-  if(editando){
-    nomeMesa.value = editando.dataset.nome
-    tipoMesa.value = editando.dataset.tipo
-    lugaresMesa.value = editando.dataset.lugares
-    toggleLugares()
-  }else{
-    nomeMesa.value=''
-    tipoMesa.value='quadrada'
-    lugaresMesa.value=4
-    toggleLugares()
-  }
+/* ===== MESA ===== */
+function abrirModalMesa(){
+  mesaEditando = null
+  nomeMesa.value=''
+  tipoMesa.value='quadrada'
+  lugaresMesa.value=4
+  toggleLugares()
+  modalMesa.classList.add('active')
 }
 
-function fecharModal(){
-  document.getElementById('modal').classList.remove('active')
+function fecharModalMesa(){
+  modalMesa.classList.remove('active')
 }
 
 function toggleLugares(){
-  const tipo = tipoMesa.value
-  const show = tipo === 'redonda'
-  labelLugares.style.display = show ? 'block':'none'
-  lugaresMesa.style.display = show ? 'block':'none'
+  const show = tipoMesa.value === 'redonda'
+  labelLugares.style.display = show?'block':'none'
+  lugaresMesa.style.display = show?'block':'none'
 }
 
 function salvarMesa(){
-  let mesa = editando || document.createElement('div')
+  const mesa = document.createElement('div')
   mesa.className = 'mesa ' + tipoMesa.value
   mesa.textContent = nomeMesa.value || 'Mesa'
   mesa.dataset.nome = nomeMesa.value
   mesa.dataset.tipo = tipoMesa.value
-  mesa.dataset.lugares = tipoMesa.value === 'redonda' ? lugaresMesa.value :
-                         tipoMesa.value === 'quadrada' ? 2 : 4
+  mesa.dataset.lugares = tipoMesa.value==='redonda'?lugaresMesa.value:(tipoMesa.value==='quadrada'?2:4)
 
-  if(!editando){
-    mesa.style.left='20px'
-    mesa.style.top='20px'
-    mapa.appendChild(mesa)
-    ativarMesa(mesa)
-    drag(mesa)
-  }
+  mesa.style.left='20px'
+  mesa.style.top='20px'
 
-  fecharModal()
-  editando=null
+  mapa.appendChild(mesa)
+  ativarMesa(mesa)
+  drag(mesa)
+  fecharModalMesa()
 }
 
 function ativarMesa(mesa){
@@ -235,29 +245,49 @@ function ativarMesa(mesa){
     mesa.classList.add('selected')
     mesaSelecionada = mesa
   }
-}
 
-function removerMesa(){
-  if(mesaSelecionada){
-    mesaSelecionada.remove()
-    mesaSelecionada=null
+  mesa.ondblclick = ()=>{
+    mesaSelecionada = mesa
+    clienteNome.value = mesa.dataset.cliente || ''
+    clienteTelefone.value = mesa.dataset.telefone || ''
+    modalReserva.classList.add('active')
   }
 }
 
+function removerMesa(){
+  if(!mesaSelecionada) return
+  mesaSelecionada.remove()
+  mesaSelecionada = null
+}
+
+/* ===== RESERVA ===== */
+function fecharModalReserva(){
+  modalReserva.classList.remove('active')
+}
+
+function salvarReserva(){
+  if(!mesaSelecionada) return
+
+  mesaSelecionada.dataset.cliente = clienteNome.value
+  mesaSelecionada.dataset.telefone = clienteTelefone.value
+  mesaSelecionada.classList.add('reservada')
+  mesaSelecionada.textContent = clienteNome.value
+
+  fecharModalReserva()
+}
+
+/* ===== DRAG ===== */
 function drag(el){
-  let x=0,y=0,dx=0,dy=0
+  let x=0,y=0
   el.onmousedown = e=>{
+    if(e.detail>1) return
     x=e.clientX; y=e.clientY
     document.onmousemove = ev=>{
-      dx = x-ev.clientX
-      dy = y-ev.clientY
+      el.style.left = el.offsetLeft + (ev.clientX-x) + 'px'
+      el.style.top = el.offsetTop + (ev.clientY-y) + 'px'
       x=ev.clientX; y=ev.clientY
-      el.style.left = el.offsetLeft - dx + 'px'
-      el.style.top = el.offsetTop - dy + 'px'
     }
-    document.onmouseup = ()=>{
-      document.onmousemove=null
-    }
+    document.onmouseup = ()=>document.onmousemove=null
   }
 }
 </script>
