@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Teste Supabase</title>
+<title>Teste Supabase – mapa_mesas</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -24,6 +24,9 @@ pre{
   max-height:300px;
   overflow:auto;
 }
+.error{
+  color:#ff4d4d;
+}
 </style>
 </head>
 
@@ -40,13 +43,18 @@ pre{
 // ================== SUPABASE ==================
 const SUPABASE_URL = 'https://fzyosadzuvbktvmnzdpf.supabase.co'
 const SUPABASE_ANON_KEY = 'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
-const supabase = supabaseJs.createClient(
+
+// ✅ OBJETO CORRETO
+const supabase = supabase.createClient(
   SUPABASE_URL,
   SUPABASE_ANON_KEY
 )
 
-const log = msg => {
-  document.getElementById('log').textContent =
+const logEl = document.getElementById('log')
+
+function log(msg, isError=false){
+  logEl.className = isError ? 'error' : ''
+  logEl.textContent =
     typeof msg === 'string'
       ? msg
       : JSON.stringify(msg, null, 2)
@@ -54,37 +62,45 @@ const log = msg => {
 
 // ================== TESTE INSERT ==================
 async function inserir(){
-  log('Inserindo...')
+  log('Inserindo registro...')
 
-  const { data, error } = await supabase
-    .from('mapa_mesas')
-    .insert({
-      elemento_id: '71805376-fdae-44cd-a498-18e00cc86e37', // ID REAL DA SUA TABELA
-      x: Math.floor(Math.random()*500),
-      y: Math.floor(Math.random()*300)
-    })
-    .select()
+  try{
+    const { data, error } = await supabase
+      .from('mapa_mesas')
+      .insert({
+        elemento_id: '71805376-fdae-44cd-a498-18e00cc86e37',
+        x: Math.floor(Math.random()*500),
+        y: Math.floor(Math.random()*300)
+      })
+      .select()
 
-  if(error){
-    log(error)
-  }else{
-    log(data)
+    if(error){
+      log(error, true)
+    }else{
+      log(data)
+    }
+  }catch(err){
+    log(err, true)
   }
 }
 
 // ================== TESTE SELECT ==================
 async function listar(){
-  log('Carregando registros...')
+  log('Buscando registros...')
 
-  const { data, error } = await supabase
-    .from('mapa_mesas')
-    .select('*')
-    .order('criado_em', { ascending:false })
+  try{
+    const { data, error } = await supabase
+      .from('mapa_mesas')
+      .select('*')
+      .order('criado_em', { ascending:false })
 
-  if(error){
-    log(error)
-  }else{
-    log(data)
+    if(error){
+      log(error, true)
+    }else{
+      log(data)
+    }
+  }catch(err){
+    log(err, true)
   }
 }
 </script>
