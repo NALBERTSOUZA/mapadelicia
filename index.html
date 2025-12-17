@@ -1,255 +1,168 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<title>Mapa de Mesas</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
-<style>
-body{margin:0;font-family:Arial;background:#f4f6fb}
-header{
-  height:60px;background:#fff;
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 20px;border-bottom:1px solid #ddd
-}
-.actions{display:flex;gap:10px;align-items:center}
-button{
-  padding:8px 14px;border:none;border-radius:6px;
-  background:#111827;color:#fff;font-weight:600;cursor:pointer
-}
-
-/* TOGGLE */
-.toggle{
-  width:60px;height:30px;background:#dc2626;
-  border-radius:30px;position:relative;cursor:pointer
-}
-.toggle::after{
-  content:'';width:24px;height:24px;background:#fff;
-  border-radius:50%;position:absolute;top:3px;left:33px;transition:.2s
-}
-.toggle.on{background:#16a34a}
-.toggle.on::after{left:3px}
-
-#canvas{position:relative;height:calc(100vh - 60px)}
-
-/* MESA */
-.mesa{
-  position:absolute;
-  background:#e5e7eb;
-  border:3px solid #9ca3af;
-  display:flex;align-items:center;justify-content:center;
-  text-align:center;box-sizing:border-box;
-  cursor:move;
-}
-.mesa.reservada{
-  background:#dcfce7;
-  border-color:#16a34a
-}
-
-.mesa.redonda{width:90px;height:90px;border-radius:50%}
-.mesa.retangular{width:140px;height:80px}
-.mesa.quadrada{width:70px;height:70px}
-
-.info-reserva{
-  font-size:11px;
-  font-weight:700;
-  color:#065f46;
-  pointer-events:none;
-  line-height:1.2;
-}
-
-/* MODAL */
-.modal{
-  position:fixed;inset:0;background:rgba(0,0,0,.4);
-  display:none;align-items:center;justify-content:center;z-index:20
-}
-.modal-box{
-  background:#fff;padding:20px;width:300px;border-radius:10px
-}
-.modal-box label{display:block;margin-top:10px}
-.modal-box input,select{width:100%;padding:8px;margin-top:4px}
-.modal-actions{
-  display:flex;justify-content:space-between;
-  gap:10px;margin-top:15px
-}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentação: Mapa de Mesas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+            background: #fafafa;
+            color: #333;
+        }
+        h1, h2 {
+            color: #2c3e50;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .feature-list {
+            list-style: disc inside;
+        }
+        .code-block {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: Consolas, monospace;
+        }
+        nav a {
+            display: block;
+            margin-bottom: 8px;
+            color: #2980b9;
+            text-decoration: none;
+        }
+    </style>
 </head>
-
 <body>
 
-<header>
-  <strong id="label">Editar</strong>
-  <div class="actions">
-    <button onclick="abrirModalMesa()">+ Mesa</button>
-    <div id="toggle" class="toggle on"></div>
-  </div>
-</header>
+    <h1>📌 Documentação: Mapa de Mesas</h1>
 
-<div id="canvas"></div>
+    <nav class="section">
+        <h2>📍 Índice</h2>
+        <a href="#overview">Visão Geral</a>
+        <a href="#layout">1. Criação de Layout</a>
+        <a href="#mesas">2. Tipos de Mesas</a>
+        <a href="#interacao">3. Interação no Mapa</a>
+        <a href="#integracoes">4. Integrações e Reservas</a>
+        <a href="#status">5. Status e Cores</a>
+        <a href="#customizacao">6. Customização</a>
+        <a href="#relatorios">7. Relatórios e Insights</a>
+        <a href="#api">8. Exemplo de Código / API</a>
+    </nav>
 
-<!-- MODAL MESA -->
-<div class="modal" id="modalMesa">
-  <div class="modal-box">
-    <h3>Nova Mesa</h3>
+    <section id="overview" class="section">
+        <h2>🌟 Visão Geral</h2>
+        <p>O mapa de mesas é uma funcionalidade visual que representa o salão do restaurante, permitindo posicionar mesas,
+           ver seu status, gerenciar reservas e otimizar ocupação de assentos.</p>
+    </section>
 
-    <label>Tipo</label>
-    <select id="tipoMesa">
-      <option value="redonda">Redonda (4)</option>
-      <option value="retangular">Retangular (4)</option>
-      <option value="quadrada">Quadrada (2)</option>
-    </select>
+    <section id="layout" class="section">
+        <h2>1. Criação de Layout</h2>
+        <ul class="feature-list">
+            <li>Adicionar áreas distintas (salão interno, varanda, bar)</li>
+            <li>Arrastar e posicionar mesas livremente no plano</li>
+            <li>Grade de alinhamento automática para melhor organização</li>
+            <li>Zoom in / zoom out e navegação suave</li>
+        </ul>
+    </section>
 
-    <div class="modal-actions">
-      <button onclick="fecharModalMesa()">Cancelar</button>
-      <button onclick="criarMesa()">Criar</button>
-    </div>
-  </div>
-</div>
+    <section id="mesas" class="section">
+        <h2>2. Tipos de Mesas</h2>
+        <ul class="feature-list">
+            <li>Mesas quadradas</li>
+            <li>Mesas retangulares</li>
+            <li>Mesas redondas com opção de definir número de lugares</li>
+            <li>Mesas personalizadas com rótulo e número de assentos</li>
+        </ul>
+    </section>
 
-<!-- MODAL RESERVA -->
-<div class="modal" id="modalReserva">
-  <div class="modal-box">
-    <h3>Reserva</h3>
+    <section id="interacao" class="section">
+        <h2>3. Interação no Mapa</h2>
+        <ul class="feature-list">
+            <li>Clique para editar mesa</li>
+            <li>Arrastar para mover</li>
+            <li>Arrastar reserva para uma mesa específica</li>
+            <li>Tooltip com informações da mesa/reserva</li>
+        </ul>
+    </section>
 
-    <label>Nome</label>
-    <input id="resNome">
+    <section id="integracoes" class="section">
+        <h2>4. Integrações e Reservas</h2>
+        <ul class="feature-list">
+            <li>Widget de reservas online</li>
+            <li>Reservas via Google / Facebook / Instagram</li>
+            <li>Recepção automática de reservas no mapa</li>
+            <li>Lista de espera sincronizada com o mapa</li>
+        </ul>
+    </section>
 
-    <label>Celular</label>
-    <input id="resCelular">
+    <section id="status" class="section">
+        <h2>5. Status e Cores</h2>
+        <ul class="feature-list">
+            <li>Status visual de cada mesa (livre, ocupada, reservada, limpeza)</li>
+            <li>Cores personalizáveis para cada status</li>
+            <li>Indicadores visuais de tempo de ocupação</li>
+            <li>Notificações ao mudar status</li>
+        </ul>
+    </section>
 
-    <div class="modal-actions">
-      <button onclick="excluirReserva()">Excluir</button>
-      <button onclick="salvarReserva()">Salvar</button>
-    </div>
-  </div>
-</div>
+    <section id="customizacao" class="section">
+        <h2>6. Customização</h2>
+        <ul class="feature-list">
+            <li>Definir nome da mesa</li>
+            <li>Quantidade de lugares por mesa</li>
+            <li>Tags/áreas específicas (VIP, Festa, Bar)</li>
+            <li>Configuração visual de ícones e tamanhos</li>
+        </ul>
+    </section>
 
-<script>
-let modoEditar=true;
-let mesaAtual=null;
+    <section id="relatorios" class="section">
+        <h2>7. Relatórios e Insights</h2>
+        <ul class="feature-list">
+            <li>Occupação por horário</li>
+            <li>Mesas mais utilizadas</li>
+            <li>Gráficos de performance diária/semanal</li>
+            <li>Analytics integrado com reservas</li>
+        </ul>
+    </section>
 
-const canvas=document.getElementById('canvas');
-const toggle=document.getElementById('toggle');
-const label=document.getElementById('label');
-const modalMesa=document.getElementById('modalMesa');
-const modalReserva=document.getElementById('modalReserva');
-
-/* TOGGLE */
-toggle.onclick=()=>{
-  modoEditar=!modoEditar;
-  toggle.classList.toggle('on',modoEditar);
-  label.innerText=modoEditar?'Editar':'Ao vivo';
-};
-
-/* MESA */
-function abrirModalMesa(){ modalMesa.style.display='flex'; }
-function fecharModalMesa(){ modalMesa.style.display='none'; }
-
-function criarMesa(){
-  const tipo=tipoMesa.value;
-  const m=document.createElement('div');
-  m.className=`mesa ${tipo}`;
-  m.style.left='200px';
-  m.style.top='200px';
-
-  m.dataset.cadeiras = tipo==='quadrada' ? 2 : 4;
-
-  drag(m);
-
-  m.ondblclick=()=>{
-    mesaAtual=m;
-    resNome.value=m.dataset.nome||'';
-    resCelular.value=m.dataset.celular||'';
-    modalReserva.style.display='flex';
-  };
-
-  canvas.appendChild(m);
-  fecharModalMesa();
-}
-
-/* DRAG + JUNÇÃO */
-function drag(m){
-  let ativo=false,ox=0,oy=0;
-
-  m.addEventListener('mousedown',e=>{
-    if(!modoEditar)return;
-    ativo=true;
-    mesaAtual=m;
-    ox=e.clientX-m.offsetLeft;
-    oy=e.clientY-m.offsetTop;
-  });
-
-  document.addEventListener('mousemove',e=>{
-    if(!ativo)return;
-    m.style.left=(e.clientX-ox)+'px';
-    m.style.top=(e.clientY-oy-60)+'px';
-  });
-
-  document.addEventListener('mouseup',()=>{
-    if(!ativo)return;
-    ativo=false;
-    verificarJuncao(m);
-  });
-}
-
-/* JUNÇÃO */
-function verificarJuncao(m){
-  document.querySelectorAll('.mesa').forEach(o=>{
-    if(o===m)return;
-
-    const r1=m.getBoundingClientRect();
-    const r2=o.getBoundingClientRect();
-
-    const colide=!(
-      r1.right<r2.left ||
-      r1.left>r2.right ||
-      r1.bottom<r2.top ||
-      r1.top>r2.bottom
-    );
-
-    if(colide){
-      o.dataset.cadeiras =
-        +o.dataset.cadeiras + +m.dataset.cadeiras;
-
-      if(m.dataset.nome){
-        o.dataset.nome=m.dataset.nome;
-        o.dataset.celular=m.dataset.celular;
-        o.classList.add('reservada');
-      }
-
-      atualizarInfo(o);
-      m.remove();
+    <section id="api" class="section">
+        <h2>8. Exemplo de Código / API</h2>
+        <p>Exemplo de bloco de configuração de mesas via JSON (para um sistema personalizado):</p>
+        <div class="code-block">
+            <pre>
+{
+  "tables": [
+    {
+      "id": "mesa-01",
+      "type": "retangular",
+      "seats": 4,
+      "position": { "x": 100, "y": 150 },
+      "status": "livre"
+    },
+    {
+      "id": "mesa-02",
+      "type": "quadrada",
+      "seats": 2,
+      "position": { "x": 200, "y": 150 },
+      "status": "reservada"
+    },
+    {
+      "id": "mesa-03",
+      "type": "redonda",
+      "seats": 6,
+      "position": { "x": 100, "y": 300 },
+      "status": "ocupada"
     }
-  });
+  ]
 }
+            </pre>
+        </div>
 
-/* RESERVA */
-function salvarReserva(){
-  mesaAtual.dataset.nome=resNome.value;
-  mesaAtual.dataset.celular=resCelular.value;
-  mesaAtual.classList.add('reservada');
-  atualizarInfo(mesaAtual);
-  modalReserva.style.display='none';
-}
-
-function excluirReserva(){
-  delete mesaAtual.dataset.nome;
-  delete mesaAtual.dataset.celular;
-  mesaAtual.classList.remove('reservada');
-  atualizarInfo(mesaAtual);
-  modalReserva.style.display='none';
-}
-
-function atualizarInfo(m){
-  m.querySelector('.info-reserva')?.remove();
-  if(m.dataset.nome){
-    const d=document.createElement('div');
-    d.className='info-reserva';
-    d.innerHTML=`${m.dataset.nome}<br>${m.dataset.celular}<br>${m.dataset.cadeiras} lugares`;
-    m.appendChild(d);
-  }
-}
-</script>
+        <p>Este JSON poderia ser consumido por um renderizador de mapa no front-end (canvas/SVG/WebGL).</p>
+    </section>
 
 </body>
 </html>
