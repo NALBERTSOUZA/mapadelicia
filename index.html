@@ -167,6 +167,9 @@ main{flex:1;padding:20px}
     <label id="labelRaio" style="display:none">Raio da mesa (px)</label>
     <input id="raioMesa" type="number" value="35" style="display:none">
 
+    <label id="labelQtd" style="display:none">Quantidade de cadeiras</label>
+    <input id="qtdCadeiras" type="number" value="6" min="1" style="display:none">
+
     <div class="modal-actions">
       <button onclick="salvarMesa()">Salvar</button>
       <button class="secondary" onclick="fecharModalMesa()">Cancelar</button>
@@ -197,15 +200,18 @@ const mapa=document.getElementById('mapa')
 let selecionada=null
 
 function toggleRedonda(){
-  const show=tipoMesa.value==='redonda'
-  labelRaio.style.display=show?'block':'none'
-  raioMesa.style.display=show?'block':'none'
+  const show = tipoMesa.value === 'redonda'
+  labelRaio.style.display = show ? 'block' : 'none'
+  raioMesa.style.display  = show ? 'block' : 'none'
+  labelQtd.style.display  = show ? 'block' : 'none'
+  qtdCadeiras.style.display = show ? 'block' : 'none'
 }
 
 function abrirModalMesa(){
   nomeMesa.value=''
   tipoMesa.value='quadrada'
   raioMesa.value=35
+  qtdCadeiras.value=6
   toggleRedonda()
   modalMesa.classList.add('active')
 }
@@ -223,24 +229,25 @@ function salvarMesa(){
   mesa.textContent=nomeMesa.value||'Mesa'
 
   if(tipoMesa.value==='redonda'){
-    const r=Number(raioMesa.value)
+    const r = Number(raioMesa.value)
+    const qtd = Number(qtdCadeiras.value)
     mesa.style.width=r*2+'px'
     mesa.style.height=r*2+'px'
-    criarCadeirasCirculo(wrap,r)
+    criarCadeirasCirculo(wrap, r, qtd)
   }else{
-    criarCadeirasLados(wrap,tipoMesa.value)
+    criarCadeirasLados(wrap, tipoMesa.value)
   }
 
   wrap.appendChild(mesa)
   mapa.appendChild(wrap)
-  ativar(wrap,mesa)
+  ativar(wrap, mesa)
   drag(wrap)
   fecharModalMesa()
 }
 
 function criarCadeirasLados(wrap,tipo){
-  const pos= tipo==='retangular'
-    ? [[36,-10],[36,60],[ -10,26],[90,26]]
+  const pos = tipo==='retangular'
+    ? [[36,-10],[36,60],[-10,26],[90,26]]
     : [[26,-10],[26,60]]
 
   pos.forEach(p=>{
@@ -252,16 +259,13 @@ function criarCadeirasLados(wrap,tipo){
   })
 }
 
+function criarCadeirasCirculo(wrap, r, qtd){
+  const dist = r + 6
 
-function criarCadeirasCirculo(wrap, r){
-  const qtd = 6
-  const dist = r + 6   // 👈 AQUI CONTROLA O QUÃO JUNTO DO CÍRCULO
-
-  for(let i = 0; i < qtd; i++){
+  for(let i=0;i<qtd;i++){
     const ang = (i / qtd) * Math.PI * 2
-
-    const c = document.createElement('div')
-    c.className = 'chair'
+    const c=document.createElement('div')
+    c.className='chair'
 
     const cx = r + Math.cos(ang) * dist
     const cy = r + Math.sin(ang) * dist
@@ -269,18 +273,13 @@ function criarCadeirasCirculo(wrap, r){
     c.style.left = cx + 'px'
     c.style.top  = cy + 'px'
 
-    // 🔁 ROTACÃO IGUAL ANTES (RADIAL)
     const rot = ang * (180 / Math.PI) + 90
-
     c.style.transform = `translate(-50%, -50%) rotate(${rot}deg)`
     c.style.transformOrigin = 'center center'
 
     wrap.appendChild(c)
   }
 }
-
-
-
 
 function ativar(wrap,mesa){
   wrap.onclick=()=>{
