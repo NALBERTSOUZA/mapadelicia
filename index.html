@@ -7,40 +7,94 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a}
+:root{
+  --bg:#f4f6f8;
+  --primary:#2563eb;
+  --border:#dcdfe4;
+  --green:#22c55e;
+  --orange:#f97316;
+  --red:#ef4444;
+}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);display:flex;height:100vh}
+
+/* SIDEBAR */
 aside{width:280px;background:#0f172a;color:#fff;padding:16px;overflow-y:auto}
 h2,h3{margin-top:0}
+
+/* ELEMENTOS */
 .elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
 .elemento{background:#020617;border:1px dashed #475569;border-radius:6px;padding:6px;cursor:grab;display:flex;justify-content:center}
 .elemento img{width:42px;pointer-events:none}
+
+/* MAIN */
 main{flex:1;overflow:hidden}
-#viewport{width:100%;height:100%;overflow:scroll;cursor:grab;background:#e5e7eb}
+#viewport{width:100%;height:100%;overflow:scroll;background:#e5e7eb}
 #mapa{position:relative;width:5000px;height:5000px;background:#fff;border:2px dashed var(--border)}
+
+/* ITEM */
 .item-mapa{position:absolute;cursor:grab;text-align:center}
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.reservado{outline:2px solid var(--green)}
-.nome-reserva{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:600;pointer-events:none}
+.nome-reserva{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:13px;font-weight:600;
+  pointer-events:none
+}
+
+/* MODAL */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:2000}
 .modal.active{display:flex}
 .modal-box{background:#fff;padding:20px;width:320px;border-radius:12px}
-.modal-box button{width:100%;margin-top:8px;padding:10px;border-radius:6px;border:0}
+.modal-box input,.modal-box button{width:100%;margin-top:8px;padding:10px;border-radius:6px;border:0}
+
+/* MENU SETORES */
 #menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:12px;display:flex;gap:6px;z-index:999}
 #menuSetores button{background:#1e293b;color:#fff;padding:8px 12px;border-radius:8px;border:0}
 #menuSetores button.ativo{background:var(--primary)}
-#statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%}
-#statusSync.online{background:#22c55e}
-#statusSync.syncing{background:#f97316}
-#statusSync.offline{background:#ef4444}
-#overlayLoading{position:fixed;inset:0;background:rgba(15,23,42,.92);display:flex;align-items:center;justify-content:center;z-index:3000;color:#fff}
+
+/* STATUS */
+#statusSync{
+  position:fixed;
+  bottom:16px;
+  right:16px;
+  width:14px;height:14px;
+  border-radius:50%;
+  box-shadow:0 0 0 4px rgba(0,0,0,.15)
+}
+#statusSync.online{background:var(--green)}
+#statusSync.syncing{background:var(--orange);animation:pulse 1s infinite}
+#statusSync.offline{background:var(--red)}
+@keyframes pulse{50%{opacity:.4}}
+
+/* OVERLAY */
+#overlayLoading{
+  position:fixed;inset:0;
+  background:rgba(15,23,42,.92);
+  display:flex;align-items:center;justify-content:center;
+  z-index:3000;color:#fff
+}
 #overlayLoading.hidden{display:none}
+.spinner{
+  width:42px;height:42px;
+  border:4px solid rgba(255,255,255,.3);
+  border-top-color:var(--primary);
+  border-radius:50%;
+  animation:spin 1s linear infinite
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
 
-<div id="overlayLoading" class="hidden">Carregando...</div>
+<div id="overlayLoading" class="hidden">
+  <div>
+    <div class="spinner"></div>
+    <div id="overlayText">Conectando ao Supabase...</div>
+  </div>
+</div>
 
 <aside>
   <h2>Reserváveis</h2>
@@ -72,24 +126,47 @@ main{flex:1;overflow:hidden}
 </div>
 
 <script>
+/* ================= SUPABASE ================= */
 const supabase = window.supabase.createClient(
   'https://vbrdtzrmotmjrqewvxit.supabase.co',
   'sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
 )
 
-const mapa=document.getElementById('mapa')
-const overlay=document.getElementById('overlayLoading')
-const statusSync=document.getElementById('statusSync')
-let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
-let reservando=null
-let user=null
+const statusSync = document.getElementById('statusSync')
+const overlay = document.getElementById('overlayLoading')
+const overlayText = document.getElementById('overlayText')
+const mapa = document.getElementById('mapa')
 
-async function auth(){
-  const r=await supabase.auth.getUser()
-  if(r.data.user) user=r.data.user
-  else user=(await supabase.auth.signInAnonymously()).data.user
+let user = null
+let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
+let reservando = null
+
+/* ================= STATUS ================= */
+function setStatus(s){
+  statusSync.className = s
 }
 
+/* ================= AUTH ================= */
+async function garantirAuth(){
+  try{
+    overlay.classList.remove('hidden')
+    const { data } = await supabase.auth.getUser()
+    if(data.user){ user = data.user }
+    else{
+      const r = await supabase.auth.signInAnonymously()
+      user = r.data.user
+    }
+    setStatus('online')
+  }catch(e){
+    console.error(e)
+    setStatus('offline')
+    alert('Erro ao conectar com o Supabase')
+  }finally{
+    overlay.classList.add('hidden')
+  }
+}
+
+/* ================= DRAG ================= */
 function drag(el){
   let x,y
   el.onmousedown=e=>{
@@ -103,12 +180,14 @@ function drag(el){
   }
 }
 
+/* ================= ITEM ================= */
 function criarItem(d){
   const i=document.createElement('div')
   i.className='item-mapa'
   i.style.left=d.x+'px'
   i.style.top=d.y+'px'
-  i.innerHTML=`<img src="${d.url}"><div class="nome-reserva">${d.nome?d.nome+' • '+d.pessoas:''}</div>`
+  i.innerHTML=`<img src="${d.url}">
+    <div class="nome-reserva">${d.nome?`${d.nome} • ${d.pessoas}`:''}</div>`
   if(d.nome)i.classList.add('reservado')
   i.ondblclick=()=>{
     reservando=i
@@ -120,48 +199,112 @@ function criarItem(d){
   drag(i)
 }
 
+/* ================= CRUD ================= */
 async function salvarMapa(){
   try{
-    statusSync.className='syncing'
-    await supabase.from('mapa_itens').delete().eq('setor',setorAtual).eq('user_id',user.id)
+    setStatus('syncing')
+    await supabase.from('mapa_itens')
+      .delete()
+      .eq('user_id',user.id)
+      .eq('setor',setorAtual)
+
     const itens=[...document.querySelectorAll('.item-mapa')].map(i=>{
       const txt=i.querySelector('.nome-reserva').textContent
       const [n,p]=txt.split(' • ')
       return{
-        user_id:user.id,setor:setorAtual,url:i.querySelector('img').src,
-        x:+i.style.left.replace('px',''),y:+i.style.top.replace('px',''),
-        nome:n||null,pessoas:p?parseInt(p):null
+        user_id:user.id,
+        setor:setorAtual,
+        url:i.querySelector('img').src,
+        x:parseFloat(i.style.left),
+        y:parseFloat(i.style.top),
+        nome:n||null,
+        pessoas:p?parseInt(p):null
       }
     })
-    if(itens.length) await supabase.from('mapa_itens').insert(itens)
-    statusSync.className='online'
-  }catch(e){console.error(e);statusSync.className='offline'}
+
+    if(itens.length){
+      const { error } = await supabase.from('mapa_itens').insert(itens)
+      if(error) throw error
+    }
+    setStatus('online')
+  }catch(e){
+    console.error(e)
+    setStatus('offline')
+  }
 }
 
 async function carregarMapa(){
-  overlay.classList.remove('hidden')
-  mapa.innerHTML=''
-  const {data}=await supabase.from('mapa_itens')
-    .select('*').eq('setor',setorAtual).eq('user_id',user.id)
-  data.forEach(criarItem)
-  overlay.classList.add('hidden')
+  try{
+    overlay.classList.remove('hidden')
+    mapa.innerHTML=''
+    const { data, error } = await supabase.from('mapa_itens')
+      .select('*')
+      .eq('user_id',user.id)
+      .eq('setor',setorAtual)
+
+    if(error) throw error
+    data.forEach(criarItem)
+    setStatus('online')
+  }catch(e){
+    console.error(e)
+    setStatus('offline')
+  }finally{
+    overlay.classList.add('hidden')
+  }
 }
 
+/* ================= RESERVA ================= */
 function salvarReserva(){
-  reservando.querySelector('.nome-reserva').textContent=
+  reservando.querySelector('.nome-reserva').textContent =
     `${clienteNome.value} • ${qtdPessoas.value}`
   reservando.classList.add('reservado')
-  salvarMapa();fecharReserva()
+  salvarMapa()
+  fecharReserva()
 }
-function excluirElemento(){reservando.remove();salvarMapa();fecharReserva()}
+function excluirElemento(){
+  reservando.remove()
+  salvarMapa()
+  fecharReserva()
+}
 function fecharReserva(){modalReserva.classList.remove('active')}
 
+/* ================= ELEMENTOS ================= */
+const reservaveis=[
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
+]
+const nao=[
+  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
+  'https://cdn-icons-png.flaticon.com/512/2917995.png'
+]
+function add(url,res){
+  const d=document.createElement('div')
+  d.className='elemento'
+  d.draggable=true
+  d.innerHTML=`<img src="${url}">`
+  d.ondragstart=e=>e.dataTransfer.setData('url',url)
+  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
+}
+reservaveis.forEach(u=>add(u,true))
+nao.forEach(u=>add(u,false))
+
+/* ================= SETORES ================= */
 document.querySelectorAll('#menuSetores button').forEach(b=>{
   if(b.dataset.setor===setorAtual)b.classList.add('ativo')
-  b.onclick=()=>{setorAtual=b.dataset.setor;localStorage.setItem('setor_atual',setorAtual);carregarMapa()}
+  b.onclick=()=>{
+    setorAtual=b.dataset.setor
+    localStorage.setItem('setor_atual',setorAtual)
+    document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
+    b.classList.add('ativo')
+    carregarMapa()
+  }
 })
 
-;(async()=>{await auth();await carregarMapa()})()
+;(async()=>{
+  await garantirAuth()
+  await carregarMapa()
+})()
 </script>
 </body>
 </html>
