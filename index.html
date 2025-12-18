@@ -12,9 +12,7 @@
   --border:#dcdfe4;
   --green:#16a34a;
 }
-
 *{box-sizing:border-box}
-
 body{
   margin:0;
   font-family:Inter, Arial, sans-serif;
@@ -22,8 +20,6 @@ body{
   display:flex;
   height:100vh;
 }
-
-/* SIDEBAR */
 aside{
   width:280px;
   background:#0f172a;
@@ -31,9 +27,6 @@ aside{
   padding:16px;
   overflow-y:auto;
 }
-
-h2,h3{margin-top:0}
-
 button{
   width:100%;
   padding:10px;
@@ -45,21 +38,12 @@ button{
   cursor:pointer;
   font-weight:600;
 }
-
-input{
-  width:100%;
-  padding:8px;
-  margin-bottom:8px;
-}
-
-/* ELEMENTOS */
+input{width:100%;padding:8px;margin-bottom:8px}
 .elementos{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:10px;
-  margin-bottom:16px;
 }
-
 .elemento{
   background:#020617;
   border:1px dashed #475569;
@@ -67,120 +51,40 @@ input{
   padding:6px;
   cursor:grab;
   display:flex;
-  align-items:center;
   justify-content:center;
 }
-
-.elemento img{
-  width:42px;
-  height:42px;
-  object-fit:contain;
-  pointer-events:none;
-}
-
-/* MAIN */
-main{
-  flex:1;
-  overflow:hidden;
-}
-
-/* VIEWPORT */
-#viewport{
-  width:100%;
-  height:100%;
-  overflow:scroll;
-  cursor:grab;
-  background:#e5e7eb;
-}
-
-/* MAPA */
+.elemento img{width:42px}
+main{flex:1;overflow:hidden}
+#viewport{width:100%;height:100%;overflow:scroll;background:#e5e7eb}
 #mapa{
   position:relative;
   width:5000px;
   height:5000px;
   background:#fff;
   border:2px dashed var(--border);
-  border-radius:12px;
-  transform-origin:0 0;
 }
-
-/* ITEM */
-.item-mapa{
-  position:absolute;
-  cursor:grab;
-  text-align:center;
-}
-
-.item-mapa img{
-  width:150px;
-  height:150px;
-  object-fit:contain;
-  pointer-events:none;
-}
-
-.item-mapa.selected{
-  outline:2px solid var(--primary);
-  border-radius:6px;
-}
-
-.item-mapa.reservado{
-  outline:2px solid var(--green);
-}
-
-.nome-reserva{
-  font-size:11px;
-  margin-top:2px;
-  font-weight:600;
-}
-
-/* MODAL */
+.item-mapa{position:absolute;cursor:grab;text-align:center}
+.item-mapa img{width:150px}
+.item-mapa.selected{outline:2px solid var(--primary)}
+.item-mapa.reservado{outline:2px solid var(--green)}
+.nome-reserva{font-size:11px;font-weight:600}
 .modal{
-  position:fixed;
-  inset:0;
+  position:fixed;inset:0;
   background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
+  display:none;align-items:center;justify-content:center
 }
 .modal.active{display:flex}
-
-.modal-box{
-  background:#fff;
-  padding:20px;
-  width:300px;
-  border-radius:10px;
-}
-
-.modal-box label{
-  font-size:13px;
-  margin-top:10px;
-  display:block;
-}
-
-/* MENU SETORES */
+.modal-box{background:#fff;padding:20px;width:300px;border-radius:10px}
 #menuSetores{
-  position:fixed;
-  top:16px;
-  right:16px;
-  background:#0f172a;
-  padding:8px;
-  border-radius:10px;
-  display:flex;
-  gap:6px;
-  z-index:999;
+  position:fixed;top:16px;right:16px;
+  background:#0f172a;padding:8px;
+  border-radius:10px;display:flex;gap:6px;z-index:999
 }
-
 #menuSetores button{
-  background:#1e293b;
-  color:#fff;
-  padding:8px 10px;
-  border-radius:6px;
-  font-size:12px;
+  background:#1e293b;color:#fff;
+  padding:8px 10px;border-radius:6px;font-size:12px
 }
-
-#menuSetores button.ativo{
-  background:#2563eb;
-}
+#menuSetores button.ativo{background:#2563eb}
 </style>
 </head>
 
@@ -188,11 +92,9 @@ main{
 
 <aside>
   <h2>Elementos</h2>
-  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
-
+  <button onclick="removerSelecionado()">🗑️ Remover</button>
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
-
   <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
@@ -203,23 +105,18 @@ main{
   </div>
 </main>
 
-<!-- MENU SETORES -->
 <div id="menuSetores">
-  <button data-setor="SALAO_PRINCIPAL" class="ativo">Salão</button>
+  <button data-setor="SALAO_PRINCIPAL">Salão</button>
   <button data-setor="PAULO_1">Paulo 1</button>
   <button data-setor="PAULO_2">Paulo 2</button>
   <button data-setor="SACADA">Sacada</button>
 </div>
 
-<!-- MODAL -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
-    <label>Nome</label>
-    <input id="clienteNome">
-    <label>Celular</label>
-    <input id="clienteCelular">
-    <label>Pessoas</label>
+    <input id="clienteNome" placeholder="Nome">
+    <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
     <button onclick="salvarReserva()">Salvar</button>
     <button onclick="fecharReserva()">Cancelar</button>
@@ -227,7 +124,10 @@ main{
 </div>
 
 <script>
-/* ================= SETORES ================= */
+/* ================= CONFIG ================= */
+const API_URL = 'COLE_AQUI_SUA_URL_DO_GAS'
+const API_TOKEN = 'MAPA_MESAS_2025'
+
 let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
 const mapa = document.getElementById('mapa')
 
@@ -237,8 +137,8 @@ function key(){ return 'mapa_'+setorAtual }
 function salvarMapa(){
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
     url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
+    x:+i.style.left.replace('px',''),
+    y:+i.style.top.replace('px',''),
     r:i.dataset.reservavel,
     c:i.dataset.cliente||'',
     cel:i.dataset.celular||'',
@@ -246,11 +146,25 @@ function salvarMapa(){
     ok:i.classList.contains('reservado')
   }))
   localStorage.setItem(key(),JSON.stringify(itens))
+  fetch(API_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({token:API_TOKEN,setor:setorAtual,dados:itens})
+  }).catch(()=>{})
 }
 
 function carregarMapa(){
   mapa.innerHTML=''
-  JSON.parse(localStorage.getItem(key())||'[]').forEach(d=>{
+  fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
+    .then(r=>r.json())
+    .then(d=>{ if(d.length){localStorage.setItem(key(),JSON.stringify(d));montar(d)}
+      else montar(JSON.parse(localStorage.getItem(key())||'[]')) })
+    .catch(()=>montar(JSON.parse(localStorage.getItem(key())||'[]')))
+}
+
+function montar(dados){
+  mapa.innerHTML=''
+  dados.forEach(d=>{
     const i=criarItem(d.url,d.r==='true',d.x,d.y,false)
     if(d.ok){
       i.dataset.cliente=d.c
@@ -273,9 +187,6 @@ const nao=[
  'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
 
-const listaRes=document.getElementById('listaReservaveis')
-const listaNao=document.getElementById('listaNaoReservaveis')
-
 function addEl(url,res){
   const d=document.createElement('div')
   d.className='elemento'
@@ -285,20 +196,17 @@ function addEl(url,res){
     e.dataTransfer.setData('url',url)
     e.dataTransfer.setData('r',res)
   }
-  ;(res?listaRes:listaNao).appendChild(d)
+  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
 reservaveis.forEach(u=>addEl(u,true))
 nao.forEach(u=>addEl(u,false))
 
-/* ================= DROP ================= */
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
-  e.preventDefault()
   criarItem(
     e.dataTransfer.getData('url'),
     e.dataTransfer.getData('r')==='true',
-    e.offsetX,
-    e.offsetY
+    e.offsetX,e.offsetY
   )
 }
 
@@ -338,13 +246,8 @@ function salvarReserva(){
   salvarMapa()
   fecharReserva()
 }
-function fecharReserva(){
-  reservando=null
-  modalReserva.classList.remove('active')
-}
-function removerSelecionado(){
-  if(selecionado){selecionado.remove();salvarMapa();selecionado=null}
-}
+function fecharReserva(){reservando=null;modalReserva.classList.remove('active')}
+function removerSelecionado(){if(selecionado){selecionado.remove();salvarMapa()}}
 
 /* ================= MENU ================= */
 document.querySelectorAll('#menuSetores button').forEach(b=>{
