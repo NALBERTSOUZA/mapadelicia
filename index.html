@@ -230,41 +230,35 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-
 const API_TOKEN = 'MAPA_MESAS_2025'
 
 // ================= OVERLAY =================
-const overlayLoading = document.getElementById('overlayLoading')
+const overlay = document.getElementById('overlayLoading')
 const overlayText = document.getElementById('overlayText')
 
 function nomeSetor(s){
-  return s
-    .replace('SALAO_PRINCIPAL','Salão Principal')
-    .replace('PAULO_1','Paulo Augusto 1')
-    .replace('PAULO_2','Paulo Augusto 2')
-    .replace('SACADA','Sacada')
+  return {
+    SALAO_PRINCIPAL:'Salão Principal',
+    PAULO_1:'Paulo Augusto 1',
+    PAULO_2:'Paulo Augusto 2',
+    SACADA:'Sacada'
+  }[s] || s
 }
-function mostrarOverlay(txt){
-  overlayText.textContent = txt
-  overlayLoading.classList.remove('hidden')
+function showOverlay(text){
+  overlayText.textContent = text
+  overlay.classList.remove('hidden')
 }
-function esconderOverlay(){
-  overlayLoading.classList.add('hidden')
+function hideOverlay(){
+  overlay.classList.add('hidden')
 }
 
 // ================= STATUS =================
 const statusSync=document.getElementById('statusSync')
 function setStatus(s){
   statusSync.className=s
-  statusSync.title=
-    s==='online'?'Sincronizado':
-    s==='syncing'?'Sincronizando':
-    'Offline'
 }
 
 // ================= CONTROLE =================
 let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
 let sincronizando = false
 let syncPromise = Promise.resolve()
-
-// controla quais ambientes já exibiram overlay
-const ambientesCarregados = new Set()
 
 const mapa=document.getElementById('mapa')
 const modalReserva=document.getElementById('modalReserva')
@@ -274,15 +268,14 @@ function key(){return 'mapa_'+setorAtual}
 function salvarMapa(){
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
     url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
+    x:+i.style.left.replace('px',''),
+    y:+i.style.top.replace('px',''),
     r:i.dataset.reservavel,
     c:i.dataset.cliente||'',
     cel:i.dataset.celular||'',
     p:i.dataset.pessoas||'',
     ok:i.classList.contains('reservado')
   }))
-
   localStorage.setItem(key(),JSON.stringify(itens))
   sincronizando=true
   setStatus('syncing')
@@ -300,28 +293,21 @@ function salvarMapa(){
 }
 
 // ================= CARREGAR =================
-function carregarMapa(forceOverlay=false){
-  if(forceOverlay || !ambientesCarregados.has(setorAtual)){
-    mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
-  }
-
+function carregarMapa(){
   fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
     .then(r=>r.json())
     .then(r=>{
       if(r.ok){
         setStatus('online')
-        localStorage.setItem(key(),JSON.stringify(r.dados))
         montarMapa(r.dados)
+        localStorage.setItem(key(),JSON.stringify(r.dados))
       }else throw ''
     })
     .catch(()=>{
       setStatus('offline')
       montarMapa(JSON.parse(localStorage.getItem(key())||'[]'))
     })
-    .finally(()=>{
-      ambientesCarregados.add(setorAtual)
-      setTimeout(esconderOverlay,300)
-    })
+    .finally(hideOverlay)
 }
 
 function montarMapa(d){
@@ -364,7 +350,7 @@ function addElemento(url,res){
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
 
-// ================= ITEM / RESERVA =================
+// ================= ITEM =================
 let selecionado=null,reservando=null
 function criarItem(url,res,x,y,salvar=true){
   const i=document.createElement('div')
@@ -412,6 +398,7 @@ function drag(el){
   }
 }
 
+// ================= RESERVA =================
 function salvarReserva(){
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.celular=clienteCelular.value
@@ -441,25 +428,26 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
     const novo=b.dataset.setor
     if(novo===setorAtual) return
 
-    if(sincronizando){
-      mostrarOverlay(
-        `Terminando sincronização do ambiente ${nomeSetor(setorAtual)} para carregar o ambiente ${nomeSetor(novo)}`
-      )
-      await syncPromise
-    }
+    showOverlay(
+      sincronizando
+        ? `Terminando sincronização do ambiente ${nomeSetor(setorAtual)} para carregar o ambiente ${nomeSetor(novo)}`
+        : `Carregando ambiente ${nomeSetor(novo)}`
+    )
+
+    if(sincronizando) await syncPromise
 
     document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
     b.classList.add('ativo')
 
     setorAtual=novo
     localStorage.setItem('setor_atual',setorAtual)
-    carregarMapa(true)
+    carregarMapa()
   }
 })
 
 // INIT
-carregarMapa(true)
-setInterval(()=>carregarMapa(false),10000)
+carregarMapa()
+setInterval(carregarMapa,10000)
 </script>
 
 </body>
