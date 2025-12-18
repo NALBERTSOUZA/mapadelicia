@@ -7,13 +7,21 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{--bg:#f4f6f8;--primary:#2563eb;--green:#22c55e;--orange:#f97316;--red:#ef4444;--dark:#0f172a}
+:root{
+  --bg:#f4f6f8;
+  --primary:#2563eb;
+  --green:#16a34a;
+  --orange:#f97316;
+  --red:#ef4444;
+}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);display:flex;height:100vh}
 
 /* SIDEBAR */
-aside{width:280px;background:var(--dark);color:#fff;padding:16px;overflow-y:auto}
+aside{width:280px;background:#0f172a;color:#fff;padding:16px;overflow-y:auto}
 h2,h3{margin:0 0 12px}
+
+/* ELEMENTOS */
 .elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 .elemento{background:#020617;border:1px dashed #475569;border-radius:8px;padding:6px;cursor:grab;display:flex;justify-content:center}
 .elemento img{width:42px;pointer-events:none}
@@ -21,52 +29,48 @@ h2,h3{margin:0 0 12px}
 /* MAIN */
 main{flex:1;overflow:hidden}
 #viewport{width:100%;height:100%;overflow:scroll;background:#e5e7eb}
-#mapa{position:relative;width:5000px;height:5000px;background:#fff;border:2px dashed #dcdfe4}
+#mapa{position:relative;width:4000px;height:3000px;background:#fff}
 
 /* ITEM */
 .item-mapa{position:absolute;cursor:grab}
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.reservado{outline:2px solid var(--green)}
-.nome-reserva{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:600;text-align:center;pointer-events:none}
-
-/* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:2000}
-.modal.active{display:flex}
-.modal-box{background:#fff;padding:20px;width:320px;border-radius:14px}
-.modal-box button{width:100%;margin-top:8px;padding:10px;border-radius:8px;border:0}
+.nome-reserva{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  font-size:13px;font-weight:600;
+  pointer-events:none;text-align:center
+}
 
 /* MENU */
-#menuSetores{position:fixed;top:16px;right:16px;background:var(--dark);padding:8px;border-radius:14px;display:flex;gap:6px}
-#menuSetores button{background:#1e293b;color:#fff;padding:8px 14px;border-radius:10px;border:0}
+#menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:10px;display:flex;gap:6px}
+#menuSetores button{background:#1e293b;color:#fff;padding:8px 12px;border-radius:8px;border:0;cursor:pointer}
 #menuSetores button.ativo{background:var(--primary)}
 
 /* STATUS */
-#statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.2)}
+#statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%}
 .online{background:var(--green)}
 .syncing{background:var(--orange)}
 .offline{background:var(--red)}
 
 /* OVERLAY */
-#overlayLoading{position:fixed;inset:0;background:rgba(15,23,42,.85);display:flex;align-items:center;justify-content:center;z-index:3000;color:#fff;pointer-events:auto}
-#overlayLoading.hidden{display:none;pointer-events:none}
-.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
+#overlay{
+  position:fixed;inset:0;background:rgba(15,23,42,.92);
+  display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:18px;z-index:3000
+}
+.hidden{display:none}
 </style>
 </head>
 
 <body>
 
-<div id="overlayLoading">
-  <div>
-    <div class="spinner"></div>
-    <div id="overlayText">Conectando ao Supabase...</div>
-  </div>
-</div>
+<div id="overlay">Conectando ao Supabase...</div>
 
 <aside>
   <h2>Reserváveis</h2>
   <div class="elementos" id="listaReservaveis"></div>
-  <h3 style="margin-top:16px">Não Reserváveis</h3>
+  <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
 
@@ -83,143 +87,45 @@ main{flex:1;overflow:hidden}
 
 <div id="statusSync" class="offline"></div>
 
-<div class="modal" id="modalReserva">
-  <div class="modal-box">
-    <h3>Reserva</h3>
-    <input id="clienteNome" placeholder="Nome">
-    <input id="qtdPessoas" type="number" value="2">
-    <button onclick="salvarReserva()">Salvar Reserva</button>
-    <button style="background:#ef4444;color:#fff" onclick="excluirElemento()">Excluir Elemento</button>
-    <button onclick="fecharReserva()">Cancelar</button>
-  </div>
-</div>
-
 <script>
-/* CONFIG */
-const SUPABASE_URL='https://vbrdtzrmotmjrqewvxit.supabase.co'
-const SUPABASE_ANON_KEY='sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
-const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)
-const SENHA_EXCLUSAO='1234'
+/* SUPABASE */
+const supabase = window.supabase.createClient(
+  'https://vbrdtzrmotmjrqewvxit.supabase.co',
+  'sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
+)
 
-const mapa=document.getElementById('mapa')
-const modal=document.getElementById('modalReserva')
-const overlay=document.getElementById('overlayLoading')
-const overlayText=document.getElementById('overlayText')
-const statusSync=document.getElementById('statusSync')
+const statusSync = document.getElementById('statusSync')
+const overlay = document.getElementById('overlay')
+const mapa = document.getElementById('mapa')
+let user = null
+let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
 
-let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
-let reservando=null
-let user=null
+function setStatus(cls,text){
+  statusSync.className = cls
+  overlay.textContent = text
+}
 
-function setStatus(s){statusSync.className=s}
-
-/* AUTH */
-async function conectarSupabase(){
+/* AUTH + INIT */
+async function init(){
   try{
-    const u=await supabase.auth.getUser()
-    if(u.data.user){user=u.data.user}
-    else{
-      const a=await supabase.auth.signInAnonymously()
-      if(a.error) throw a.error
-      user=a.data.user
-    }
-    setStatus('online')
-  }catch(e){
-    setStatus('offline')
-    overlayText.textContent='Erro Supabase: '+e.message
-    alert('Erro ao conectar no Supabase:\n'+e.message)
-    throw e
-  }finally{
+    setStatus('syncing','Conectando ao Supabase...')
+    const { data } = await supabase.auth.getUser()
+    if(!data.user){
+      const res = await supabase.auth.signInAnonymously()
+      if(res.error) throw res.error
+      user = res.data.user
+    }else user = data.user
+
+    setStatus('online','Carregando mapa...')
     overlay.classList.add('hidden')
+
+    carregarElementos()
+    carregarMapa()
+
+  }catch(err){
+    console.error(err)
+    setStatus('offline','Erro: '+err.message)
   }
-}
-
-/* DRAG */
-function drag(el){
-  let x,y
-  el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
-  }
-}
-
-/* ITEM */
-function criarItem(d,salvar=true){
-  const i=document.createElement('div')
-  i.className='item-mapa'
-  i.style.left=d.x+'px'
-  i.style.top=d.y+'px'
-  i.innerHTML=`<img src="${d.url}"><div class="nome-reserva">${d.nome?`${d.nome} • ${d.pessoas}`:''}</div>`
-  if(d.nome)i.classList.add('reservado')
-  i.ondblclick=()=>{
-    reservando=i
-    clienteNome.value=d.nome||''
-    qtdPessoas.value=d.pessoas||2
-    modal.classList.add('active')
-  }
-  mapa.appendChild(i)
-  drag(i)
-  if(salvar) salvarMapa()
-}
-
-/* DROP */
-mapa.ondragover=e=>e.preventDefault()
-mapa.ondrop=e=>criarItem({url:e.dataTransfer.getData('url'),x:e.offsetX,y:e.offsetY})
-
-/* RESERVA */
-function salvarReserva(){
-  reservando.querySelector('.nome-reserva').textContent=`${clienteNome.value} • ${qtdPessoas.value}`
-  reservando.classList.add('reservado')
-  salvarMapa()
-  fecharReserva()
-}
-function excluirElemento(){
-  if(reservando.classList.contains('reservado')){
-    if(prompt('Senha:')!==SENHA_EXCLUSAO)return
-  }
-  reservando.remove()
-  salvarMapa()
-  fecharReserva()
-}
-function fecharReserva(){modal.classList.remove('active')}
-
-/* CRUD */
-async function salvarMapa(){
-  try{
-    setStatus('syncing')
-    await supabase.from('mapa_itens').delete().eq('user_id',user.id).eq('setor',setorAtual)
-    const itens=[...document.querySelectorAll('.item-mapa')].map(i=>{
-      const txt=i.querySelector('.nome-reserva').textContent.split(' • ')
-      return{
-        user_id:user.id,
-        setor:setorAtual,
-        url:i.querySelector('img').src,
-        x:parseFloat(i.style.left),
-        y:parseFloat(i.style.top),
-        nome:txt[0]||null,
-        pessoas:parseInt(txt[1])||null
-      }
-    })
-    if(itens.length) await supabase.from('mapa_itens').insert(itens)
-    setStatus('online')
-  }catch(e){
-    setStatus('offline')
-    alert('Erro ao salvar:\n'+e.message)
-  }
-}
-
-async function carregarMapa(){
-  overlay.classList.remove('hidden')
-  mapa.innerHTML=''
-  const {data,error}=await supabase.from('mapa_itens').select('*').eq('user_id',user.id).eq('setor',setorAtual)
-  if(error) alert(error.message)
-  data.forEach(d=>criarItem(d,false))
-  overlay.classList.add('hidden')
 }
 
 /* ELEMENTOS */
@@ -229,9 +135,13 @@ const reservaveis=[
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
 ]
 const nao=[
- 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
- 'https://cdn-icons-png.flaticon.com/512/2917995.png'
+ 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png'
 ]
+
+function carregarElementos(){
+  reservaveis.forEach(u=>add(u,true))
+  nao.forEach(u=>add(u,false))
+}
 function add(url,res){
   const d=document.createElement('div')
   d.className='elemento'
@@ -240,8 +150,29 @@ function add(url,res){
   d.ondragstart=e=>e.dataTransfer.setData('url',url)
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
-reservaveis.forEach(u=>add(u,true))
-nao.forEach(u=>add(u,false))
+
+/* MAPA */
+function criarItem(d){
+  const i=document.createElement('div')
+  i.className='item-mapa'
+  i.style.left=d.x+'px'
+  i.style.top=d.y+'px'
+  i.innerHTML=`<img src="${d.url}"><div class="nome-reserva">${d.nome||''}</div>`
+  mapa.appendChild(i)
+}
+
+/* LOAD */
+async function carregarMapa(){
+  mapa.innerHTML=''
+  const { data, error } = await supabase
+    .from('mapa_itens')
+    .select('*')
+    .eq('user_id',user.id)
+    .eq('setor',setorAtual)
+
+  if(error){ console.error(error); return }
+  data.forEach(criarItem)
+}
 
 /* SETORES */
 document.querySelectorAll('#menuSetores button').forEach(b=>{
@@ -255,10 +186,7 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
   }
 })
 
-;(async()=>{
-  await conectarSupabase()
-  await carregarMapa()
-})()
+init()
 </script>
 
 </body>
