@@ -33,7 +33,7 @@ h2,h3{margin-top:0}
 button{
   width:100%;
   padding:10px;
-  margin-bottom:10px;
+  margin-bottom:8px;
   border:none;
   border-radius:6px;
   background:var(--primary);
@@ -41,6 +41,7 @@ button{
   cursor:pointer;
   font-weight:600;
 }
+button.sec{background:#1e293b}
 input{width:100%;padding:8px;margin-bottom:8px}
 
 /* ELEMENTOS */
@@ -84,9 +85,17 @@ main{flex:1;overflow:hidden}
   cursor:grab;
   text-align:center;
 }
-.item-mapa img{width:150px;pointer-events:none}
-.item-mapa.selected{outline:2px solid var(--primary);border-radius:6px}
-.item-mapa.reservado{outline:2px solid var(--green)}
+.item-mapa img{
+  width:150px;
+  pointer-events:none;
+}
+.item-mapa.selected{
+  outline:2px solid var(--primary);
+  border-radius:6px;
+}
+.item-mapa.reservado{
+  outline:2px solid var(--green);
+}
 .nome-reserva{
   font-size:11px;
   margin-top:2px;
@@ -123,9 +132,6 @@ main{flex:1;overflow:hidden}
 }
 #menuSetores button{
   background:#1e293b;
-  color:#fff;
-  padding:8px 10px;
-  border-radius:6px;
   font-size:12px;
 }
 #menuSetores button.ativo{background:#2563eb}
@@ -139,12 +145,10 @@ main{flex:1;overflow:hidden}
   height:14px;
   border-radius:50%;
   box-shadow:0 0 0 3px rgba(0,0,0,.15);
-  z-index:1000;
 }
 #statusSync.online{background:#22c55e}
-#statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
+#statusSync.syncing{background:#f97316}
 #statusSync.offline{background:#ef4444}
-@keyframes pulse{50%{opacity:.4}}
 
 /* OVERLAY */
 #overlayLoading{
@@ -172,7 +176,6 @@ main{flex:1;overflow:hidden}
 
 <body>
 
-<!-- OVERLAY -->
 <div id="overlayLoading" class="hidden">
   <div>
     <div class="spinner"></div>
@@ -182,7 +185,10 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
-  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
+
+  <button onclick="removerSelecionado()">🗑️ Excluir Selecionado</button>
+  <button class="sec" onclick="resizeSelecionado(1.1)">➕ Aumentar</button>
+  <button class="sec" onclick="resizeSelecionado(0.9)">➖ Diminuir</button>
 
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
@@ -219,121 +225,12 @@ main{flex:1;overflow:hidden}
 const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
 const API_TOKEN='MAPA_MESAS_2025'
 
-const overlay=document.getElementById('overlayLoading')
-const overlayText=document.getElementById('overlayText')
-const statusSync=document.getElementById('statusSync')
 const mapa=document.getElementById('mapa')
-const modalReserva=document.getElementById('modalReserva')
+const statusSync=document.getElementById('statusSync')
+let selecionado=null
+let reservando=null
 
-let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
-let sincronizando=false
-let syncPromise=Promise.resolve()
-const ambientesCarregados=new Set()
-
-function nomeSetor(s){
-  return {
-    SALAO_PRINCIPAL:'Salão Principal',
-    PAULO_1:'Paulo Augusto 1',
-    PAULO_2:'Paulo Augusto 2',
-    SACADA:'Sacada'
-  }[s]
-}
-
-function setStatus(s){statusSync.className=s}
-
-function mostrarOverlay(txt){
-  overlayText.textContent=txt
-  overlay.classList.remove('hidden')
-}
-function esconderOverlay(){overlay.classList.add('hidden')}
-
-function salvarMapa(){
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    r:i.dataset.reservavel,
-    c:i.dataset.cliente||'',
-    cel:i.dataset.celular||'',
-    p:i.dataset.pessoas||'',
-    ok:i.classList.contains('reservado')
-  }))
-  sincronizando=true
-  setStatus('syncing')
-  syncPromise=fetch(API_URL,{method:'POST',body:JSON.stringify({
-    token:API_TOKEN,setor:setorAtual,dados:itens
-  })})
-  .then(r=>r.json())
-  .then(r=>setStatus(r.ok?'online':'offline'))
-  .finally(()=>sincronizando=false)
-}
-
-function carregarMapa(force=false){
-  if(force||!ambientesCarregados.has(setorAtual))
-    mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
-
-  fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
-  .then(r=>r.json())
-  .then(r=>{
-    montarMapa(r.dados||[])
-    setStatus('online')
-  })
-  .catch(()=>setStatus('offline'))
-  .finally(()=>{
-    ambientesCarregados.add(setorAtual)
-    setTimeout(esconderOverlay,300)
-  })
-}
-
-function montarMapa(d){
-  mapa.innerHTML=''
-  d.forEach(x=>{
-    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
-    if(x.ok){
-      i.dataset.cliente=x.c
-      i.dataset.celular=x.cel
-      i.dataset.pessoas=x.p
-      i.classList.add('reservado')
-      i.querySelector('.nome-reserva').textContent=
-        `${x.c} • ${x.p} pessoas`
-    }
-  })
-}
-
-function criarItem(url,res,x,y,salvar=true){
-  const i=document.createElement('div')
-  i.className='item-mapa'
-  i.dataset.reservavel=res
-  i.style.left=x+'px'
-  i.style.top=y+'px'
-  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-  i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
-  mapa.appendChild(i)
-  drag(i)
-  if(salvar) salvarMapa()
-  return i
-}
-
-function drag(el){
-  let x,y
-  el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
-  }
-}
-
-mapa.ondragover=e=>e.preventDefault()
-mapa.ondrop=e=>{
-  criarItem(e.dataTransfer.getData('url'),
-             e.dataTransfer.getData('r')==='true',
-             e.offsetX,e.offsetY)
-}
-
+/* ========= ELEMENTOS ========= */
 const reservaveis=[
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
@@ -343,10 +240,10 @@ const nao=[
  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
  'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
-reservaveis.forEach(u=>add(u,true))
-nao.forEach(u=>add(u,false))
+reservaveis.forEach(u=>addElemento(u,true))
+nao.forEach(u=>addElemento(u,false))
 
-function add(url,res){
+function addElemento(url,res){
   const d=document.createElement('div')
   d.className='elemento'
   d.draggable=true
@@ -358,7 +255,76 @@ function add(url,res){
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
 
-let reservando=null
+/* ========= MAPA ========= */
+mapa.ondragover=e=>e.preventDefault()
+mapa.ondrop=e=>{
+  criarItem(
+    e.dataTransfer.getData('url'),
+    e.dataTransfer.getData('r')==='true',
+    e.offsetX,e.offsetY
+  )
+}
+
+function criarItem(url,res,x,y,salvar=true){
+  const i=document.createElement('div')
+  i.className='item-mapa'
+  i.dataset.reservavel=res
+  i.style.left=x+'px'
+  i.style.top=y+'px'
+  i.style.width='150px'
+  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
+
+  i.onclick=()=>{
+    document.querySelectorAll('.item-mapa').forEach(x=>x.classList.remove('selected'))
+    i.classList.add('selected')
+    selecionado=i
+  }
+
+  if(res){
+    i.ondblclick=()=>{
+      reservando=i
+      modalReserva.classList.add('active')
+    }
+  }
+
+  mapa.appendChild(i)
+  drag(i)
+  if(salvar) salvarMapa()
+}
+
+function drag(el){
+  let x,y
+  el.onmousedown=e=>{
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
+      x=ev.clientX;y=ev.clientY
+    }
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
+  }
+}
+
+/* ========= CONTROLES ========= */
+function removerSelecionado(){
+  if(!selecionado)return
+  selecionado.remove()
+  selecionado=null
+  salvarMapa()
+}
+
+function resizeSelecionado(f){
+  if(!selecionado)return
+  const img=selecionado.querySelector('img')
+  const w=img.clientWidth*f
+  img.style.width=w+'px'
+  salvarMapa()
+}
+
+/* ========= RESERVA ========= */
 function salvarReserva(){
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.celular=clienteCelular.value
@@ -369,26 +335,32 @@ function salvarReserva(){
   salvarMapa()
   fecharReserva()
 }
-function fecharReserva(){modalReserva.classList.remove('active')}
+function fecharReserva(){
+  modalReserva.classList.remove('active')
+}
 
-document.querySelectorAll('#menuSetores button').forEach(b=>{
-  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
-  b.onclick=async()=>{
-    if(b.dataset.setor===setorAtual)return
-    if(sincronizando){
-      mostrarOverlay('Terminando sincronização...')
-      await syncPromise
-    }
-    setorAtual=b.dataset.setor
-    localStorage.setItem('setor_atual',setorAtual)
-    document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
-    b.classList.add('ativo')
-    carregarMapa(true)
-  }
-})
-
-carregarMapa(true)
-setInterval(()=>carregarMapa(false),10000)
+/* ========= SALVAR ========= */
+function salvarMapa(){
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+    url:i.querySelector('img').src,
+    x:parseFloat(i.style.left),
+    y:parseFloat(i.style.top),
+    w:i.querySelector('img').clientWidth,
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
+  }))
+  statusSync.className='syncing'
+  fetch(API_URL,{method:'POST',body:JSON.stringify({
+    token:API_TOKEN,
+    setor:localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL',
+    dados:itens
+  })})
+  .then(r=>r.json())
+  .then(r=>statusSync.className=r.ok?'online':'offline')
+}
 </script>
 
 </body>
