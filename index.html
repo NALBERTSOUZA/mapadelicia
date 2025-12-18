@@ -6,15 +6,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a}
+:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a;--danger:#ef4444}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);display:flex;height:100vh}
 
 /* SIDEBAR */
 aside{width:280px;background:#0f172a;color:#fff;padding:16px;overflow-y:auto}
 h2,h3{margin-top:0}
-button{width:100%;padding:10px;margin-bottom:10px;border:0;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;font-weight:600}
-input{width:100%;padding:8px;margin-bottom:8px}
+input,button{width:100%;padding:10px;margin-bottom:8px;border:0;border-radius:6px}
+button{background:var(--primary);color:#fff;font-weight:600;cursor:pointer}
 
 /* ELEMENTOS */
 .elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
@@ -23,11 +23,11 @@ input{width:100%;padding:8px;margin-bottom:8px}
 
 /* MAIN */
 main{flex:1;overflow:hidden}
-#viewport{width:100%;height:100%;overflow:scroll;cursor:grab;background:#e5e7eb}
+#viewport{width:100%;height:100%;overflow:scroll;background:#e5e7eb}
 #mapa{position:relative;width:5000px;height:5000px;background:#fff;border:2px dashed var(--border)}
 
 /* ITEM */
-.item-mapa{position:absolute;cursor:grab;text-align:center}
+.item-mapa{position:absolute;cursor:grab}
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.reservado{outline:2px solid var(--green)}
 .nome-reserva{
@@ -36,21 +36,14 @@ main{flex:1;overflow:hidden}
   transform:translate(-50%,-50%);
   font-size:13px;
   font-weight:600;
-  line-height:1.1;
   text-align:center;
   pointer-events:none
 }
 
-/* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:2000}
-.modal.active{display:flex}
-.modal-box{background:#fff;padding:20px;width:320px;border-radius:10px}
-.modal-box button{width:100%;margin-top:8px}
-
 /* MENU SETORES */
 #menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:10px;display:flex;gap:6px;z-index:999}
-#menuSetores button{background:#1e293b;color:#fff;padding:8px 10px;border-radius:6px;font-size:12px}
-#menuSetores button.ativo{background:#2563eb}
+#menuSetores button{background:#1e293b;font-size:12px}
+#menuSetores button.ativo{background:var(--primary)}
 
 /* STATUS */
 #statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.15);z-index:1000}
@@ -60,20 +53,52 @@ main{flex:1;overflow:hidden}
 @keyframes pulse{50%{opacity:.4}}
 
 /* OVERLAY */
-#overlayLoading{position:fixed;inset:0;background:rgba(15,23,42,.92);display:flex;align-items:center;justify-content:center;z-index:3000;color:#fff}
+#overlayLoading{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.85);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:3000;
+  color:#fff;
+  font-weight:600;
+}
 #overlayLoading.hidden{display:none}
-.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+.spinner{
+  width:42px;height:42px;
+  border:4px solid rgba(255,255,255,.3);
+  border-top-color:#2563eb;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 12px
+}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* MODAL */
+.modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:3100}
+.modal.active{display:flex}
+.modal-box{
+  background:#fff;
+  width:360px;
+  padding:22px;
+  border-radius:14px;
+  display:grid;
+  gap:10px;
+  box-shadow:0 20px 40px rgba(0,0,0,.35)
+}
+.modal-box h3{margin:0;color:#0f172a}
+.btn-excluir{background:var(--danger)}
+.btn-cancelar{background:#e5e7eb;color:#0f172a}
 </style>
 </head>
 
 <body>
 
-<!-- OVERLAY -->
 <div id="overlayLoading" class="hidden">
   <div>
     <div class="spinner"></div>
-    <div id="overlayText">Carregando ambiente...</div>
+    <div id="overlayText">Carregando…</div>
   </div>
 </div>
 
@@ -102,10 +127,10 @@ main{flex:1;overflow:hidden}
   <div class="modal-box">
     <h3>Reserva / Elemento</h3>
     <input id="clienteNome" placeholder="Nome">
-    <input id="qtdPessoas" type="number" value="2">
+    <input id="qtdPessoas" type="number" min="1" value="2">
     <button onclick="salvarReserva()">Salvar Reserva</button>
-    <button style="background:#ef4444" onclick="excluirElemento()">Excluir Elemento</button>
-    <button onclick="fecharReserva()">Cancelar</button>
+    <button class="btn-excluir" onclick="excluirElemento()">Excluir Elemento</button>
+    <button class="btn-cancelar" onclick="fecharReserva()">Cancelar</button>
   </div>
 </div>
 
@@ -126,10 +151,13 @@ let syncPromise=Promise.resolve()
 const ambientesCarregados=new Set()
 let reservando=null
 
+function primeiroNome(n){return (n||'').trim().split(' ')[0]}
+
 /* DRAG */
 function drag(el){
   let x,y
   el.onmousedown=e=>{
+    if(modal.classList.contains('active'))return
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
       el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
@@ -153,6 +181,7 @@ function criarItem(url,res,x,y,salvar=true){
     reservando=i
     clienteNome.value=i.dataset.cliente||''
     qtdPessoas.value=i.dataset.pessoas||2
+    overlay.classList.remove('hidden')
     modal.classList.add('active')
   }
   mapa.appendChild(i)
@@ -172,7 +201,7 @@ function salvarReserva(){
   reservando.dataset.pessoas=qtdPessoas.value
   reservando.classList.add('reservado')
   reservando.querySelector('.nome-reserva').textContent=
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+    `${primeiroNome(clienteNome.value)} • ${qtdPessoas.value}`
   salvarMapa()
   fecharReserva()
 }
@@ -187,7 +216,10 @@ function excluirElemento(){
   fecharReserva()
 }
 
-function fecharReserva(){modal.classList.remove('active')}
+function fecharReserva(){
+  modal.classList.remove('active')
+  overlay.classList.add('hidden')
+}
 
 /* API */
 function salvarMapa(){
@@ -212,7 +244,7 @@ function salvarMapa(){
 function carregarMapa(force=false){
   if(force||!ambientesCarregados.has(setorAtual)){
     overlay.classList.remove('hidden')
-    overlayText.textContent='Carregando ambiente...'
+    overlayText.textContent='Carregando '+setorAtual.replace('_',' ')
   }
   fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
     .then(r=>r.json())
@@ -225,7 +257,7 @@ function carregarMapa(force=false){
           i.dataset.cliente=x.c
           i.dataset.pessoas=x.p
           i.classList.add('reservado')
-          i.querySelector('.nome-reserva').textContent=`${x.c} • ${x.p} pessoas`
+          i.querySelector('.nome-reserva').textContent=`${primeiroNome(x.c)} • ${x.p}`
         }
       })
       statusSync.className='online'
@@ -244,7 +276,7 @@ const reservaveis=[
 ]
 const nao=[
  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
- 'https://cdn-icons-png.flaticon.com/512/2917995.png'
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
 
 function add(url,res){
