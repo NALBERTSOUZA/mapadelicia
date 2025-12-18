@@ -6,172 +6,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-:root{
-  --bg:#f4f6f8;
-  --primary:#2563eb;
-  --border:#dcdfe4;
-  --green:#16a34a;
-}
+:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a}
 *{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:Inter, Arial, sans-serif;
-  background:var(--bg);
-  display:flex;
-  height:100vh;
-}
+body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);display:flex;height:100vh}
 
 /* SIDEBAR */
-aside{
-  width:280px;
-  background:#0f172a;
-  color:#fff;
-  padding:16px;
-  overflow-y:auto;
-}
+aside{width:280px;background:#0f172a;color:#fff;padding:16px;overflow-y:auto}
 h2,h3{margin-top:0}
-button{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  border:none;
-  border-radius:6px;
-  background:var(--primary);
-  color:#fff;
-  cursor:pointer;
-  font-weight:600;
-}
+button{width:100%;padding:10px;margin-bottom:10px;border:0;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;font-weight:600}
 input{width:100%;padding:8px;margin-bottom:8px}
 
 /* ELEMENTOS */
-.elementos{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  margin-bottom:16px;
-}
-.elemento{
-  background:#020617;
-  border:1px dashed #475569;
-  border-radius:6px;
-  padding:6px;
-  cursor:grab;
-  display:flex;
-  justify-content:center;
-}
+.elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.elemento{background:#020617;border:1px dashed #475569;border-radius:6px;padding:6px;cursor:grab;display:flex;justify-content:center}
 .elemento img{width:42px;pointer-events:none}
 
 /* MAIN */
 main{flex:1;overflow:hidden}
-#viewport{
-  width:100%;
-  height:100%;
-  overflow:scroll;
-  cursor:grab;
-  background:#e5e7eb;
-}
-#mapa{
-  position:relative;
-  width:5000px;
-  height:5000px;
-  background:#fff;
-  border:2px dashed var(--border);
-}
+#viewport{width:100%;height:100%;overflow:scroll;cursor:grab;background:#e5e7eb}
+#mapa{position:relative;width:5000px;height:5000px;background:#fff;border:2px dashed var(--border)}
 
 /* ITEM */
-.item-mapa{
-  position:absolute;
-  cursor:grab;
-  text-align:center;
-}
+.item-mapa{position:absolute;cursor:grab;text-align:center}
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.selected{outline:2px solid var(--primary);border-radius:6px}
 .item-mapa.reservado{outline:2px solid var(--green)}
-.nome-reserva{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  font-size:13px;
-  font-weight:600;
-  line-height:1.1;
-  text-align:center;
-  pointer-events:none;
-}
+.nome-reserva{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:13px;font-weight:600;line-height:1.1;text-align:center;pointer-events:none}
 
 /* MODAL */
-.modal{
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
 .modal.active{display:flex}
-.modal-box{
-  background:#fff;
-  padding:20px;
-  width:300px;
-  border-radius:10px;
-}
+.modal-box{background:#fff;padding:20px;width:300px;border-radius:10px}
 
 /* MENU SETORES */
-#menuSetores{
-  position:fixed;
-  top:16px;
-  right:16px;
-  background:#0f172a;
-  padding:8px;
-  border-radius:10px;
-  display:flex;
-  gap:6px;
-  z-index:999;
-}
-#menuSetores button{
-  background:#1e293b;
-  color:#fff;
-  padding:8px 10px;
-  border-radius:6px;
-  font-size:12px;
-}
+#menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:10px;display:flex;gap:6px;z-index:999}
+#menuSetores button{background:#1e293b;color:#fff;padding:8px 10px;border-radius:6px;font-size:12px}
 #menuSetores button.ativo{background:#2563eb}
 
 /* STATUS */
-#statusSync{
-  position:fixed;
-  bottom:16px;
-  right:16px;
-  width:14px;
-  height:14px;
-  border-radius:50%;
-  box-shadow:0 0 0 3px rgba(0,0,0,.15);
-  z-index:1000;
-}
+#statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.15);z-index:1000}
 #statusSync.online{background:#22c55e}
 #statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
 #statusSync.offline{background:#ef4444}
 @keyframes pulse{50%{opacity:.4}}
 
 /* OVERLAY */
-#overlayLoading{
-  position:fixed;
-  inset:0;
-  background:rgba(15,23,42,.92);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:2000;
-  color:#fff;
-}
+#overlayLoading{position:fixed;inset:0;background:rgba(15,23,42,.92);display:flex;align-items:center;justify-content:center;z-index:2000;color:#fff}
 #overlayLoading.hidden{display:none}
-.spinner{
-  width:42px;height:42px;
-  border:4px solid rgba(255,255,255,.3);
-  border-top-color:#2563eb;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-  margin:0 auto 12px;
-}
+.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
@@ -179,26 +61,19 @@ main{flex:1;overflow:hidden}
 <body>
 
 <div id="overlayLoading" class="hidden">
-  <div>
-    <div class="spinner"></div>
-    <div id="overlayText">Carregando ambiente...</div>
-  </div>
+  <div><div class="spinner"></div><div id="overlayText">Carregando ambiente...</div></div>
 </div>
 
 <aside>
   <h2>Elementos</h2>
   <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
-
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
-
   <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
 
-<main>
-  <div id="viewport"><div id="mapa"></div></div>
-</main>
+<main><div id="viewport"><div id="mapa"></div></div></main>
 
 <div id="menuSetores">
   <button data-setor="SALAO_PRINCIPAL">Salão</button>
@@ -223,7 +98,6 @@ main{flex:1;overflow:hidden}
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
 const API_TOKEN='MAPA_MESAS_2025'
-
 const overlay=document.getElementById('overlayLoading')
 const overlayText=document.getElementById('overlayText')
 const statusSync=document.getElementById('statusSync')
@@ -234,35 +108,23 @@ let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
 let sincronizando=false
 let syncPromise=Promise.resolve()
 const ambientesCarregados=new Set()
-
 let itemSelecionado=null
 let reservando=null
 const SENHA_EXCLUSAO='1234'
 
-function selecionarItem(item){
-  document.querySelectorAll('.item-mapa.selected')
-    .forEach(el=>el.classList.remove('selected'))
-  item.classList.add('selected')
-  itemSelecionado=item
+function selecionarItem(i){
+  document.querySelectorAll('.item-mapa.selected').forEach(e=>e.classList.remove('selected'))
+  i.classList.add('selected')
+  itemSelecionado=i
 }
 
-mapa.addEventListener('click',()=>{
-  document.querySelectorAll('.item-mapa.selected')
-    .forEach(el=>el.classList.remove('selected'))
-  itemSelecionado=null
-})
+mapa.addEventListener('click',()=>{document.querySelectorAll('.item-mapa.selected').forEach(e=>e.classList.remove('selected'));itemSelecionado=null})
 
 function removerSelecionado(){
-  if(!itemSelecionado){
-    alert('Selecione um elemento para remover.')
-    return
-  }
+  if(!itemSelecionado)return alert('Selecione um elemento.')
   if(itemSelecionado.classList.contains('reservado')){
-    if(!confirm('Este elemento possui reserva. Deseja realmente excluir?'))return
-    if(prompt('Digite a senha:')!==SENHA_EXCLUSAO){
-      alert('Senha incorreta.')
-      return
-    }
+    if(!confirm('Possui reserva. Deseja excluir?'))return
+    if(prompt('Digite a senha:')!==SENHA_EXCLUSAO)return alert('Senha incorreta.')
   }
   itemSelecionado.remove()
   itemSelecionado=null
@@ -270,22 +132,19 @@ function removerSelecionado(){
 }
 
 function drag(el){
-  let x,y,movendo=false
+  let x,y,mov=false
   el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY;movendo=false
+    x=e.clientX;y=e.clientY;mov=false
     document.onmousemove=ev=>{
-      movendo=true
+      mov=true
       el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
     document.onmouseup=ev=>{
       document.onmousemove=null
       document.onmouseup=null
-      if(!movendo){
-        ev.stopPropagation()
-        selecionarItem(el)
-      }
+      if(!mov){ev.stopPropagation();selecionarItem(el)}
       salvarMapa()
     }
   }
@@ -298,63 +157,39 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.left=x+'px'
   i.style.top=y+'px'
   i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-  i.ondblclick=e=>{
-    e.stopPropagation()
-    selecionarItem(i)
-    reservando=i
-    modalReserva.classList.add('active')
-  }
+  i.ondblclick=e=>{e.stopPropagation();selecionarItem(i);reservando=i;modalReserva.classList.add('active')}
   mapa.appendChild(i)
   drag(i)
   if(salvar)salvarMapa()
   return i
 }
 
-/* ======= RESTANTE DO CÓDIGO ORIGINAL (MAPA / API) ======= */
-
+/* ===== RESTANTE ORIGINAL (API / MAPA) ===== */
 function nomeSetor(s){return{SALAO_PRINCIPAL:'Salão Principal',PAULO_1:'Paulo 1',PAULO_2:'Paulo 2',SACADA:'Sacada'}[s]}
 function setStatus(s){statusSync.className=s}
 function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
 function esconderOverlay(){overlay.classList.add('hidden')}
 
 function salvarMapa(){
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    r:i.dataset.reservavel,
-    c:i.dataset.cliente||'',
-    cel:i.dataset.celular||'',
-    p:i.dataset.pessoas||'',
-    ok:i.classList.contains('reservado')
-  }))
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({url:i.querySelector('img').src,x:parseFloat(i.style.left),y:parseFloat(i.style.top),r:i.dataset.reservavel,c:i.dataset.cliente||'',cel:i.dataset.celular||'',p:i.dataset.pessoas||'',ok:i.classList.contains('reservado')}))
   sincronizando=true
   setStatus('syncing')
   syncPromise=fetch(API_URL,{method:'POST',body:JSON.stringify({token:API_TOKEN,setor:setorAtual,dados:itens})})
-    .then(r=>r.json())
-    .then(r=>setStatus(r.ok?'online':'offline'))
-    .finally(()=>sincronizando=false)
+    .then(r=>r.json()).then(r=>setStatus(r.ok?'online':'offline')).finally(()=>sincronizando=false)
 }
 
 function montarMapa(d){
   mapa.innerHTML=''
   d.forEach(x=>{
     const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
-    if(x.ok){
-      i.dataset.cliente=x.c
-      i.dataset.pessoas=x.p
-      i.classList.add('reservado')
-      i.querySelector('.nome-reserva').textContent=`${x.c} • ${x.p} pessoas`
-    }
+    if(x.ok){i.dataset.cliente=x.c;i.dataset.pessoas=x.p;i.classList.add('reservado');i.querySelector('.nome-reserva').textContent=`${x.c} • ${x.p} pessoas`}
   })
 }
 
 function carregarMapa(force=false){
-  if(force||!ambientesCarregados.has(setorAtual))
-    mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
+  if(force||!ambientesCarregados.has(setorAtual))mostrarOverlay('Carregando '+nomeSetor(setorAtual))
   fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
-    .then(r=>r.json())
-    .then(r=>{montarMapa(r.dados||[]);setStatus('online')})
+    .then(r=>r.json()).then(r=>{montarMapa(r.dados||[]);setStatus('online')})
     .finally(()=>{ambientesCarregados.add(setorAtual);setTimeout(esconderOverlay,300)})
 }
 
@@ -362,8 +197,7 @@ function salvarReserva(){
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.pessoas=qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent=
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+  reservando.querySelector('.nome-reserva').textContent=`${clienteNome.value} • ${qtdPessoas.value} pessoas`
   salvarMapa()
   modalReserva.classList.remove('active')
 }
