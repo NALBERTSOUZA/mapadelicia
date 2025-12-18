@@ -181,10 +181,8 @@ main{flex:1;overflow:hidden}
   <button data-setor="SACADA">Sacada</button>
 </div>
 
-<!-- STATUS -->
-<div id="statusSync" class="offline" title="Offline"></div>
+<div id="statusSync" class="offline"></div>
 
-<!-- MODAL -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
@@ -203,70 +201,65 @@ const API_TOKEN = 'MAPA_MESAS_2025'
 
 // ================= STATUS =================
 const statusSync = document.getElementById('statusSync')
-function setStatus(s){
-  statusSync.className=''
-  statusSync.classList.add(s)
+function setStatus(state){
+  statusSync.classList.remove('online','offline','syncing')
+  statusSync.classList.add(state)
+  statusSync.title =
+    state==='online'?'Sincronizado com a planilha':
+    state==='syncing'?'Sincronizando...':
+    'Offline (dados locais)'
 }
 
-// ================= SETOR =================
+// ================= CONTROLE =================
+let sincronizando = false
 let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
 const mapa = document.getElementById('mapa')
 const modalReserva = document.getElementById('modalReserva')
+function key(){ return 'mapa_'+setorAtual }
 
-function key(){ return 'mapa_' + setorAtual }
-
+// ================= SALVAR =================
 function salvarMapa(){
-  const itens = [...document.querySelectorAll('.item-mapa')].map(i => ({
-    url: i.querySelector('img').src,
-    x: parseFloat(i.style.left),
-    y: parseFloat(i.style.top),
-    r: i.dataset.reservavel,
-    c: i.dataset.cliente || '',
-    cel: i.dataset.celular || '',
-    p: i.dataset.pessoas || '',
-    ok: i.classList.contains('reservado')
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+    url:i.querySelector('img').src,
+    x:parseFloat(i.style.left),
+    y:parseFloat(i.style.top),
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
   }))
 
-  // backup local
-  localStorage.setItem(key(), JSON.stringify(itens))
-
+  localStorage.setItem(key(),JSON.stringify(itens))
+  sincronizando=true
   setStatus('syncing')
 
   fetch(API_URL,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({
-      token: API_TOKEN,
-      setor: setorAtual,
-      dados: itens
-    })
+    body:JSON.stringify({token:API_TOKEN,setor:setorAtual,dados:itens})
   })
-  .then(r => r.json())
-  .then(resp => {
-    if(resp.ok === true){
-      setStatus('online')   // 🟢 SÓ AQUI
-    }else{
-      console.error('Erro GAS:', resp.erro)
-      setStatus('offline')  // 🔴
-    }
+  .then(r=>r.json())
+  .then(resp=>{
+    if(resp.ok===true) setStatus('online')
+    else setStatus('offline')
   })
-  .catch(err=>{
-    console.error(err)
-    setStatus('offline')
-  })
+  .catch(()=>setStatus('offline'))
+  .finally(()=>sincronizando=false)
 }
 
+// ================= CARREGAR =================
 function carregarMapa(){
+  if(sincronizando) return
+
   fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
     .then(r=>r.json())
     .then(resp=>{
-      if(resp.ok === true){
+      if(resp.ok===true){
         setStatus('online')
-        localStorage.setItem(key(), JSON.stringify(resp.dados))
+        localStorage.setItem(key(),JSON.stringify(resp.dados))
         montarMapa(resp.dados)
-      }else{
-        throw 'erro'
-      }
+      }else throw ''
     })
     .catch(()=>{
       setStatus('offline')
@@ -274,14 +267,12 @@ function carregarMapa(){
     })
 }
 
-
 function montarMapa(dados){
   mapa.innerHTML=''
   dados.forEach(d=>{
     const i=criarItem(d.url,d.r==='true',d.x,d.y,false)
     if(d.ok){
       i.dataset.cliente=d.c
-      i.dataset.celular=d.cel
       i.dataset.pessoas=d.p
       i.classList.add('reservado')
       i.querySelector('.nome-reserva').textContent =
@@ -346,7 +337,6 @@ function criarItem(url,res,x,y,salvar=true){
     i.ondblclick=()=>{
       reservando=i
       clienteNome.value=i.dataset.cliente||''
-      clienteCelular.value=i.dataset.celular||''
       qtdPessoas.value=i.dataset.pessoas||2
       modalReserva.classList.add('active')
     }
@@ -399,10 +389,8 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
   }
 })
 
-// ATUALIZA AUTOMÁTICA (QUASE TEMPO REAL)
-setInterval(carregarMapa,8000)
-
-// INIT
+// POLLING SEGURO
+setInterval(carregarMapa,10000)
 carregarMapa()
 </script>
 
