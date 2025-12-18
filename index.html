@@ -142,9 +142,16 @@ main{flex:1;overflow:hidden}
   z-index:1000;
 }
 #statusSync.online{background:#22c55e}
-#statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
+#statusSync.syncing{
+  background:#f97316;
+  animation:pulse 1s infinite;
+}
 #statusSync.offline{background:#ef4444}
-@keyframes pulse{50%{opacity:.4}}
+@keyframes pulse{
+  0%{opacity:1}
+  50%{opacity:.4}
+  100%{opacity:1}
+}
 
 /* OVERLAY */
 #overlayLoading{
@@ -158,8 +165,10 @@ main{flex:1;overflow:hidden}
   color:#fff;
 }
 #overlayLoading.hidden{display:none}
+.overlay-box{text-align:center}
 .spinner{
-  width:42px;height:42px;
+  width:42px;
+  height:42px;
   border:4px solid rgba(255,255,255,.3);
   border-top-color:#2563eb;
   border-radius:50%;
@@ -174,7 +183,7 @@ main{flex:1;overflow:hidden}
 
 <!-- OVERLAY -->
 <div id="overlayLoading" class="hidden">
-  <div>
+  <div class="overlay-box">
     <div class="spinner"></div>
     <div id="overlayText">Carregando ambiente...</div>
   </div>
@@ -216,37 +225,52 @@ main{flex:1;overflow:hidden}
 </div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
-const API_TOKEN='MAPA_MESAS_2025'
+// ================= CONFIG =================
+const API_URL = 'https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
+const API_TOKEN = 'MAPA_MESAS_2025'
 
-const overlay=document.getElementById('overlayLoading')
-const overlayText=document.getElementById('overlayText')
-const statusSync=document.getElementById('statusSync')
-const mapa=document.getElementById('mapa')
-const modalReserva=document.getElementById('modalReserva')
-
-let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
-let sincronizando=false
-let syncPromise=Promise.resolve()
-const ambientesCarregados=new Set()
+// ================= OVERLAY =================
+const overlayLoading = document.getElementById('overlayLoading')
+const overlayText = document.getElementById('overlayText')
 
 function nomeSetor(s){
-  return {
-    SALAO_PRINCIPAL:'Salão Principal',
-    PAULO_1:'Paulo Augusto 1',
-    PAULO_2:'Paulo Augusto 2',
-    SACADA:'Sacada'
-  }[s]
+  return s
+    .replace('SALAO_PRINCIPAL','Salão Principal')
+    .replace('PAULO_1','Paulo Augusto 1')
+    .replace('PAULO_2','Paulo Augusto 2')
+    .replace('SACADA','Sacada')
 }
-
-function setStatus(s){statusSync.className=s}
-
 function mostrarOverlay(txt){
-  overlayText.textContent=txt
-  overlay.classList.remove('hidden')
+  overlayText.textContent = txt
+  overlayLoading.classList.remove('hidden')
 }
-function esconderOverlay(){overlay.classList.add('hidden')}
+function esconderOverlay(){
+  overlayLoading.classList.add('hidden')
+}
 
+// ================= STATUS =================
+const statusSync=document.getElementById('statusSync')
+function setStatus(s){
+  statusSync.className=s
+  statusSync.title=
+    s==='online'?'Sincronizado':
+    s==='syncing'?'Sincronizando':
+    'Offline'
+}
+
+// ================= CONTROLE =================
+let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
+let sincronizando = false
+let syncPromise = Promise.resolve()
+
+// controla quais ambientes já exibiram overlay
+const ambientesCarregados = new Set()
+
+const mapa=document.getElementById('mapa')
+const modalReserva=document.getElementById('modalReserva')
+function key(){return 'mapa_'+setorAtual}
+
+// ================= SALVAR =================
 function salvarMapa(){
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
     url:i.querySelector('img').src,
@@ -258,31 +282,46 @@ function salvarMapa(){
     p:i.dataset.pessoas||'',
     ok:i.classList.contains('reservado')
   }))
+
+  localStorage.setItem(key(),JSON.stringify(itens))
   sincronizando=true
   setStatus('syncing')
-  syncPromise=fetch(API_URL,{method:'POST',body:JSON.stringify({
-    token:API_TOKEN,setor:setorAtual,dados:itens
-  })})
+
+  syncPromise = fetch(API_URL,{
+    method:'POST',
+    body:JSON.stringify({token:API_TOKEN,setor:setorAtual,dados:itens})
+  })
   .then(r=>r.json())
   .then(r=>setStatus(r.ok?'online':'offline'))
+  .catch(()=>setStatus('offline'))
   .finally(()=>sincronizando=false)
+
+  return syncPromise
 }
 
-function carregarMapa(force=false){
-  if(force||!ambientesCarregados.has(setorAtual))
+// ================= CARREGAR =================
+function carregarMapa(forceOverlay=false){
+  if(forceOverlay || !ambientesCarregados.has(setorAtual)){
     mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
+  }
 
   fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
-  .then(r=>r.json())
-  .then(r=>{
-    montarMapa(r.dados||[])
-    setStatus('online')
-  })
-  .catch(()=>setStatus('offline'))
-  .finally(()=>{
-    ambientesCarregados.add(setorAtual)
-    setTimeout(esconderOverlay,300)
-  })
+    .then(r=>r.json())
+    .then(r=>{
+      if(r.ok){
+        setStatus('online')
+        localStorage.setItem(key(),JSON.stringify(r.dados))
+        montarMapa(r.dados)
+      }else throw ''
+    })
+    .catch(()=>{
+      setStatus('offline')
+      montarMapa(JSON.parse(localStorage.getItem(key())||'[]'))
+    })
+    .finally(()=>{
+      ambientesCarregados.add(setorAtual)
+      setTimeout(esconderOverlay,300)
+    })
 }
 
 function montarMapa(d){
@@ -300,6 +339,33 @@ function montarMapa(d){
   })
 }
 
+// ================= ELEMENTOS =================
+const reservaveis=[
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
+]
+const nao=[
+ 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
+]
+reservaveis.forEach(u=>addElemento(u,true))
+nao.forEach(u=>addElemento(u,false))
+
+function addElemento(url,res){
+  const d=document.createElement('div')
+  d.className='elemento'
+  d.draggable=true
+  d.innerHTML=`<img src="${url}">`
+  d.ondragstart=e=>{
+    e.dataTransfer.setData('url',url)
+    e.dataTransfer.setData('r',res)
+  }
+  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
+}
+
+// ================= ITEM / RESERVA =================
+let selecionado=null,reservando=null
 function criarItem(url,res,x,y,salvar=true){
   const i=document.createElement('div')
   i.className='item-mapa'
@@ -307,7 +373,23 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.left=x+'px'
   i.style.top=y+'px'
   i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-  i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
+
+  i.onclick=()=>{
+    document.querySelectorAll('.item-mapa').forEach(a=>a.classList.remove('selected'))
+    i.classList.add('selected')
+    selecionado=i
+  }
+
+  if(res){
+    i.ondblclick=()=>{
+      reservando=i
+      clienteNome.value=i.dataset.cliente||''
+      clienteCelular.value=i.dataset.celular||''
+      qtdPessoas.value=i.dataset.pessoas||2
+      modalReserva.classList.add('active')
+    }
+  }
+
   mapa.appendChild(i)
   drag(i)
   if(salvar) salvarMapa()
@@ -320,45 +402,16 @@ function drag(el){
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
       el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
   }
 }
 
-mapa.ondragover=e=>e.preventDefault()
-mapa.ondrop=e=>{
-  criarItem(e.dataTransfer.getData('url'),
-             e.dataTransfer.getData('r')==='true',
-             e.offsetX,e.offsetY)
-}
-
-const reservaveis=[
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
-]
-const nao=[
- 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
- 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
-]
-reservaveis.forEach(u=>add(u,true))
-nao.forEach(u=>add(u,false))
-
-function add(url,res){
-  const d=document.createElement('div')
-  d.className='elemento'
-  d.draggable=true
-  d.innerHTML=`<img src="${url}">`
-  d.ondragstart=e=>{
-    e.dataTransfer.setData('url',url)
-    e.dataTransfer.setData('r',res)
-  }
-  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
-}
-
-let reservando=null
 function salvarReserva(){
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.celular=clienteCelular.value
@@ -369,24 +422,42 @@ function salvarReserva(){
   salvarMapa()
   fecharReserva()
 }
-function fecharReserva(){modalReserva.classList.remove('active')}
+function fecharReserva(){
+  reservando=null
+  modalReserva.classList.remove('active')
+}
+function removerSelecionado(){
+  if(selecionado){
+    selecionado.remove()
+    salvarMapa()
+  }
+}
 
+// ================= MENU =================
 document.querySelectorAll('#menuSetores button').forEach(b=>{
-  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
+  if(b.dataset.setor===setorAtual) b.classList.add('ativo')
+
   b.onclick=async()=>{
-    if(b.dataset.setor===setorAtual)return
+    const novo=b.dataset.setor
+    if(novo===setorAtual) return
+
     if(sincronizando){
-      mostrarOverlay('Terminando sincronização...')
+      mostrarOverlay(
+        `Terminando sincronização do ambiente ${nomeSetor(setorAtual)} para carregar o ambiente ${nomeSetor(novo)}`
+      )
       await syncPromise
     }
-    setorAtual=b.dataset.setor
-    localStorage.setItem('setor_atual',setorAtual)
+
     document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
     b.classList.add('ativo')
+
+    setorAtual=novo
+    localStorage.setItem('setor_atual',setorAtual)
     carregarMapa(true)
   }
 })
 
+// INIT
 carregarMapa(true)
 setInterval(()=>carregarMapa(false),10000)
 </script>
