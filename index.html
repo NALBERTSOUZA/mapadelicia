@@ -215,44 +215,65 @@ const modalReserva = document.getElementById('modalReserva')
 
 function key(){ return 'mapa_' + setorAtual }
 
-// ================= STORAGE =================
 function salvarMapa(){
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    r:i.dataset.reservavel,
-    c:i.dataset.cliente||'',
-    cel:i.dataset.celular||'',
-    p:i.dataset.pessoas||'',
-    ok:i.classList.contains('reservado')
+  const itens = [...document.querySelectorAll('.item-mapa')].map(i => ({
+    url: i.querySelector('img').src,
+    x: parseFloat(i.style.left),
+    y: parseFloat(i.style.top),
+    r: i.dataset.reservavel,
+    c: i.dataset.cliente || '',
+    cel: i.dataset.celular || '',
+    p: i.dataset.pessoas || '',
+    ok: i.classList.contains('reservado')
   }))
 
-  localStorage.setItem(key(),JSON.stringify(itens))
+  // backup local
+  localStorage.setItem(key(), JSON.stringify(itens))
+
   setStatus('syncing')
 
   fetch(API_URL,{
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({token:API_TOKEN,setor:setorAtual,dados:itens})
+    body: JSON.stringify({
+      token: API_TOKEN,
+      setor: setorAtual,
+      dados: itens
+    })
   })
-  .then(()=>setStatus('online'))
-  .catch(()=>setStatus('offline'))
+  .then(r => r.json())
+  .then(resp => {
+    if(resp.ok === true){
+      setStatus('online')   // 🟢 SÓ AQUI
+    }else{
+      console.error('Erro GAS:', resp.erro)
+      setStatus('offline')  // 🔴
+    }
+  })
+  .catch(err=>{
+    console.error(err)
+    setStatus('offline')
+  })
 }
 
 function carregarMapa(){
   fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
     .then(r=>r.json())
-    .then(d=>{
-      setStatus('online')
-      localStorage.setItem(key(),JSON.stringify(d))
-      montarMapa(d)
+    .then(resp=>{
+      if(resp.ok === true){
+        setStatus('online')
+        localStorage.setItem(key(), JSON.stringify(resp.dados))
+        montarMapa(resp.dados)
+      }else{
+        throw 'erro'
+      }
     })
     .catch(()=>{
       setStatus('offline')
       montarMapa(JSON.parse(localStorage.getItem(key())||'[]'))
     })
 }
+
 
 function montarMapa(dados){
   mapa.innerHTML=''
