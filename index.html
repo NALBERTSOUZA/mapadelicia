@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a}
+:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a;--red:#ef4444;--orange:#f97316}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);display:flex;height:100vh}
 
@@ -46,10 +46,16 @@ main{flex:1;overflow:hidden}
 #menuSetores button.ativo{background:#2563eb}
 
 /* STATUS */
-#status{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%;background:#ef4444}
+#status{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%;background:var(--red)}
 
 /* OVERLAY */
-#overlay{position:fixed;inset:0;background:rgba(15,23,42,.9);display:none;align-items:center;justify-content:center;z-index:3000;color:#fff;font-size:15px}
+#overlay{
+  position:fixed;inset:0;
+  background:rgba(15,23,42,.9);
+  display:none;align-items:center;justify-content:center;
+  z-index:3000;color:#fff;
+  font-size:14px;text-align:center;padding:20px
+}
 </style>
 </head>
 
@@ -81,7 +87,7 @@ main{flex:1;overflow:hidden}
     <h3>Reserva / Elemento</h3>
     <input id="clienteNome" placeholder="Nome">
     <input id="qtdPessoas" type="number" value="2">
-    <button onclick="salvarReserva()">Salvar</button>
+    <button onclick="salvarReserva()">Salvar Reserva</button>
     <button style="background:#ef4444;color:#fff" onclick="excluirElemento()">Excluir Elemento</button>
     <button onclick="fecharModal()">Cancelar</button>
   </div>
@@ -106,6 +112,11 @@ const listaNaoReservaveis=document.getElementById('listaNaoReservaveis')
 let setorAtual='SALAO'
 let ativo=null
 const SENHA_EXCLUSAO='1234'
+
+/* UTIL */
+function showOverlay(msg){overlay.innerText=msg;overlay.style.display='flex'}
+function hideOverlay(){overlay.style.display='none'}
+function setStatus(color){status.style.background=color}
 
 /* DRAG */
 function drag(el){
@@ -148,6 +159,7 @@ mapa.ondrop=e=>{
 
 /* RESERVA */
 function salvarReserva(){
+  if(!ativo)return alert('Nenhum elemento selecionado')
   ativo.querySelector('.nome-reserva').innerText=
     `${clienteNome.value} • ${qtdPessoas.value}`
   ativo.classList.add('reservado')
@@ -156,9 +168,10 @@ function salvarReserva(){
 }
 
 function excluirElemento(){
+  if(!ativo)return
   if(ativo.classList.contains('reservado')){
     if(!confirm('Elemento possui reserva. Excluir?'))return
-    if(prompt('Senha:')!==SENHA_EXCLUSAO)return
+    if(prompt('Senha:')!==SENHA_EXCLUSAO)return alert('Senha incorreta')
   }
   ativo.remove()
   salvarMapa()
@@ -169,25 +182,39 @@ function fecharModal(){modal.classList.remove('active')}
 
 /* SUPABASE */
 async function salvarMapa(){
-  status.style.background='#f97316'
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    setor:setorAtual,
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    nome:i.querySelector('.nome-reserva').innerText
-  }))
-  await supabase.from('mapa_itens').delete().eq('setor',setorAtual)
-  await supabase.from('mapa_itens').insert(itens)
-  status.style.background='#22c55e'
+  try{
+    setStatus('#f97316')
+    const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+      setor:setorAtual,
+      url:i.querySelector('img').src,
+      x:parseFloat(i.style.left),
+      y:parseFloat(i.style.top),
+      nome:i.querySelector('.nome-reserva').innerText
+    }))
+    await supabase.from('mapa_itens').delete().eq('setor',setorAtual)
+    const {error}=await supabase.from('mapa_itens').insert(itens)
+    if(error)throw error
+    setStatus('#22c55e')
+  }catch(e){
+    console.error(e)
+    setStatus('#ef4444')
+    alert('Erro ao salvar mapa')
+  }
 }
 
 async function carregarMapa(){
-  overlay.style.display='flex'
-  mapa.innerHTML=''
-  const {data}=await supabase.from('mapa_itens').select('*').eq('setor',setorAtual)
-  ;(data||[]).forEach(criarItem)
-  overlay.style.display='none'
+  try{
+    showOverlay('Carregando ambiente...')
+    mapa.innerHTML=''
+    const {data,error}=await supabase.from('mapa_itens').select('*').eq('setor',setorAtual)
+    if(error)throw error
+    ;(data||[]).forEach(criarItem)
+  }catch(e){
+    console.error(e)
+    alert('Erro ao carregar ambiente')
+  }finally{
+    hideOverlay()
+  }
 }
 
 /* LATERAL */
