@@ -7,7 +7,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a;--red:#ef4444}
+:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a}
 *{box-sizing:border-box}
 body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);display:flex;height:100vh}
 
@@ -35,12 +35,12 @@ main{flex:1;overflow:hidden}
 }
 
 /* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:2000}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:2000}
 .modal.active{display:flex}
-.modal-box{background:#fff;padding:20px;width:320px;border-radius:12px}
+.modal-box{background:#fff;padding:20px;width:320px;border-radius:10px}
 .modal-box button{width:100%;margin-top:8px}
 
-/* MENU */
+/* MENU SETORES */
 #menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:10px;display:flex;gap:6px;z-index:999}
 #menuSetores button{background:#1e293b;color:#fff;padding:8px 10px;border-radius:6px;font-size:12px}
 #menuSetores button.ativo{background:#2563eb}
@@ -69,7 +69,7 @@ main{flex:1;overflow:hidden}
 </main>
 
 <div id="menuSetores">
-  <button data-setor="SALAO" class="ativo">Salão</button>
+  <button data-setor="SALAO">Salão</button>
   <button data-setor="PAULO">Paulo</button>
   <button data-setor="SACADA">Sacada</button>
 </div>
@@ -93,15 +93,10 @@ const SUPABASE_URL='https://tquozhniusmletzykkxx.supabase.co'
 const SUPABASE_ANON_KEY='sb_publishable_WQyyI1E8VnXDGgqsle5Ncg_NsOXT4Rp'
 const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)
 
-/* DOM */
 const mapa=document.getElementById('mapa')
 const modal=document.getElementById('modal')
 const overlay=document.getElementById('overlay')
 const status=document.getElementById('status')
-const listaReservaveis=document.getElementById('listaReservaveis')
-const listaNaoReservaveis=document.getElementById('listaNaoReservaveis')
-const clienteNome=document.getElementById('clienteNome')
-const qtdPessoas=document.getElementById('qtdPessoas')
 
 let setorAtual='SALAO'
 let ativo=null
@@ -142,13 +137,12 @@ function criarItem(d){
 /* DROP */
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
-  criarItem({url:e.dataTransfer.getData('url'),x:e.offsetX,y:e.offsetY,nome:''})
+  criarItem({url:e.dataTransfer.getData('url'),x:e.offsetX,y:e.offsetY})
   salvarMapa()
 }
 
 /* RESERVA */
 function salvarReserva(){
-  if(!ativo)return
   ativo.querySelector('.nome-reserva').innerText=
     `${clienteNome.value} • ${qtdPessoas.value}`
   ativo.classList.add('reservado')
@@ -157,7 +151,6 @@ function salvarReserva(){
 }
 
 function excluirElemento(){
-  if(!ativo)return
   if(ativo.classList.contains('reservado')){
     if(!confirm('Elemento possui reserva. Excluir?'))return
     if(prompt('Senha:')!==SENHA_EXCLUSAO)return
@@ -169,7 +162,7 @@ function excluirElemento(){
 
 function fecharModal(){modal.classList.remove('active')}
 
-/* SUPABASE */
+/* SUPABASE CRUD */
 async function salvarMapa(){
   status.style.background='#f97316'
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
@@ -188,7 +181,7 @@ async function carregarMapa(){
   overlay.style.display='flex'
   mapa.innerHTML=''
   const {data}=await supabase.from('mapa_itens').select('*').eq('setor',setorAtual)
-  ;(data||[]).forEach(criarItem)
+  data.forEach(criarItem)
   overlay.style.display='none'
 }
 
