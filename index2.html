@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Mapa de Mesas • Restaurante</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+:root{
+  --bg:#f4f6f8;
+  --primary:#2563eb;
+  --border:#dcdfe4;
+  --green:#16a34a;
+  --danger:#dc2626;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family:Inter, Arial, sans-serif;
+  background:var(--bg);
+  display:flex;
+  height:100vh;
+}
+
+/* SIDEBAR */
+aside{
+  width:280px;
+  background:#0f172a;
+  color:#fff;
+  padding:16px;
+  overflow-y:auto;
+}
+h2,h3{margin-top:0}
+button{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+input{width:100%;padding:8px;margin-bottom:8px}
+
+/* ELEMENTOS */
+.elementos{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-bottom:16px;
+}
+.elemento{
+  background:#020617;
+  border:1px dashed #475569;
+  border-radius:6px;
+  padding:6px;
+  cursor:grab;
+  display:flex;
+  justify-content:center;
+}
+.elemento img{width:42px;pointer-events:none}
+
+/* MAIN */
+main{flex:1;overflow:hidden}
+#viewport{
+  width:100%;
+  height:100%;
+  overflow:scroll;
+  cursor:grab;
+  background:#e5e7eb;
+}
+#mapa{
+  position:relative;
+  width:5000px;
+  height:5000px;
+  background:#fff;
+  border:2px dashed var(--border);
+}
+
+/* ITEM */
+.item-mapa{
+  position:absolute;
+  cursor:grab;
+  text-align:center;
+}
+.item-mapa img{width:150px;pointer-events:none}
+.item-mapa.reservado{outline:2px solid var(--green)}
+.nome-reserva{
+  font-size:11px;
+  margin-top:2px;
+  font-weight:600;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.modal.active{display:flex}
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:300px;
+  border-radius:10px;
+}
+.modal-box .danger{
+  background:var(--danger);
+}
+
+/* MENU SETORES */
+#menuSetores{
+  position:fixed;
+  top:16px;
+  right:16px;
+  background:#0f172a;
+  padding:8px;
+  border-radius:10px;
+  display:flex;
+  gap:6px;
+  z-index:999;
+}
+#menuSetores button{
+  background:#1e293b;
+  color:#fff;
+  padding:8px 10px;
+  border-radius:6px;
+  font-size:12px;
+}
+#menuSetores button.ativo{background:#2563eb}
+
+/* STATUS */
+#statusSync{
+  position:fixed;
+  bottom:16px;
+  right:16px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  box-shadow:0 0 0 3px rgba(0,0,0,.15);
+  z-index:1000;
+}
+#statusSync.online{background:#22c55e}
+#statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
+#statusSync.offline{background:#ef4444}
+@keyframes pulse{50%{opacity:.4}}
+</style>
+</head>
+
+<body>
+
+<aside>
+  <h2>Elementos</h2>
+
+  <h3>Reserváveis</h3>
+  <div class="elementos" id="listaReservaveis"></div>
+
+  <h3>Não Reserváveis</h3>
+  <div class="elementos" id="listaNaoReservaveis"></div>
+</aside>
+
+<main>
+  <div id="viewport"><div id="mapa"></div></div>
+</main>
+
+<div id="menuSetores">
+  <button data-setor="SALAO_PRINCIPAL">Salão</button>
+  <button data-setor="PAULO_1">Paulo 1</button>
+  <button data-setor="PAULO_2">Paulo 2</button>
+  <button data-setor="SACADA">Sacada</button>
+</div>
+
+<div id="statusSync" class="offline"></div>
+
+<!-- MODAL -->
+<div class="modal" id="modalReserva">
+  <div class="modal-box">
+    <h3>Reserva</h3>
+    <input id="clienteNome" placeholder="Nome">
+    <input id="clienteCelular" placeholder="Celular">
+    <input id="qtdPessoas" type="number" value="2">
+
+    <button onclick="salvarReserva()">Salvar</button>
+    <button onclick="excluirMesa()" class="danger">🗑️ Excluir Mesa</button>
+    <button onclick="fecharReserva()">Cancelar</button>
+  </div>
+</div>
+
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
+const API_TOKEN='MAPA_MESAS_2025'
+
+const mapa=document.getElementById('mapa')
+const modalReserva=document.getElementById('modalReserva')
+const statusSync=document.getElementById('statusSync')
+
+let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
+let reservando=null
+
+function setStatus(s){statusSync.className=s}
+
+function salvarMapa(){
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+    url:i.querySelector('img').src,
+    x:parseFloat(i.style.left),
+    y:parseFloat(i.style.top),
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
+  }))
+  setStatus('syncing')
+  fetch(API_URL,{method:'POST',body:JSON.stringify({
+    token:API_TOKEN,setor:setorAtual,dados:itens
+  })})
+  .then(()=>setStatus('online'))
+  .catch(()=>setStatus('offline'))
+}
+
+function criarItem(url,res,x,y){
+  const i=document.createElement('div')
+  i.className='item-mapa'
+  i.dataset.reservavel=res
+  i.style.left=x+'px'
+  i.style.top=y+'px'
+  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
+  i.ondblclick=()=>{
+    reservando=i
+    modalReserva.classList.add('active')
+  }
+  mapa.appendChild(i)
+  drag(i)
+  salvarMapa()
+}
+
+function drag(el){
+  let x,y
+  el.onmousedown=e=>{
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      x=ev.clientX;y=ev.clientY
+    }
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
+  }
+}
+
+function salvarReserva(){
+  reservando.dataset.cliente=clienteNome.value
+  reservando.dataset.celular=clienteCelular.value
+  reservando.dataset.pessoas=qtdPessoas.value
+  reservando.classList.add('reservado')
+  reservando.querySelector('.nome-reserva').textContent=
+    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+  salvarMapa()
+  fecharReserva()
+}
+
+function excluirMesa(){
+  if(!reservando) return
+  if(confirm('Deseja realmente excluir esta mesa?')){
+    reservando.remove()
+    salvarMapa()
+    fecharReserva()
+  }
+}
+
+function fecharReserva(){
+  modalReserva.classList.remove('active')
+  reservando=null
+}
+</script>
+
+</body>
+</html>
