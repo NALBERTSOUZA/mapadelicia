@@ -5,39 +5,50 @@
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
+:root{
+  --bg:#f4f6f8;
+  --primary:#2563eb;
+  --border:#dcdfe4;
+  --green:#16a34a;
+}
+*{box-sizing:border-box}
 body{
   margin:0;
   font-family:Inter, Arial, sans-serif;
+  background:var(--bg);
+  display:flex;
   height:100vh;
-  display:flex;
 }
-#overlay{
-  position:fixed;
-  inset:0;
-  background:#020617;
-  color:#fff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  z-index:9999;
-}
-#overlay.error{background:#7f1d1d}
-#overlay.hidden{display:none}
 
+/* SIDEBAR */
 aside{
   width:280px;
   background:#0f172a;
   color:#fff;
   padding:16px;
+  overflow-y:auto;
 }
+h2,h3{margin-top:0}
+button{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
+input{width:100%;padding:8px;margin-bottom:8px}
+
+/* ELEMENTOS */
 .elementos{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:10px;
+  margin-bottom:16px;
 }
 .elemento{
   background:#020617;
@@ -48,120 +59,336 @@ aside{
   display:flex;
   justify-content:center;
 }
-.elemento img{width:42px}
+.elemento img{width:42px;pointer-events:none}
 
-main{flex:1}
-#viewport{width:100%;height:100%;overflow-x:auto;background:#e5e7eb}
-#mapa{width:6000px;height:100%;position:relative;background:#fff}
+/* MAIN */
+main{flex:1;overflow:hidden}
+#viewport{
+  width:100%;
+  height:100%;
+  overflow:scroll;
+  cursor:grab;
+  background:#e5e7eb;
+}
+#mapa{
+  position:relative;
+  width:5000px;
+  height:5000px;
+  background:#fff;
+  border:2px dashed var(--border);
+}
 
+/* ITEM */
 .item-mapa{
   position:absolute;
-  width:150px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
+  cursor:grab;
+  text-align:center;
 }
-.item-mapa img{width:150px}
+.item-mapa img{width:150px;pointer-events:none}
+.item-mapa.selected{outline:2px solid var(--primary);border-radius:6px}
+.item-mapa.reservado{outline:2px solid var(--green)}
+.nome-reserva{
+  font-size:11px;
+  margin-top:2px;
+  font-weight:600;
+}
+
+/* MODAL */
+.modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+.modal.active{display:flex}
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:300px;
+  border-radius:10px;
+}
+
+/* MENU SETORES */
+#menuSetores{
+  position:fixed;
+  top:16px;
+  right:16px;
+  background:#0f172a;
+  padding:8px;
+  border-radius:10px;
+  display:flex;
+  gap:6px;
+  z-index:999;
+}
+#menuSetores button{
+  background:#1e293b;
+  color:#fff;
+  padding:8px 10px;
+  border-radius:6px;
+  font-size:12px;
+}
+#menuSetores button.ativo{background:#2563eb}
+
+/* STATUS */
+#statusSync{
+  position:fixed;
+  bottom:16px;
+  right:16px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  box-shadow:0 0 0 3px rgba(0,0,0,.15);
+  z-index:1000;
+}
+#statusSync.online{background:#22c55e}
+#statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
+#statusSync.offline{background:#ef4444}
+@keyframes pulse{50%{opacity:.4}}
+
+/* OVERLAY */
+#overlayLoading{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.92);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+  color:#fff;
+}
+#overlayLoading.hidden{display:none}
+.spinner{
+  width:42px;height:42px;
+  border:4px solid rgba(255,255,255,.3);
+  border-top-color:#2563eb;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
 
-<div id="overlay">
-  <h2>Carregando mapa…</h2>
-  <small id="status">Inicializando</small>
+<!-- OVERLAY -->
+<div id="overlayLoading" class="hidden">
+  <div>
+    <div class="spinner"></div>
+    <div id="overlayText">Carregando ambiente...</div>
+  </div>
 </div>
 
 <aside>
+  <h2>Elementos</h2>
+  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
+
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
 
-  <h3>Não reserváveis</h3>
+  <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
 
 <main>
-  <div id="viewport">
-    <div id="mapa"></div>
-  </div>
+  <div id="viewport"><div id="mapa"></div></div>
 </main>
 
+<div id="menuSetores">
+  <button data-setor="SALAO_PRINCIPAL">Salão</button>
+  <button data-setor="PAULO_1">Paulo 1</button>
+  <button data-setor="PAULO_2">Paulo 2</button>
+  <button data-setor="SACADA">Sacada</button>
+</div>
+
+<div id="statusSync" class="offline"></div>
+
+<div class="modal" id="modalReserva">
+  <div class="modal-box">
+    <h3>Reserva</h3>
+    <input id="clienteNome" placeholder="Nome">
+    <input id="clienteCelular" placeholder="Celular">
+    <input id="qtdPessoas" type="number" value="2">
+    <button onclick="salvarReserva()">Salvar</button>
+    <button onclick="fecharReserva()">Cancelar</button>
+  </div>
+</div>
+
 <script>
-/* ================= SUPABASE ================= */
-const supabase = window.supabase.createClient(
-  'https://fzyosadzuvbktvmnzdpf.supabase.co',
-  'sb_publishable_VuMi0uFLuzTAPdSL36uyNg_YhD_uPK0'
-)
+const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
+const API_TOKEN='MAPA_MESAS_2025'
 
-/* ================= REFS ================= */
-const overlay = document.getElementById('overlay')
-const status = document.getElementById('status')
-const mapa = document.getElementById('mapa')
-const listaRes = document.getElementById('listaReservaveis')
-const listaNao = document.getElementById('listaNaoReservaveis')
+const overlay=document.getElementById('overlayLoading')
+const overlayText=document.getElementById('overlayText')
+const statusSync=document.getElementById('statusSync')
+const mapa=document.getElementById('mapa')
+const modalReserva=document.getElementById('modalReserva')
 
-/* ================= LOAD ELEMENTOS ================= */
-async function carregarElementos(){
-  status.textContent = 'Carregando elementos…'
+let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
+let sincronizando=false
+let syncPromise=Promise.resolve()
+const ambientesCarregados=new Set()
 
-  const { data, error } = await supabase
-    .from('elementos_mapa')
-    .select('*')
-    .eq('ativo', true)
+function nomeSetor(s){
+  return {
+    SALAO_PRINCIPAL:'Salão Principal',
+    PAULO_1:'Paulo Augusto 1',
+    PAULO_2:'Paulo Augusto 2',
+    SACADA:'Sacada'
+  }[s]
+}
 
-  if(error) throw error
+function setStatus(s){statusSync.className=s}
 
-  data.forEach(el=>{
-    const div=document.createElement('div')
-    div.className='elemento'
-    div.innerHTML=`<img src="${el.url_da_imagem}">`
-    ;(el.tipo==='reservavel'?listaRes:listaNao).appendChild(div)
+function mostrarOverlay(txt){
+  overlayText.textContent=txt
+  overlay.classList.remove('hidden')
+}
+function esconderOverlay(){overlay.classList.add('hidden')}
+
+function salvarMapa(){
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+    url:i.querySelector('img').src,
+    x:parseFloat(i.style.left),
+    y:parseFloat(i.style.top),
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
+  }))
+  sincronizando=true
+  setStatus('syncing')
+  syncPromise=fetch(API_URL,{method:'POST',body:JSON.stringify({
+    token:API_TOKEN,setor:setorAtual,dados:itens
+  })})
+  .then(r=>r.json())
+  .then(r=>setStatus(r.ok?'online':'offline'))
+  .finally(()=>sincronizando=false)
+}
+
+function carregarMapa(force=false){
+  if(force||!ambientesCarregados.has(setorAtual))
+    mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
+
+  fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
+  .then(r=>r.json())
+  .then(r=>{
+    montarMapa(r.dados||[])
+    setStatus('online')
+  })
+  .catch(()=>setStatus('offline'))
+  .finally(()=>{
+    ambientesCarregados.add(setorAtual)
+    setTimeout(esconderOverlay,300)
   })
 }
 
-/* ================= LOAD MAPA ================= */
-async function carregarMapa(){
-  status.textContent = 'Carregando mapa…'
+function montarMapa(d){
+  mapa.innerHTML=''
+  d.forEach(x=>{
+    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
+    if(x.ok){
+      i.dataset.cliente=x.c
+      i.dataset.celular=x.cel
+      i.dataset.pessoas=x.p
+      i.classList.add('reservado')
+      i.querySelector('.nome-reserva').textContent=
+        `${x.c} • ${x.p} pessoas`
+    }
+  })
+}
 
-  const { data, error } = await supabase
-    .from('mapa_mesas')
-    .select('*')
+function criarItem(url,res,x,y,salvar=true){
+  const i=document.createElement('div')
+  i.className='item-mapa'
+  i.dataset.reservavel=res
+  i.style.left=x+'px'
+  i.style.top=y+'px'
+  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
+  i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
+  mapa.appendChild(i)
+  drag(i)
+  if(salvar) salvarMapa()
+  return i
+}
 
-  if(error) throw error
-
-  for(const row of data){
-    const { data: el, error: eErr } = await supabase
-      .from('elementos_mapa')
-      .select('*')
-      .eq('id', row.elemento_id)
-      .single()
-
-    if(eErr) throw eErr
-
-    const item=document.createElement('div')
-    item.className='item-mapa'
-    item.style.left=row.x+'px'
-    item.style.top=row.y+'px'
-    item.innerHTML=`<img src="${el.url_da_imagem}">`
-    mapa.appendChild(item)
+function drag(el){
+  let x,y
+  el.onmousedown=e=>{
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      x=ev.clientX;y=ev.clientY
+    }
+    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
   }
 }
 
-/* ================= INIT ================= */
-(async()=>{
-  try{
-    await carregarElementos()
-    await carregarMapa()
-    overlay.classList.add('hidden')
-  }catch(err){
-    console.error(err)
-    overlay.classList.add('error')
-    overlay.innerHTML = `
-      <h2>Erro ao carregar</h2>
-      <small>${err.message}</small>
-    `
+mapa.ondragover=e=>e.preventDefault()
+mapa.ondrop=e=>{
+  criarItem(e.dataTransfer.getData('url'),
+             e.dataTransfer.getData('r')==='true',
+             e.offsetX,e.offsetY)
+}
+
+const reservaveis=[
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
+]
+const nao=[
+ 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
+]
+reservaveis.forEach(u=>add(u,true))
+nao.forEach(u=>add(u,false))
+
+function add(url,res){
+  const d=document.createElement('div')
+  d.className='elemento'
+  d.draggable=true
+  d.innerHTML=`<img src="${url}">`
+  d.ondragstart=e=>{
+    e.dataTransfer.setData('url',url)
+    e.dataTransfer.setData('r',res)
   }
-})()
+  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
+}
+
+let reservando=null
+function salvarReserva(){
+  reservando.dataset.cliente=clienteNome.value
+  reservando.dataset.celular=clienteCelular.value
+  reservando.dataset.pessoas=qtdPessoas.value
+  reservando.classList.add('reservado')
+  reservando.querySelector('.nome-reserva').textContent=
+    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+  salvarMapa()
+  fecharReserva()
+}
+function fecharReserva(){modalReserva.classList.remove('active')}
+
+document.querySelectorAll('#menuSetores button').forEach(b=>{
+  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
+  b.onclick=async()=>{
+    if(b.dataset.setor===setorAtual)return
+    if(sincronizando){
+      mostrarOverlay('Terminando sincronização...')
+      await syncPromise
+    }
+    setorAtual=b.dataset.setor
+    localStorage.setItem('setor_atual',setorAtual)
+    document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
+    b.classList.add('ativo')
+    carregarMapa(true)
+  }
+})
+
+carregarMapa(true)
+setInterval(()=>carregarMapa(false),10000)
 </script>
 
 </body>
