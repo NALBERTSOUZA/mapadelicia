@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 :root{
@@ -12,6 +11,7 @@
   --primary:#2563eb;
   --border:#dcdfe4;
   --green:#16a34a;
+  --danger:#dc2626;
 }
 *{box-sizing:border-box}
 body{
@@ -86,7 +86,6 @@ main{flex:1;overflow:hidden}
   text-align:center;
 }
 .item-mapa img{width:150px;pointer-events:none}
-.item-mapa.selected{outline:2px solid var(--primary);border-radius:6px}
 .item-mapa.reservado{outline:2px solid var(--green)}
 .nome-reserva{
   font-size:11px;
@@ -108,6 +107,9 @@ main{flex:1;overflow:hidden}
   padding:20px;
   width:300px;
   border-radius:10px;
+}
+.modal-box .danger{
+  background:var(--danger);
 }
 
 /* MENU SETORES */
@@ -173,16 +175,16 @@ main{flex:1;overflow:hidden}
 
 <body>
 
+<!-- OVERLAY -->
 <div id="overlayLoading" class="hidden">
   <div>
     <div class="spinner"></div>
-    <div id="overlayText">Conectando ao Supabase...</div>
+    <div id="overlayText">Carregando ambiente...</div>
   </div>
 </div>
 
 <aside>
   <h2>Elementos</h2>
-  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
@@ -192,7 +194,6 @@ main{flex:1;overflow:hidden}
 </aside>
 
 <main>
->
   <div id="viewport"><div id="mapa"></div></div>
 </main>
 
@@ -205,96 +206,51 @@ main{flex:1;overflow:hidden}
 
 <div id="statusSync" class="offline"></div>
 
+<!-- MODAL -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
+
     <button onclick="salvarReserva()">Salvar</button>
+    <button class="danger" onclick="excluirMesa()">🗑️ Excluir Mesa</button>
     <button onclick="fecharReserva()">Cancelar</button>
   </div>
 </div>
 
 <script>
-/* ================= SUPABASE ================= */
+const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
+const API_TOKEN='MAPA_MESAS_2025'
 
-const supabase = window.supabase.createClient(
-  'https://vbrdtzrmotmjrqewvxit.supabase.co',
-  'sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
-)
+const overlay=document.getElementById('overlayLoading')
+const overlayText=document.getElementById('overlayText')
+const statusSync=document.getElementById('statusSync')
+const mapa=document.getElementById('mapa')
+const modalReserva=document.getElementById('modalReserva')
 
-let user = null
+let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
+let sincronizando=false
+let syncPromise=Promise.resolve()
+const ambientesCarregados=new Set()
+let reservando=null
 
-const overlay = document.getElementById('overlayLoading')
-const overlayText = document.getElementById('overlayText')
-const statusSync = document.getElementById('statusSync')
-const mapa = document.getElementById('mapa')
-const modalReserva = document.getElementById('modalReserva')
-
-let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
-let sincronizando = false
-let syncPromise = Promise.resolve()
-const ambientesCarregados = new Set()
-let reservando = null
-
-function setStatus(s){ statusSync.className = s }
-
-function mostrarOverlay(txt){
-  overlayText.textContent = txt
-  overlay.classList.remove('hidden')
-}
-function esconderOverlay(){ overlay.classList.add('hidden') }
-
-/* ================= AUTH ================= */
-
-async function conectarSupabase(){
-  try{
-    mostrarOverlay('Conectando ao Supabase...')
-    setStatus('syncing')
-
-    const { data } = await supabase.auth.getUser()
-    if(data.user){
-      user = data.user
-    }else{
-      const r = await supabase.auth.signInAnonymously()
-      if(r.error) throw r.error
-      user = r.data.user
-    }
-
-    setStatus('online')
-  }catch(e){
-    setStatus('offline')
-    mostrarOverlay('Erro Supabase: ' + e.message)
-    throw e
-  }finally{
-    setTimeout(esconderOverlay,300)
-  }
+function nomeSetor(s){
+  return {
+    SALAO_PRINCIPAL:'Salão Principal',
+    PAULO_1:'Paulo Augusto 1',
+    PAULO_2:'Paulo Augusto 2',
+    SACADA:'Sacada'
+  }[s]
 }
 
-/* ================= DRAG ================= */
-
-function drag(el){
-  let x,y
-  el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
-  }
-}
-
-/* ================= MAPA ================= */
+function setStatus(s){statusSync.className=s}
+function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
+function esconderOverlay(){overlay.classList.add('hidden')}
 
 function salvarMapa(){
-  if(!user) return
-
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    user_id:user.id,
-    setor:setorAtual,
     url:i.querySelector('img').src,
     x:parseFloat(i.style.left),
     y:parseFloat(i.style.top),
@@ -304,45 +260,45 @@ function salvarMapa(){
     p:i.dataset.pessoas||'',
     ok:i.classList.contains('reservado')
   }))
-
   sincronizando=true
   setStatus('syncing')
-
-  syncPromise = supabase.from('mapa_itens')
-    .delete().eq('user_id',user.id).eq('setor',setorAtual)
-    .then(()=> itens.length && supabase.from('mapa_itens').insert(itens))
-    .then(()=>setStatus('online'))
-    .catch(()=>setStatus('offline'))
-    .finally(()=>sincronizando=false)
+  syncPromise=fetch(API_URL,{method:'POST',body:JSON.stringify({
+    token:API_TOKEN,setor:setorAtual,dados:itens
+  })})
+  .then(()=>setStatus('online'))
+  .finally(()=>sincronizando=false)
 }
 
 function carregarMapa(force=false){
-  if(force || !ambientesCarregados.has(setorAtual))
-    mostrarOverlay('Carregando ambiente...')
+  if(force||!ambientesCarregados.has(setorAtual))
+    mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
 
-  supabase.from('mapa_itens')
-    .select('*')
-    .eq('user_id',user.id)
-    .eq('setor',setorAtual)
-    .then(r=>{
-      mapa.innerHTML=''
-      ;(r.data||[]).forEach(x=>{
-        const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
-        if(x.ok){
-          i.dataset.cliente=x.c
-          i.dataset.celular=x.cel
-          i.dataset.pessoas=x.p
-          i.classList.add('reservado')
-          i.querySelector('.nome-reserva').textContent=`${x.c} • ${x.p} pessoas`
-        }
-      })
-      setStatus('online')
-    })
-    .catch(()=>setStatus('offline'))
-    .finally(()=>{
-      ambientesCarregados.add(setorAtual)
-      setTimeout(esconderOverlay,300)
-    })
+  fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
+  .then(r=>r.json())
+  .then(r=>{
+    montarMapa(r.dados||[])
+    setStatus('online')
+  })
+  .catch(()=>setStatus('offline'))
+  .finally(()=>{
+    ambientesCarregados.add(setorAtual)
+    setTimeout(esconderOverlay,300)
+  })
+}
+
+function montarMapa(d){
+  mapa.innerHTML=''
+  d.forEach(x=>{
+    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
+    if(x.ok){
+      i.dataset.cliente=x.c
+      i.dataset.celular=x.cel
+      i.dataset.pessoas=x.p
+      i.classList.add('reservado')
+      i.querySelector('.nome-reserva').textContent=
+        `${x.c} • ${x.p} pessoas`
+    }
+  })
 }
 
 function criarItem(url,res,x,y,salvar=true){
@@ -359,7 +315,43 @@ function criarItem(url,res,x,y,salvar=true){
   return i
 }
 
-/* ================= DROP ================= */
+function drag(el){
+  let x,y
+  el.onmousedown=e=>{
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      x=ev.clientX;y=ev.clientY
+    }
+    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
+  }
+}
+
+function excluirMesa(){
+  if(!reservando) return
+  if(confirm('Deseja realmente excluir esta mesa?')){
+    reservando.remove()
+    salvarMapa()
+    fecharReserva()
+  }
+}
+
+function salvarReserva(){
+  reservando.dataset.cliente=clienteNome.value
+  reservando.dataset.celular=clienteCelular.value
+  reservando.dataset.pessoas=qtdPessoas.value
+  reservando.classList.add('reservado')
+  reservando.querySelector('.nome-reserva').textContent=
+    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+  salvarMapa()
+  fecharReserva()
+}
+
+function fecharReserva(){
+  modalReserva.classList.remove('active')
+  reservando=null
+}
 
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
@@ -370,8 +362,6 @@ mapa.ondrop=e=>{
   )
 }
 
-/* ================= ELEMENTOS ================= */
-
 const reservaveis=[
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
@@ -381,6 +371,8 @@ const nao=[
  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
  'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
+reservaveis.forEach(u=>add(u,true))
+nao.forEach(u=>add(u,false))
 
 function add(url,res){
   const d=document.createElement('div')
@@ -393,45 +385,9 @@ function add(url,res){
   }
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
-reservaveis.forEach(u=>add(u,true))
-nao.forEach(u=>add(u,false))
 
-/* ================= RESERVA ================= */
-
-function salvarReserva(){
-  reservando.dataset.cliente=clienteNome.value
-  reservando.dataset.celular=clienteCelular.value
-  reservando.dataset.pessoas=qtdPessoas.value
-  reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent=
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
-  salvarMapa()
-  fecharReserva()
-}
-function fecharReserva(){modalReserva.classList.remove('active')}
-
-/* ================= SETORES ================= */
-
-document.querySelectorAll('#menuSetores button').forEach(b=>{
-  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
-  b.onclick=async()=>{
-    if(b.dataset.setor===setorAtual)return
-    if(sincronizando) await syncPromise
-    setorAtual=b.dataset.setor
-    localStorage.setItem('setor_atual',setorAtual)
-    document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
-    b.classList.add('ativo')
-    carregarMapa(true)
-  }
-})
-
-/* ================= INIT ================= */
-
-;(async()=>{
-  await conectarSupabase()
-  carregarMapa(true)
-  setInterval(()=>carregarMapa(false),10000)
-})()
+carregarMapa(true)
+setInterval(()=>carregarMapa(false),10000)
 </script>
 
 </body>
