@@ -35,9 +35,9 @@ main{flex:1;overflow:hidden}
 }
 
 /* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:2000}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:2000}
 .modal.active{display:flex}
-.modal-box{background:#fff;padding:20px;width:320px;border-radius:10px}
+.modal-box{background:#fff;padding:20px;width:320px;border-radius:12px}
 .modal-box button{width:100%;margin-top:8px}
 
 /* MENU SETORES */
@@ -49,7 +49,7 @@ main{flex:1;overflow:hidden}
 #status{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%;background:#ef4444}
 
 /* OVERLAY */
-#overlay{position:fixed;inset:0;background:rgba(15,23,42,.9);display:none;align-items:center;justify-content:center;z-index:3000;color:#fff}
+#overlay{position:fixed;inset:0;background:rgba(15,23,42,.9);display:none;align-items:center;justify-content:center;z-index:3000;color:#fff;font-size:15px}
 </style>
 </head>
 
@@ -69,7 +69,7 @@ main{flex:1;overflow:hidden}
 </main>
 
 <div id="menuSetores">
-  <button data-setor="SALAO">Salão</button>
+  <button data-setor="SALAO" class="ativo">Salão</button>
   <button data-setor="PAULO">Paulo</button>
   <button data-setor="SACADA">Sacada</button>
 </div>
@@ -78,7 +78,7 @@ main{flex:1;overflow:hidden}
 
 <div class="modal" id="modal">
   <div class="modal-box">
-    <h3>Reserva</h3>
+    <h3>Reserva / Elemento</h3>
     <input id="clienteNome" placeholder="Nome">
     <input id="qtdPessoas" type="number" value="2">
     <button onclick="salvarReserva()">Salvar</button>
@@ -93,10 +93,15 @@ const SUPABASE_URL='https://tquozhniusmletzykkxx.supabase.co'
 const SUPABASE_ANON_KEY='sb_publishable_WQyyI1E8VnXDGgqsle5Ncg_NsOXT4Rp'
 const supabase=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY)
 
+/* DOM */
 const mapa=document.getElementById('mapa')
 const modal=document.getElementById('modal')
 const overlay=document.getElementById('overlay')
 const status=document.getElementById('status')
+const clienteNome=document.getElementById('clienteNome')
+const qtdPessoas=document.getElementById('qtdPessoas')
+const listaReservaveis=document.getElementById('listaReservaveis')
+const listaNaoReservaveis=document.getElementById('listaNaoReservaveis')
 
 let setorAtual='SALAO'
 let ativo=null
@@ -162,7 +167,7 @@ function excluirElemento(){
 
 function fecharModal(){modal.classList.remove('active')}
 
-/* SUPABASE CRUD */
+/* SUPABASE */
 async function salvarMapa(){
   status.style.background='#f97316'
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
@@ -181,7 +186,7 @@ async function carregarMapa(){
   overlay.style.display='flex'
   mapa.innerHTML=''
   const {data}=await supabase.from('mapa_itens').select('*').eq('setor',setorAtual)
-  data.forEach(criarItem)
+  ;(data||[]).forEach(criarItem)
   overlay.style.display='none'
 }
 
