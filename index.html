@@ -84,7 +84,7 @@ main{
   overflow:hidden;
 }
 
-/* VIEWPORT (AREA VISÍVEL) */
+/* VIEWPORT */
 #viewport{
   width:100%;
   height:100%;
@@ -93,7 +93,7 @@ main{
   background:#e5e7eb;
 }
 
-/* MAPA INFINITO */
+/* MAPA */
 #mapa{
   position:relative;
   width:5000px;
@@ -104,7 +104,7 @@ main{
   transform-origin:0 0;
 }
 
-/* ITEM NO MAPA */
+/* ITEM */
 .item-mapa{
   position:absolute;
   cursor:grab;
@@ -157,16 +157,29 @@ main{
   display:block;
 }
 
-.modal-box input{
-  width:100%;
+/* MENU SETORES */
+#menuSetores{
+  position:fixed;
+  top:16px;
+  right:16px;
+  background:#0f172a;
   padding:8px;
-  margin-top:4px;
+  border-radius:10px;
+  display:flex;
+  gap:6px;
+  z-index:999;
 }
 
-.modal-actions{
-  margin-top:15px;
-  display:flex;
-  gap:10px;
+#menuSetores button{
+  background:#1e293b;
+  color:#fff;
+  padding:8px 10px;
+  border-radius:6px;
+  font-size:12px;
+}
+
+#menuSetores button.ativo{
+  background:#2563eb;
 }
 </style>
 </head>
@@ -175,7 +188,6 @@ main{
 
 <aside>
   <h2>Elementos</h2>
-
   <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
   <h3>Reserváveis</h3>
@@ -191,216 +203,138 @@ main{
   </div>
 </main>
 
-<!-- MODAL RESERVA -->
+<!-- MENU SETORES -->
+<div id="menuSetores">
+  <button data-setor="SALAO_PRINCIPAL" class="ativo">Salão</button>
+  <button data-setor="PAULO_1">Paulo 1</button>
+  <button data-setor="PAULO_2">Paulo 2</button>
+  <button data-setor="SACADA">Sacada</button>
+</div>
+
+<!-- MODAL -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
-
-    <label>Nome do Cliente</label>
+    <label>Nome</label>
     <input id="clienteNome">
-
     <label>Celular</label>
     <input id="clienteCelular">
-
-    <label>Quantidade de Pessoas</label>
-    <input id="qtdPessoas" type="number" min="1" value="2">
-
-    <div class="modal-actions">
-      <button onclick="salvarReserva()">Salvar</button>
-      <button onclick="fecharReserva()">Cancelar</button>
-    </div>
+    <label>Pessoas</label>
+    <input id="qtdPessoas" type="number" value="2">
+    <button onclick="salvarReserva()">Salvar</button>
+    <button onclick="fecharReserva()">Cancelar</button>
   </div>
 </div>
 
 <script>
-// =====================================================
-// STORAGE
-// =====================================================
-const STORAGE_KEY = 'mapa_mesas_restaurante'
+/* ================= SETORES ================= */
+let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
+const mapa = document.getElementById('mapa')
 
+function key(){ return 'mapa_'+setorAtual }
+
+/* ================= STORAGE ================= */
 function salvarMapa(){
-  const itens = [...document.querySelectorAll('.item-mapa')].map(item=>({
-    url: item.querySelector('img').src,
-    x: parseFloat(item.style.left),
-    y: parseFloat(item.style.top),
-    reservavel: item.dataset.reservavel === 'true',
-    cliente: item.dataset.cliente || '',
-    celular: item.dataset.celular || '',
-    pessoas: item.dataset.pessoas || '',
-    reservado: item.classList.contains('reservado')
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+    url:i.querySelector('img').src,
+    x:parseFloat(i.style.left),
+    y:parseFloat(i.style.top),
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
   }))
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(itens))
+  localStorage.setItem(key(),JSON.stringify(itens))
 }
 
 function carregarMapa(){
-  const dados = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
-  dados.forEach(d => {
-    const item = criarItem(d.url, d.reservavel, d.x, d.y, false)
-    if(d.reservado){
-      item.dataset.cliente = d.cliente
-      item.dataset.celular = d.celular
-      item.dataset.pessoas = d.pessoas
-      item.classList.add('reservado')
-      item.querySelector('.nome-reserva').textContent =
-        `${d.cliente} • ${d.pessoas} pessoas`
+  mapa.innerHTML=''
+  JSON.parse(localStorage.getItem(key())||'[]').forEach(d=>{
+    const i=criarItem(d.url,d.r==='true',d.x,d.y,false)
+    if(d.ok){
+      i.dataset.cliente=d.c
+      i.dataset.celular=d.cel
+      i.dataset.pessoas=d.p
+      i.classList.add('reservado')
+      i.querySelector('.nome-reserva').textContent=`${d.c} • ${d.p}`
     }
   })
 }
 
-// =====================================================
-// REFERÊNCIAS
-// =====================================================
-const mapa = document.getElementById('mapa')
-const viewport = document.getElementById('viewport')
-const listaRes = document.getElementById('listaReservaveis')
-const listaNao = document.getElementById('listaNaoReservaveis')
-const modalReserva = document.getElementById('modalReserva')
-
-const clienteNome = document.getElementById('clienteNome')
-const clienteCelular = document.getElementById('clienteCelular')
-const qtdPessoas = document.getElementById('qtdPessoas')
-
-let selecionado = null
-let reservando = null
-
-// =====================================================
-// ZOOM
-// =====================================================
-let scale = 1
-viewport.addEventListener('wheel', e=>{
-  if(!e.target.closest('#mapa')) return
-  e.preventDefault()
-  scale = Math.min(Math.max(0.3, scale + (e.deltaY < 0 ? 0.1 : -0.1)), 2)
-  mapa.style.transform = `scale(${scale})`
-},{passive:false})
-
-// =====================================================
-// PAN
-// =====================================================
-let panning=false,startX,startY,scrollLeft,scrollTop
-viewport.addEventListener('mousedown',e=>{
-  if(e.target.closest('.item-mapa')) return
-  panning=true
-  startX=e.pageX; startY=e.pageY
-  scrollLeft=viewport.scrollLeft
-  scrollTop=viewport.scrollTop
-})
-viewport.addEventListener('mousemove',e=>{
-  if(!panning) return
-  viewport.scrollLeft = scrollLeft - (e.pageX-startX)
-  viewport.scrollTop  = scrollTop  - (e.pageY-startY)
-})
-viewport.addEventListener('mouseup',()=>panning=false)
-viewport.addEventListener('mouseleave',()=>panning=false)
-
-// =====================================================
-// ELEMENTOS PADRÃO
-// =====================================================
-const reservaveisPadrao=[
+/* ================= ELEMENTOS ================= */
+const reservaveis=[
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
 ]
-const naoReservaveisPadrao=[
+const nao=[
  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
- 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
- 'https://cdn-icons-png.flaticon.com/512/2331/2331941.png',
- 'https://cdn-icons-png.flaticon.com/512/1946/1946436.png'
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
 
-// =====================================================
-// PAINEL
-// =====================================================
-function addElemento(url,reservavel){
-  const el=document.createElement('div')
-  el.className='elemento'
-  el.draggable=true
-  el.innerHTML=`<img src="${url}">`
-  el.ondragstart=e=>{
-    e.dataTransfer.setData('url',url)
-    e.dataTransfer.setData('reservavel',reservavel)
-  }
-  ;(reservavel?listaRes:listaNao).appendChild(el)
-}
+const listaRes=document.getElementById('listaReservaveis')
+const listaNao=document.getElementById('listaNaoReservaveis')
 
-// =====================================================
-// DROP
-// =====================================================
+function addEl(url,res){
+  const d=document.createElement('div')
+  d.className='elemento'
+  d.draggable=true
+  d.innerHTML=`<img src="${url}">`
+  d.ondragstart=e=>{
+    e.dataTransfer.setData('url',url)
+    e.dataTransfer.setData('r',res)
+  }
+  ;(res?listaRes:listaNao).appendChild(d)
+}
+reservaveis.forEach(u=>addEl(u,true))
+nao.forEach(u=>addEl(u,false))
+
+/* ================= DROP ================= */
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
   e.preventDefault()
-  const rect=mapa.getBoundingClientRect()
   criarItem(
     e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('reservavel')==='true',
-    (e.clientX-rect.left+viewport.scrollLeft)/scale,
-    (e.clientY-rect.top +viewport.scrollTop )/scale
+    e.dataTransfer.getData('r')==='true',
+    e.offsetX,
+    e.offsetY
   )
 }
 
-// =====================================================
-// ITEM
-// =====================================================
-function criarItem(url,reservavel,x,y,salvar=true){
-  const item=document.createElement('div')
-  item.className='item-mapa'
-  item.dataset.reservavel=reservavel
-  item.style.left=x+'px'
-  item.style.top=y+'px'
-  item.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-
-  item.onclick=()=>{
-    document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
-    item.classList.add('selected')
-    selecionado=item
-  }
-
-  if(reservavel){
-    item.ondblclick=()=>{
-      reservando=item
-      clienteNome.value=item.dataset.cliente||''
-      clienteCelular.value=item.dataset.celular||''
-      qtdPessoas.value=item.dataset.pessoas||2
-      modalReserva.classList.add('active')
-    }
-  }
-
-  drag(item)
-  mapa.appendChild(item)
-  if(salvar) salvarMapa()
-  return item
+/* ================= ITEM ================= */
+let selecionado=null,reservando=null
+function criarItem(url,res,x,y,salvar=true){
+  const i=document.createElement('div')
+  i.className='item-mapa'
+  i.dataset.reservavel=res
+  i.style.left=x+'px'
+  i.style.top=y+'px'
+  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
+  i.onclick=()=>{document.querySelectorAll('.item-mapa').forEach(a=>a.classList.remove('selected'));i.classList.add('selected');selecionado=i}
+  if(res)i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
+  mapa.appendChild(i)
+  drag(i)
+  if(salvar)salvarMapa()
+  return i
 }
 
-// =====================================================
-// DRAG ITEM
-// =====================================================
 function drag(el){
-  let x=0,y=0
+  let x,y
   el.onmousedown=e=>{
-    e.stopPropagation()
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)/scale+'px'
-      el.style.top =el.offsetTop +(ev.clientY-y)/scale+'px'
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top =el.offsetTop +(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup=()=>{
-      document.onmousemove=null
-      salvarMapa()
-    }
+    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
   }
 }
 
-// =====================================================
-// RESERVA
-// =====================================================
+/* ================= RESERVA ================= */
 function salvarReserva(){
-  reservando.dataset.cliente=clienteNome.value
-  reservando.dataset.celular=clienteCelular.value
-  reservando.dataset.pessoas=qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent=
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
   salvarMapa()
   fecharReserva()
 }
@@ -408,26 +342,23 @@ function fecharReserva(){
   reservando=null
   modalReserva.classList.remove('active')
 }
-
-// =====================================================
-// REMOVER
-// =====================================================
 function removerSelecionado(){
-  if(selecionado){
-    selecionado.remove()
-    salvarMapa()
-    selecionado=null
-  }
+  if(selecionado){selecionado.remove();salvarMapa();selecionado=null}
 }
 
-// =====================================================
-// INIT
-// =====================================================
-reservaveisPadrao.forEach(u=>addElemento(u,true))
-naoReservaveisPadrao.forEach(u=>addElemento(u,false))
+/* ================= MENU ================= */
+document.querySelectorAll('#menuSetores button').forEach(b=>{
+  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
+  b.onclick=()=>{
+    document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
+    b.classList.add('ativo')
+    setorAtual=b.dataset.setor
+    localStorage.setItem('setor_atual',setorAtual)
+    carregarMapa()
+  }
+})
+
 carregarMapa()
 </script>
-
-
 </body>
 </html>
