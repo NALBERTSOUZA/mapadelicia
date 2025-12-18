@@ -214,6 +214,40 @@ main{
 
 <script>
 // =====================================================
+// STORAGE
+// =====================================================
+const STORAGE_KEY = 'mapa_mesas_restaurante'
+
+function salvarMapa(){
+  const itens = [...document.querySelectorAll('.item-mapa')].map(item=>({
+    url: item.querySelector('img').src,
+    x: parseFloat(item.style.left),
+    y: parseFloat(item.style.top),
+    reservavel: item.dataset.reservavel === 'true',
+    cliente: item.dataset.cliente || '',
+    celular: item.dataset.celular || '',
+    pessoas: item.dataset.pessoas || '',
+    reservado: item.classList.contains('reservado')
+  }))
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(itens))
+}
+
+function carregarMapa(){
+  const dados = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+  dados.forEach(d => {
+    const item = criarItem(d.url, d.reservavel, d.x, d.y, false)
+    if(d.reservado){
+      item.dataset.cliente = d.cliente
+      item.dataset.celular = d.celular
+      item.dataset.pessoas = d.pessoas
+      item.classList.add('reservado')
+      item.querySelector('.nome-reserva').textContent =
+        `${d.cliente} • ${d.pessoas} pessoas`
+    }
+  })
+}
+
+// =====================================================
 // REFERÊNCIAS
 // =====================================================
 const mapa = document.getElementById('mapa')
@@ -230,140 +264,115 @@ let selecionado = null
 let reservando = null
 
 // =====================================================
-// ZOOM COM MOUSE
+// ZOOM
 // =====================================================
 let scale = 1
-
 viewport.addEventListener('wheel', e=>{
   if(!e.target.closest('#mapa')) return
   e.preventDefault()
-
-  const delta = e.deltaY < 0 ? 0.1 : -0.1
-  scale = Math.min(Math.max(0.3, scale + delta), 2)
-
+  scale = Math.min(Math.max(0.3, scale + (e.deltaY < 0 ? 0.1 : -0.1)), 2)
   mapa.style.transform = `scale(${scale})`
-},{ passive:false })
+},{passive:false})
 
 // =====================================================
-// PAN (ARRASTAR MAPA)
+// PAN
 // =====================================================
-let panning = false
-let startX, startY, scrollLeft, scrollTop
-
-viewport.addEventListener('mousedown', e=>{
+let panning=false,startX,startY,scrollLeft,scrollTop
+viewport.addEventListener('mousedown',e=>{
   if(e.target.closest('.item-mapa')) return
-  panning = true
-  viewport.style.cursor = 'grabbing'
-  startX = e.pageX
-  startY = e.pageY
-  scrollLeft = viewport.scrollLeft
-  scrollTop = viewport.scrollTop
+  panning=true
+  startX=e.pageX; startY=e.pageY
+  scrollLeft=viewport.scrollLeft
+  scrollTop=viewport.scrollTop
 })
-
-viewport.addEventListener('mousemove', e=>{
+viewport.addEventListener('mousemove',e=>{
   if(!panning) return
-  viewport.scrollLeft = scrollLeft - (e.pageX - startX)
-  viewport.scrollTop  = scrollTop  - (e.pageY - startY)
+  viewport.scrollLeft = scrollLeft - (e.pageX-startX)
+  viewport.scrollTop  = scrollTop  - (e.pageY-startY)
 })
-
-viewport.addEventListener('mouseup', ()=>{
-  panning = false
-  viewport.style.cursor = 'grab'
-})
-
-viewport.addEventListener('mouseleave', ()=>{
-  panning = false
-  viewport.style.cursor = 'grab'
-})
+viewport.addEventListener('mouseup',()=>panning=false)
+viewport.addEventListener('mouseleave',()=>panning=false)
 
 // =====================================================
 // ELEMENTOS PADRÃO
 // =====================================================
-const reservaveisPadrao = [
-  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
-  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
-  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
+const reservaveisPadrao=[
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
 ]
-
-const naoReservaveisPadrao = [
-  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
-  'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
-  'https://cdn-icons-png.flaticon.com/512/2331/2331941.png',
-  'https://cdn-icons-png.flaticon.com/512/1946/1946436.png'
+const naoReservaveisPadrao=[
+ 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
+ 'https://cdn-icons-png.flaticon.com/512/2331/2331941.png',
+ 'https://cdn-icons-png.flaticon.com/512/1946/1946436.png'
 ]
 
 // =====================================================
-// PAINEL DE ELEMENTOS
+// PAINEL
 // =====================================================
-function addElemento(url, reservavel){
-  const el = document.createElement('div')
-  el.className = 'elemento'
-  el.draggable = true
-  el.innerHTML = `<img src="${url}">`
-
-  el.ondragstart = e=>{
-    e.dataTransfer.setData('url', url)
-    e.dataTransfer.setData('reservavel', reservavel)
+function addElemento(url,reservavel){
+  const el=document.createElement('div')
+  el.className='elemento'
+  el.draggable=true
+  el.innerHTML=`<img src="${url}">`
+  el.ondragstart=e=>{
+    e.dataTransfer.setData('url',url)
+    e.dataTransfer.setData('reservavel',reservavel)
   }
-
-  (reservavel ? listaRes : listaNao).appendChild(el)
+  ;(reservavel?listaRes:listaNao).appendChild(el)
 }
 
 // =====================================================
-// DROP NO MAPA (AJUSTADO PARA PAN + ZOOM)
+// DROP
 // =====================================================
-mapa.ondragover = e=>e.preventDefault()
-
-mapa.ondrop = e=>{
+mapa.ondragover=e=>e.preventDefault()
+mapa.ondrop=e=>{
   e.preventDefault()
-
-  const rect = mapa.getBoundingClientRect()
-
-  const x = (e.clientX - rect.left + viewport.scrollLeft) / scale
-  const y = (e.clientY - rect.top  + viewport.scrollTop ) / scale
-
+  const rect=mapa.getBoundingClientRect()
   criarItem(
     e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('reservavel') === 'true',
-    x,
-    y
+    e.dataTransfer.getData('reservavel')==='true',
+    (e.clientX-rect.left+viewport.scrollLeft)/scale,
+    (e.clientY-rect.top +viewport.scrollTop )/scale
   )
 }
 
 // =====================================================
-// ITEM NO MAPA
+// ITEM
 // =====================================================
-function criarItem(url, reservavel, x, y){
-  const item = document.createElement('div')
-  item.className = 'item-mapa'
-  item.dataset.reservavel = reservavel
-  item.style.left = x+'px'
-  item.style.top  = y+'px'
+function criarItem(url,reservavel,x,y,salvar=true){
+  const item=document.createElement('div')
+  item.className='item-mapa'
+  item.dataset.reservavel=reservavel
+  item.style.left=x+'px'
+  item.style.top=y+'px'
+  item.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
 
-  item.innerHTML = `<img src="${url}"><div class="nome-reserva"></div>`
-
-  item.onclick = ()=>{
+  item.onclick=()=>{
     document.querySelectorAll('.item-mapa').forEach(i=>i.classList.remove('selected'))
     item.classList.add('selected')
-    selecionado = item
+    selecionado=item
   }
 
   if(reservavel){
-    item.ondblclick = ()=>{
-      reservando = item
-      clienteNome.value = item.dataset.cliente || ''
-      clienteCelular.value = item.dataset.celular || ''
-      qtdPessoas.value = item.dataset.pessoas || 2
+    item.ondblclick=()=>{
+      reservando=item
+      clienteNome.value=item.dataset.cliente||''
+      clienteCelular.value=item.dataset.celular||''
+      qtdPessoas.value=item.dataset.pessoas||2
       modalReserva.classList.add('active')
     }
   }
 
   drag(item)
   mapa.appendChild(item)
+  if(salvar) salvarMapa()
+  return item
 }
 
 // =====================================================
-// DRAG DAS MESAS
+// DRAG ITEM
 // =====================================================
 function drag(el){
   let x=0,y=0
@@ -371,11 +380,14 @@ function drag(el){
     e.stopPropagation()
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
-      el.style.left = el.offsetLeft + (ev.clientX-x)/scale + 'px'
-      el.style.top  = el.offsetTop  + (ev.clientY-y)/scale + 'px'
+      el.style.left=el.offsetLeft+(ev.clientX-x)/scale+'px'
+      el.style.top =el.offsetTop +(ev.clientY-y)/scale+'px'
       x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup=()=>document.onmousemove=null
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
   }
 }
 
@@ -383,18 +395,17 @@ function drag(el){
 // RESERVA
 // =====================================================
 function salvarReserva(){
-  if(!reservando) return
-  reservando.dataset.cliente = clienteNome.value
-  reservando.dataset.celular = clienteCelular.value
-  reservando.dataset.pessoas = qtdPessoas.value
+  reservando.dataset.cliente=clienteNome.value
+  reservando.dataset.celular=clienteCelular.value
+  reservando.dataset.pessoas=qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent =
+  reservando.querySelector('.nome-reserva').textContent=
     `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+  salvarMapa()
   fecharReserva()
 }
-
 function fecharReserva(){
-  reservando = null
+  reservando=null
   modalReserva.classList.remove('active')
 }
 
@@ -404,16 +415,19 @@ function fecharReserva(){
 function removerSelecionado(){
   if(selecionado){
     selecionado.remove()
-    selecionado = null
+    salvarMapa()
+    selecionado=null
   }
 }
 
 // =====================================================
 // INIT
 // =====================================================
-reservaveisPadrao.forEach(url => addElemento(url,true))
-naoReservaveisPadrao.forEach(url => addElemento(url,false))
+reservaveisPadrao.forEach(u=>addElemento(u,true))
+naoReservaveisPadrao.forEach(u=>addElemento(u,false))
+carregarMapa()
 </script>
+
 
 </body>
 </html>
