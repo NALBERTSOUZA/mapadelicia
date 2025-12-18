@@ -196,7 +196,7 @@ main{flex:1;overflow:hidden}
 
 <script>
 // ================= CONFIG =================
-const API_URL = 'https://script.google.com/macros/s/AKfycbwwG-2RfESO8qQ89Sfm74ALcVPrHJcgDJb_hfSUqfIn_bOIyPiULeu8uHGm3qoxjZa6Lw/exec'
+const API_URL = 'https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
 const API_TOKEN = 'MAPA_MESAS_2025'
 
 // ================= STATUS =================
@@ -236,8 +236,11 @@ function salvarMapa(){
 
   fetch(API_URL,{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({token:API_TOKEN,setor:setorAtual,dados:itens})
+    body: JSON.stringify({
+      token: API_TOKEN,
+      setor: setorAtual,
+      dados: itens
+    })
   })
   .then(r=>r.json())
   .then(resp=>{
