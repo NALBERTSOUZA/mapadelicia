@@ -314,7 +314,15 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.left=x+'px'
   i.style.top=y+'px'
   i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-  i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
+  i.ondblclick = e => {
+  e.stopPropagation()
+  selecionarItem(i)
+  reservando = i
+  modalReserva.classList.add('active')
+}
+
+
+
   mapa.appendChild(i)
   drag(i)
   if(salvar) salvarMapa()
@@ -322,17 +330,37 @@ function criarItem(url,res,x,y,salvar=true){
 }
 
 function drag(el){
-  let x,y
-  el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
+  let x, y
+  let movendo = false
+
+  el.onmousedown = e => {
+    x = e.clientX
+    y = e.clientY
+    movendo = false
+
+    document.onmousemove = ev => {
+      movendo = true
+      el.style.left = el.offsetLeft + (ev.clientX - x) + 'px'
+      el.style.top  = el.offsetTop  + (ev.clientY - y) + 'px'
+      x = ev.clientX
+      y = ev.clientY
     }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
+
+    document.onmouseup = ev => {
+      document.onmousemove = null
+      document.onmouseup = null
+
+      // clique real (sem arrastar)
+      if(!movendo){
+        ev.stopPropagation()
+        selecionarItem(el)
+      }
+
+      salvarMapa()
+    }
   }
 }
+
 
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
@@ -363,6 +391,45 @@ function add(url,res){
     e.dataTransfer.setData('r',res)
   }
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
+}
+let itemSelecionado = null
+const SENHA_EXCLUSAO = '1234' // 🔐 altere a senha aqui
+function selecionarItem(item){
+  document.querySelectorAll('.item-mapa.selected')
+    .forEach(el => el.classList.remove('selected'))
+
+  item.classList.add('selected')
+  itemSelecionado = item
+}
+
+// clicar fora remove seleção
+mapa.addEventListener('click', () => {
+  document.querySelectorAll('.item-mapa.selected')
+    .forEach(el => el.classList.remove('selected'))
+  itemSelecionado = null
+})
+
+function removerSelecionado(){
+  if(!itemSelecionado){
+    alert('Selecione um elemento para remover.')
+    return
+  }
+
+  // Se tiver reserva, pedir confirmação + senha
+  if(itemSelecionado.classList.contains('reservado')){
+    const ok = confirm('Este elemento possui reserva. Deseja realmente excluir?')
+    if(!ok) return
+
+    const senha = prompt('Digite a senha para excluir:')
+    if(senha !== SENHA_EXCLUSAO){
+      alert('Senha incorreta.')
+      return
+    }
+  }
+
+  itemSelecionado.remove()
+  itemSelecionado = null
+  salvarMapa()
 }
 
 let reservando=null
