@@ -152,10 +152,42 @@ main{flex:1;overflow:hidden}
   50%{opacity:.4}
   100%{opacity:1}
 }
+
+/* OVERLAY */
+#overlayLoading{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.92);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+  color:#fff;
+}
+#overlayLoading.hidden{display:none}
+.overlay-box{text-align:center}
+.spinner{
+  width:42px;
+  height:42px;
+  border:4px solid rgba(255,255,255,.3);
+  border-top-color:#2563eb;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
+
+<!-- OVERLAY -->
+<div id="overlayLoading">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <div id="overlayText">Carregando ambiente...</div>
+  </div>
+</div>
 
 <aside>
   <h2>Elementos</h2>
@@ -199,23 +231,38 @@ main{flex:1;overflow:hidden}
 const API_URL = 'https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
 const API_TOKEN = 'MAPA_MESAS_2025'
 
+// ================= OVERLAY =================
+function nomeSetor(s){
+  return s.replace('SALAO_PRINCIPAL','Salão Principal')
+          .replace('PAULO_1','Paulo Augusto 1')
+          .replace('PAULO_2','Paulo Augusto 2')
+          .replace('SACADA','Sacada')
+}
+function mostrarOverlay(setor){
+  document.getElementById('overlayText').textContent =
+    'Carregando ambiente ' + nomeSetor(setor)
+  document.getElementById('overlayLoading').classList.remove('hidden')
+}
+function esconderOverlay(){
+  document.getElementById('overlayLoading').classList.add('hidden')
+}
+
 // ================= STATUS =================
-const statusSync = document.getElementById('statusSync')
-function setStatus(state){
-  statusSync.classList.remove('online','offline','syncing')
-  statusSync.classList.add(state)
-  statusSync.title =
-    state==='online'?'Sincronizado com a planilha':
-    state==='syncing'?'Sincronizando...':
-    'Offline (dados locais)'
+const statusSync=document.getElementById('statusSync')
+function setStatus(s){
+  statusSync.className=s
+  statusSync.title=
+    s==='online'?'Sincronizado':
+    s==='syncing'?'Sincronizando':
+    'Offline'
 }
 
 // ================= CONTROLE =================
-let sincronizando = false
-let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
-const mapa = document.getElementById('mapa')
-const modalReserva = document.getElementById('modalReserva')
-function key(){ return 'mapa_'+setorAtual }
+let sincronizando=false
+let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
+const mapa=document.getElementById('mapa')
+const modalReserva=document.getElementById('modalReserva')
+function key(){return 'mapa_'+setorAtual}
 
 // ================= SALVAR =================
 function salvarMapa(){
@@ -225,61 +272,50 @@ function salvarMapa(){
     y:parseFloat(i.style.top),
     r:i.dataset.reservavel,
     c:i.dataset.cliente||'',
-    cel:i.dataset.celular||'',
     p:i.dataset.pessoas||'',
     ok:i.classList.contains('reservado')
   }))
-
   localStorage.setItem(key(),JSON.stringify(itens))
   sincronizando=true
   setStatus('syncing')
-
-  fetch(API_URL,{
-    method:'POST',
-    body: JSON.stringify({
-      token: API_TOKEN,
-      setor: setorAtual,
-      dados: itens
-    })
-  })
+  fetch(API_URL,{method:'POST',body:JSON.stringify({
+    token:API_TOKEN,setor:setorAtual,dados:itens
+  })})
   .then(r=>r.json())
-  .then(resp=>{
-    if(resp.ok===true) setStatus('online')
-    else setStatus('offline')
-  })
+  .then(r=>setStatus(r.ok?'online':'offline'))
   .catch(()=>setStatus('offline'))
   .finally(()=>sincronizando=false)
 }
 
 // ================= CARREGAR =================
 function carregarMapa(){
-  if(sincronizando) return
-
+  if(sincronizando)return
+  mostrarOverlay(setorAtual)
   fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
     .then(r=>r.json())
-    .then(resp=>{
-      if(resp.ok===true){
+    .then(r=>{
+      if(r.ok){
         setStatus('online')
-        localStorage.setItem(key(),JSON.stringify(resp.dados))
-        montarMapa(resp.dados)
+        localStorage.setItem(key(),JSON.stringify(r.dados))
+        montarMapa(r.dados)
       }else throw ''
     })
     .catch(()=>{
       setStatus('offline')
       montarMapa(JSON.parse(localStorage.getItem(key())||'[]'))
     })
+    .finally(()=>setTimeout(esconderOverlay,300))
 }
 
-function montarMapa(dados){
+function montarMapa(d){
   mapa.innerHTML=''
-  dados.forEach(d=>{
-    const i=criarItem(d.url,d.r==='true',d.x,d.y,false)
-    if(d.ok){
-      i.dataset.cliente=d.c
-      i.dataset.pessoas=d.p
+  d.forEach(x=>{
+    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
+    if(x.ok){
+      i.dataset.cliente=x.c
+      i.dataset.pessoas=x.p
       i.classList.add('reservado')
-      i.querySelector('.nome-reserva').textContent =
-        `${d.c} • ${d.p} pessoas`
+      i.querySelector('.nome-reserva').textContent=`${x.c} • ${x.p} pessoas`
     }
   })
 }
@@ -315,8 +351,7 @@ mapa.ondrop=e=>{
   criarItem(
     e.dataTransfer.getData('url'),
     e.dataTransfer.getData('r')==='true',
-    e.offsetX,
-    e.offsetY
+    e.offsetX,e.offsetY
   )
 }
 
@@ -329,13 +364,11 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.left=x+'px'
   i.style.top=y+'px'
   i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-
   i.onclick=()=>{
     document.querySelectorAll('.item-mapa').forEach(a=>a.classList.remove('selected'))
     i.classList.add('selected')
     selecionado=i
   }
-
   if(res){
     i.ondblclick=()=>{
       reservando=i
@@ -344,13 +377,11 @@ function criarItem(url,res,x,y,salvar=true){
       modalReserva.classList.add('active')
     }
   }
-
   mapa.appendChild(i)
   drag(i)
-  if(salvar) salvarMapa()
+  if(salvar)salvarMapa()
   return i
 }
-
 function drag(el){
   let x,y
   el.onmousedown=e=>{
@@ -372,7 +403,7 @@ function salvarReserva(){
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.pessoas=qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent =
+  reservando.querySelector('.nome-reserva').textContent=
     `${clienteNome.value} • ${qtdPessoas.value} pessoas`
   salvarMapa()
   fecharReserva()
@@ -392,9 +423,9 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
   }
 })
 
-// POLLING SEGURO
-setInterval(carregarMapa,10000)
+// INIT
 carregarMapa()
+setInterval(carregarMapa,10000)
 </script>
 
 </body>
