@@ -309,6 +309,7 @@ let sincronizando=false
 let syncPromise=Promise.resolve()
 const ambientesCarregados=new Set()
 let reservando=null
+let editandoReserva = false
 
 const modalElemento = document.getElementById('modalElemento')
 let elementoSelecionado = null
@@ -427,21 +428,21 @@ function criarItem(url,res,x,y,salvar=true){
 
 i.ondblclick = () => {
 
-  // ===== MESA (RESERVÁVEL) =====
-  if (i.dataset.reservavel === 'true') {
+if (i.dataset.reservavel === 'true') {
 
-    reservando = i
+  editandoReserva = true
+  reservando = i
 
-    clienteNome.value = i.dataset.cliente || ''
-    clienteCelular.value = i.dataset.celular || ''
-    qtdPessoas.value = i.dataset.pessoas || 2
+  clienteNome.value = i.dataset.cliente || ''
+  clienteCelular.value = i.dataset.celular || ''
+  qtdPessoas.value = i.dataset.pessoas || 2
 
-    btnExcluirReserva.style.display =
-      i.classList.contains('reservado') ? 'block' : 'none'
+  btnExcluirReserva.style.display =
+    i.classList.contains('reservado') ? 'block' : 'none'
 
-    modalReserva.classList.add('active')
-    return
-  }
+  modalReserva.classList.add('active')
+  return
+}
 
   // ===== ELEMENTO NÃO RESERVÁVEL =====
   elementoSelecionado = i
@@ -504,17 +505,27 @@ function add(url,res){
 }
 
 function salvarReserva(){
-  reservando.dataset.cliente=clienteNome.value
-  reservando.dataset.celular=clienteCelular.value
-  reservando.dataset.pessoas=qtdPessoas.value
+
+  editandoReserva = true
+
+  reservando.dataset.cliente = clienteNome.value
+  reservando.dataset.celular = clienteCelular.value
+  reservando.dataset.pessoas = qtdPessoas.value
   reservando.classList.add('reservado')
-reservando.querySelector('.nome').textContent = clienteNome.value
-reservando.querySelector('.pessoas').textContent =
-  `${qtdPessoas.value} pessoas`
+
+  reservando.querySelector('.nome').textContent = clienteNome.value
+  reservando.querySelector('.pessoas').textContent =
+    `${qtdPessoas.value} pessoas`
 
   salvarMapa()
-  fecharReserva()
+
+  // 👇 garante que o PATCH tenha tempo de sair
+  setTimeout(() => {
+    editandoReserva = false
+    fecharReserva()
+  }, 300)
 }
+
 
 function excluirReserva(){
   reservando.classList.remove('reservado')
@@ -537,7 +548,9 @@ function excluirMesa(){
 
 function fecharReserva(){
   modalReserva.classList.remove('active')
+  editandoReserva = false
 }
+
 
 document.querySelectorAll('#menuSetores button').forEach(b=>{
   if(b.dataset.setor===setorAtual)b.classList.add('ativo')
@@ -557,7 +570,12 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
 })
 
 carregarMapa(true)
-setInterval(()=>carregarMapa(false),10000)
+setInterval(() => {
+  if (!editandoReserva && !sincronizando) {
+    carregarMapa(false)
+  }
+}, 10000)
+
 function redimensionarElemento(fator){
   if (!elementoSelecionado) return
 
