@@ -440,12 +440,15 @@ syncPromise = fetch(
   .finally(() => sincronizando = false)
 }
 
+async function carregarMapa(force = false) {
+  const chave = `${setorAtual}_${dataSelecionada}`
 
-function carregarMapa(force = false){
-  if (force || !ambientesCarregados.has(`${setorAtual}_${dataSelecionada}`))
+  if (force || !ambientesCarregados.has(chave)) {
     mostrarOverlay('Carregando ambiente...')
+  }
 
-  fetch(
+  // 1️⃣ tenta carregar o dia selecionado
+  const resDia = await fetch(
     `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${dataSelecionada}&select=dados`,
     {
       headers:{
@@ -455,17 +458,67 @@ function carregarMapa(force = false){
       }
     }
   )
-  .then(r => r.json())
-  .then(r => {
-    montarMapa(r[0]?.dados || [])
+
+  const dadosDia = await resDia.json()
+
+  // ✅ JÁ EXISTE MAPA PARA O DIA
+  if (dadosDia.length) {
+    montarMapa(dadosDia[0].dados || [])
+    ambientesCarregados.add(chave)
     setStatus('online')
-  })
-  .catch(() => setStatus('offline'))
-  .finally(() => {
-    ambientesCarregados.add(`${setorAtual}_${dataSelecionada}`)
-    setTimeout(esconderOverlay, 300)
-  })
+    esconderOverlay()
+    return
+  }
+
+  // 2️⃣ NÃO EXISTE → copia do PADRÃO
+  const resPadrao = await fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${DATA_PADRAO}&select=dados`,
+    {
+      headers:{
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        token: API_TOKEN
+      }
+    }
+  )
+
+  const dadosPadrao = await resPadrao.json()
+  const layoutBase = dadosPadrao[0]?.dados || []
+
+  // 3️⃣ cria o dia novo com base no padrão
+  await fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas`,
+    {
+      method:'POST',
+      headers:{
+        apikey: SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token: API_TOKEN,
+        'Content-Type':'application/json',
+        Prefer:'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({
+        setor: setorAtual,
+        data: dataSelecionada,
+        dados: layoutBase.map(i => ({
+          ...i,
+          c: '',
+          cel: '',
+          p: '',
+          ok: false,
+          d: dataSelecionada
+        })),
+        updated_at: new Date().toISOString()
+      })
+    }
+  )
+
+  montarMapa(layoutBase)
+  ambientesCarregados.add(chave)
+  setStatus('online')
+  esconderOverlay()
 }
+
 
 
 /* ================= RESTANTE ORIGINAL ================= */
