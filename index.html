@@ -6,7 +6,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-/* ==== TODO SEU CSS ORIGINAL (SEM ALTERAÇÃO) ==== */
 :root{
   --bg:#f4f6f8;
   --primary:#2563eb;
@@ -23,36 +22,198 @@ body{
   display:flex;
   height:100vh;
 }
-aside{width:280px;background:#0f172a;color:#fff;padding:16px;overflow-y:auto}
+
+/* SIDEBAR */
+aside{
+  width:280px;
+  background:#0f172a;
+  color:#fff;
+  padding:16px;
+  overflow-y:auto;
+}
 h2,h3{margin-top:0}
-button{width:100%;padding:10px;margin-bottom:10px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;font-weight:600}
+button{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
 input{width:100%;padding:8px;margin-bottom:8px}
-.elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.elemento{background:#020617;border:1px dashed #475569;border-radius:6px;padding:6px;cursor:grab;display:flex;justify-content:center}
+
+/* ELEMENTOS */
+.elementos{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-bottom:16px;
+}
+.elemento{
+  background:#020617;
+  border:1px dashed #475569;
+  border-radius:6px;
+  padding:6px;
+  cursor:grab;
+  display:flex;
+  justify-content:center;
+}
 .elemento img{width:42px;pointer-events:none}
+
+/* MAIN */
 main{flex:1;overflow:hidden}
-#viewport{width:100%;height:100%;overflow:scroll;cursor:grab;background:#e5e7eb}
-#mapa{position:relative;width:5000px;height:5000px;background:#fff;border:2px dashed var(--border)}
-.item-mapa{position:absolute;cursor:grab}
+#viewport{
+  width:100%;
+  height:100%;
+  overflow:scroll;
+  cursor:grab;
+  background:#e5e7eb;
+}
+#mapa{
+  position:relative;
+  width:5000px;
+  height:5000px;
+  background:#fff;
+  border:2px dashed var(--border);
+}
+
+/* ITEM */
+.item-mapa{
+  position:absolute;
+  cursor:grab;
+  text-align:center;
+}
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.reservado{outline:2px solid var(--green)}
-.item-mapa .info-mesa{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
-.item-mapa .nome{font-size:13px;font-weight:700;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:4px}
-.item-mapa .pessoas{margin-top:2px;font-size:11px;font-weight:600;background:rgba(255,255,255,.8);padding:1px 6px;border-radius:4px}
-#menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:10px;display:flex;gap:6px;z-index:999}
-#menuSetores button{background:#1e293b;color:#fff;padding:8px 10px;border-radius:6px;font-size:12px}
-#menuSetores button.ativo{background:#2563eb}
-#statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%}
-#statusSync.online{background:#22c55e}
-#statusSync.syncing{background:#f97316}
-#statusSync.offline{background:#ef4444}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
+.nome-reserva{
+  font-size:11px;
+  margin-top:2px;
+  font-weight:600;
+}
+
+/* TEXTO CENTRALIZADO NA MESA */
+.item-mapa{
+  position:absolute;
+  cursor:grab;
+}
+
+.item-mapa .info-mesa{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  text-align:center;
+}
+
+.item-mapa .info-mesa .nome{
+  font-size:13px;
+  font-weight:700;
+  background:rgba(255,255,255,.85);
+  padding:2px 6px;
+  border-radius:4px;
+}
+
+.item-mapa .info-mesa .pessoas{
+  margin-top:2px;
+  font-size:11px;
+  font-weight:600;
+  background:rgba(255,255,255,.8);
+  padding:1px 6px;
+  border-radius:4px;
+}
+
+
+/* MODAL */
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
 .modal.active{display:flex}
-.modal-box{background:#fff;padding:20px;width:320px;border-radius:12px}
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:320px;
+  border-radius:12px;
+}
+
+/* MENU SETORES */
+#menuSetores{
+  position:fixed;
+  top:16px;
+  right:16px;
+  background:#0f172a;
+  padding:8px;
+  border-radius:10px;
+  display:flex;
+  gap:6px;
+  z-index:999;
+}
+#menuSetores button{
+  background:#1e293b;
+  color:#fff;
+  padding:8px 10px;
+  border-radius:6px;
+  font-size:12px;
+}
+#menuSetores button.ativo{background:#2563eb}
+
+/* STATUS */
+#statusSync{
+  position:fixed;
+  bottom:16px;
+  right:16px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  box-shadow:0 0 0 3px rgba(0,0,0,.15);
+  z-index:1000;
+}
+#statusSync.online{background:#22c55e}
+#statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
+#statusSync.offline{background:#ef4444}
+@keyframes pulse{50%{opacity:.4}}
+
+/* OVERLAY */
+#overlayLoading{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.92);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+  color:#fff;
+}
+#overlayLoading.hidden{display:none}
+.spinner{
+  width:42px;height:42px;
+  border:4px solid rgba(255,255,255,.3);
+  border-top-color:#2563eb;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
+
+<div id="overlayLoading" class="hidden">
+  <div>
+    <div class="spinner"></div>
+    <div id="overlayText">Carregando ambiente...</div>
+  </div>
+</div>
 
 <aside>
   <h2>Elementos</h2>
@@ -77,128 +238,260 @@ main{flex:1;overflow:hidden}
 
 <div class="modal" id="modalReserva">
   <div class="modal-box">
+    <h3>Mesa</h3>
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
-    <button onclick="salvarReserva()">Salvar</button>
-    <button onclick="excluirReserva()">Excluir Reserva</button>
-    <button onclick="excluirMesa()">Excluir Mesa</button>
-    <button onclick="fecharReserva()">Cancelar</button>
+    <button onclick="salvarReserva()">Salvar Reserva</button>
+    <button id="btnExcluirReserva"
+      onclick="excluirReserva()"
+      style="background:var(--gray);display:none">
+      ❌ Excluir Reserva
+    </button>
+    <button onclick="excluirMesa()" style="background:var(--red)">
+      🗑️ Excluir Mesa
+    </button>
+    <button onclick="fecharReserva()" style="background:#334155">
+      Cancelar
+    </button>
   </div>
 </div>
 
-<!-- ✅ SUPABASE REALTIME -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL='https://qsgqfvrwlvaylfeenzgh.supabase.co'
-const SUPABASE_KEY='sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
-const supabase=supabaseJs.createClient(SUPABASE_URL,SUPABASE_KEY)
+/* ================= CONFIG SUPABASE ================= */
+const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
+const API_TOKEN = 'MAPA_MESAS'
 
-const mapa=document.getElementById('mapa')
+const overlay=document.getElementById('overlayLoading')
+const overlayText=document.getElementById('overlayText')
 const statusSync=document.getElementById('statusSync')
+const mapa=document.getElementById('mapa')
+const modalReserva=document.getElementById('modalReserva')
+const btnExcluirReserva=document.getElementById('btnExcluirReserva')
+
 let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
+let sincronizando=false
+let syncPromise=Promise.resolve()
+const ambientesCarregados=new Set()
 let reservando=null
-let saveTimer=null
-let channel=null
 
 function setStatus(s){statusSync.className=s}
+function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
+function esconderOverlay(){overlay.classList.add('hidden')}
 
-/* ===== DEBOUNCE (AJUSTE CRÍTICO) ===== */
+/* ================= SALVAR MAPA ================= */
 function salvarMapa(){
-  clearTimeout(saveTimer)
-  saveTimer=setTimeout(async()=>{
-    const dados=[...document.querySelectorAll('.item-mapa')].map(i=>({
-      url:i.querySelector('img').src,
-      x:parseFloat(i.style.left),
-      y:parseFloat(i.style.top),
-      r:i.dataset.reservavel,
-      c:i.querySelector('.nome').textContent,
-      p:i.querySelector('.pessoas').textContent.replace(' pessoas',''),
-      ok:i.classList.contains('reservado')
-    }))
-    setStatus('syncing')
-    await supabase.from('mapa_mesas').update({dados}).eq('setor',setorAtual)
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+    url:i.querySelector('img').src,
+    x:parseFloat(i.style.left),
+    y:parseFloat(i.style.top),
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
+  }))
+  sincronizando=true
+  setStatus('syncing')
+
+  syncPromise=fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,
+    {
+      method:'PATCH',
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token:API_TOKEN,
+        'Content-Type':'application/json',
+        Prefer:'return=minimal'
+      },
+      body:JSON.stringify({dados:itens,updated_at:new Date().toISOString()})
+    }
+  ).then(()=>setStatus('online'))
+   .catch(()=>setStatus('offline'))
+   .finally(()=>sincronizando=false)
+}
+
+/* ================= CARREGAR MAPA ================= */
+function carregarMapa(force=false){
+  if(force||!ambientesCarregados.has(setorAtual))
+    mostrarOverlay('Carregando ambiente...')
+
+  fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&select=dados`,
+    {
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token:API_TOKEN
+      }
+    }
+  )
+  .then(r=>r.json())
+  .then(r=>{
+    montarMapa(r[0]?.dados||[])
     setStatus('online')
-  },200)
-}
-
-/* ===== REALTIME ===== */
-function iniciarRealtime(){
-  if(channel) supabase.removeChannel(channel)
-  channel=supabase.channel('mapa-'+setorAtual)
-    .on('postgres_changes',{
-      event:'UPDATE',
-      schema:'public',
-      table:'mapa_mesas',
-      filter:`setor=eq.${setorAtual}`
-    },payload=>{
-      montarMapa(payload.new.dados||[])
-    })
-    .subscribe(()=>setStatus('online'))
-}
-
-/* ===== LOAD ===== */
-async function carregarMapa(){
-  const {data}=await supabase.from('mapa_mesas').select('dados').eq('setor',setorAtual).single()
-  montarMapa(data?.dados||[])
-  iniciarRealtime()
-}
-
-/* ===== MAPA ===== */
-function montarMapa(dados){
-  mapa.innerHTML=''
-  dados.forEach(x=>{
-    const i=document.createElement('div')
-    i.className='item-mapa'
-    i.style.left=x.x+'px'
-    i.style.top=x.y+'px'
-    i.dataset.reservavel=x.r
-    i.innerHTML=`
-      <img src="${x.url}">
-      <div class="info-mesa">
-        <div class="nome">${x.c||''}</div>
-        <div class="pessoas">${x.p?x.p+' pessoas':''}</div>
-      </div>`
-    if(x.ok)i.classList.add('reservado')
-    i.onmousedown=e=>drag(i,e)
-    i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
-    mapa.appendChild(i)
+  })
+  .catch(()=>setStatus('offline'))
+  .finally(()=>{
+    ambientesCarregados.add(setorAtual)
+    setTimeout(esconderOverlay,300)
   })
 }
 
-function drag(el,e){
-  let x=e.clientX,y=e.clientY
-  document.onmousemove=ev=>{
-    el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-    el.style.top=el.offsetTop+(ev.clientY-y)+'px'
-    x=ev.clientX;y=ev.clientY
+/* ================= RESTANTE ORIGINAL ================= */
+
+function montarMapa(dados){
+  mapa.innerHTML=''
+  dados.forEach(x=>{
+    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
+    if(x.ok){
+      i.dataset.cliente=x.c
+      i.dataset.celular=x.cel
+      i.dataset.pessoas=x.p
+      i.classList.add('reservado')
+i.querySelector('.nome').textContent = x.c
+i.querySelector('.pessoas').textContent = `${x.p} pessoas`
+
+    }
+  })
+}
+
+function criarItem(url,res,x,y,salvar=true){
+  const i=document.createElement('div')
+  i.className='item-mapa'
+  i.dataset.reservavel=res
+  i.style.left=x+'px'
+  i.style.top=y+'px'
+ i.innerHTML=`
+  <img src="${url}">
+  <div class="info-mesa">
+    <div class="nome"></div>
+    <div class="pessoas"></div>
+  </div>
+`
+
+  i.ondblclick=()=>{
+    if(i.dataset.reservavel!=='true')return
+    reservando=i
+    clienteNome.value=i.dataset.cliente||''
+    clienteCelular.value=i.dataset.celular||''
+    qtdPessoas.value=i.dataset.pessoas||2
+    btnExcluirReserva.style.display=
+      i.classList.contains('reservado')?'block':'none'
+    modalReserva.classList.add('active')
   }
-  document.onmouseup=()=>{
-    document.onmousemove=null
-    salvarMapa()
+  mapa.appendChild(i)
+  drag(i)
+  if(salvar) salvarMapa()
+  return i
+}
+
+function drag(el){
+  let x,y
+  el.onmousedown=e=>{
+    x=e.clientX;y=e.clientY
+    document.onmousemove=ev=>{
+      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      x=ev.clientX;y=ev.clientY
+    }
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
   }
 }
 
-/* ===== RESERVA ===== */
-function salvarReserva(){
-  reservando.classList.add('reservado')
-  reservando.querySelector('.nome').textContent=clienteNome.value
-  reservando.querySelector('.pessoas').textContent=qtdPessoas.value+' pessoas'
-  salvarMapa();fecharReserva()
+mapa.ondragover=e=>e.preventDefault()
+mapa.ondrop=e=>{
+  const url=e.dataTransfer.getData('url')
+  if(!url)return
+  criarItem(url,e.dataTransfer.getData('r')==='true',e.offsetX,e.offsetY)
 }
+
+const reservaveis=[
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/mesas4cadeiras.png?raw=true'
+]
+const nao=[
+ 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
+]
+
+reservaveis.forEach(u=>add(u,true))
+nao.forEach(u=>add(u,false))
+
+function add(url,res){
+  const d=document.createElement('div')
+  d.className='elemento'
+  d.draggable=true
+  d.innerHTML=`<img src="${url}">`
+  d.ondragstart=e=>{
+    e.dataTransfer.setData('url',url)
+    e.dataTransfer.setData('r',res)
+  }
+  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
+}
+
+function salvarReserva(){
+  reservando.dataset.cliente=clienteNome.value
+  reservando.dataset.celular=clienteCelular.value
+  reservando.dataset.pessoas=qtdPessoas.value
+  reservando.classList.add('reservado')
+reservando.querySelector('.nome').textContent = clienteNome.value
+reservando.querySelector('.pessoas').textContent =
+  `${qtdPessoas.value} pessoas`
+
+  salvarMapa()
+  fecharReserva()
+}
+
 function excluirReserva(){
   reservando.classList.remove('reservado')
-  reservando.querySelector('.nome').textContent=''
-  reservando.querySelector('.pessoas').textContent=''
-  salvarMapa();fecharReserva()
-}
-function excluirMesa(){
-  reservando.remove()
-  salvarMapa();fecharReserva()
-}
-function fecharReserva(){modalReserva.classList.remove('active')}
+  reservando.dataset.cliente=''
+  reservando.dataset.celular=''
+  reservando.dataset.pessoas=''
+ reservando.querySelector('.nome').textContent=''
+reservando.querySelector('.pessoas').textContent=''
 
-carregarMapa()
+  salvarMapa()
+  fecharReserva()
+}
+
+function excluirMesa(){
+  if(!confirm('Excluir esta mesa definitivamente?'))return
+  reservando.remove()
+  salvarMapa()
+  fecharReserva()
+}
+
+function fecharReserva(){
+  modalReserva.classList.remove('active')
+}
+
+document.querySelectorAll('#menuSetores button').forEach(b=>{
+  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
+  b.onclick=async()=>{
+    if(b.dataset.setor===setorAtual)return
+    if(sincronizando){
+      mostrarOverlay('Finalizando sincronização...')
+      await syncPromise
+    }
+    setorAtual=b.dataset.setor
+    localStorage.setItem('setor_atual',setorAtual)
+    document.querySelectorAll('#menuSetores button')
+      .forEach(x=>x.classList.remove('ativo'))
+    b.classList.add('ativo')
+    carregarMapa(true)
+  }
+})
+
+carregarMapa(true)
+setInterval(()=>carregarMapa(false),10000)
 </script>
 
 </body>
