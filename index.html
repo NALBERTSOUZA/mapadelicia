@@ -5,63 +5,177 @@
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{--bg:#f4f6f8;--primary:#2563eb;--border:#dcdfe4;--green:#16a34a}
+:root{
+  --bg:#f4f6f8;
+  --primary:#2563eb;
+  --border:#dcdfe4;
+  --green:#16a34a;
+}
 *{box-sizing:border-box}
-body{margin:0;font-family:Inter,Arial,sans-serif;background:var(--bg);display:flex;height:100vh}
+body{
+  margin:0;
+  font-family:Inter, Arial, sans-serif;
+  background:var(--bg);
+  display:flex;
+  height:100vh;
+}
 
 /* SIDEBAR */
-aside{width:280px;background:#0f172a;color:#fff;padding:16px;overflow-y:auto}
+aside{
+  width:280px;
+  background:#0f172a;
+  color:#fff;
+  padding:16px;
+  overflow-y:auto;
+}
 h2,h3{margin-top:0}
-button{width:100%;padding:10px;margin-bottom:10px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;font-weight:600}
+button{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:6px;
+  background:var(--primary);
+  color:#fff;
+  cursor:pointer;
+  font-weight:600;
+}
 input{width:100%;padding:8px;margin-bottom:8px}
 
 /* ELEMENTOS */
-.elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
-.elemento{background:#020617;border:1px dashed #475569;border-radius:6px;padding:6px;cursor:grab;display:flex;justify-content:center}
+.elementos{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin-bottom:16px;
+}
+.elemento{
+  background:#020617;
+  border:1px dashed #475569;
+  border-radius:6px;
+  padding:6px;
+  cursor:grab;
+  display:flex;
+  justify-content:center;
+}
 .elemento img{width:42px;pointer-events:none}
 
 /* MAIN */
 main{flex:1;overflow:hidden}
-#viewport{width:100%;height:100%;overflow:scroll;cursor:grab;background:#e5e7eb}
-#mapa{position:relative;width:5000px;height:5000px;background:#fff;border:2px dashed var(--border)}
+#viewport{
+  width:100%;
+  height:100%;
+  overflow:scroll;
+  cursor:grab;
+  background:#e5e7eb;
+}
+#mapa{
+  position:relative;
+  width:5000px;
+  height:5000px;
+  background:#fff;
+  border:2px dashed var(--border);
+}
 
 /* ITEM */
-.item-mapa{position:absolute;cursor:grab;text-align:center}
+.item-mapa{
+  position:absolute;
+  cursor:grab;
+  text-align:center;
+}
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.selected{outline:2px solid var(--primary);border-radius:6px}
 .item-mapa.reservado{outline:2px solid var(--green)}
-.nome-reserva{font-size:11px;margin-top:2px;font-weight:600}
+.nome-reserva{
+  font-size:11px;
+  margin-top:2px;
+  font-weight:600;
+}
 
 /* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
+.modal{
+  position:fixed;inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
 .modal.active{display:flex}
-.modal-box{background:#fff;padding:20px;width:300px;border-radius:10px}
+.modal-box{
+  background:#fff;
+  padding:20px;
+  width:300px;
+  border-radius:10px;
+}
 
 /* MENU SETORES */
-#menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:10px;display:flex;gap:6px;z-index:999}
-#menuSetores button{background:#1e293b;font-size:12px}
+#menuSetores{
+  position:fixed;
+  top:16px;
+  right:16px;
+  background:#0f172a;
+  padding:8px;
+  border-radius:10px;
+  display:flex;
+  gap:6px;
+  z-index:999;
+}
+#menuSetores button{
+  background:#1e293b;
+  color:#fff;
+  padding:8px 10px;
+  border-radius:6px;
+  font-size:12px;
+}
 #menuSetores button.ativo{background:#2563eb}
 
 /* STATUS */
-#statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 3px rgba(0,0,0,.15);z-index:1000}
+#statusSync{
+  position:fixed;
+  bottom:16px;
+  right:16px;
+  width:14px;
+  height:14px;
+  border-radius:50%;
+  box-shadow:0 0 0 3px rgba(0,0,0,.15);
+  z-index:1000;
+}
 #statusSync.online{background:#22c55e}
 #statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
 #statusSync.offline{background:#ef4444}
 @keyframes pulse{50%{opacity:.4}}
 
 /* OVERLAY */
-#overlayLoading{position:fixed;inset:0;background:rgba(15,23,42,.92);display:flex;align-items:center;justify-content:center;z-index:2000;color:#fff}
+#overlayLoading{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.92);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:2000;
+  color:#fff;
+}
 #overlayLoading.hidden{display:none}
-.spinner{width:42px;height:42px;border:4px solid rgba(255,255,255,.3);border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 12px}
+.spinner{
+  width:42px;height:42px;
+  border:4px solid rgba(255,255,255,.3);
+  border-top-color:#2563eb;
+  border-radius:50%;
+  animation:spin 1s linear infinite;
+  margin:0 auto 12px;
+}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
 
+<!-- OVERLAY -->
 <div id="overlayLoading" class="hidden">
   <div>
     <div class="spinner"></div>
@@ -70,101 +184,124 @@ main{flex:1;overflow:hidden}
 </div>
 
 <aside>
-<h2>Elementos</h2>
-<button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
+  <h2>Elementos</h2>
+  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
-<h3>Reserváveis</h3>
-<div class="elementos" id="listaReservaveis"></div>
+  <h3>Reserváveis</h3>
+  <div class="elementos" id="listaReservaveis"></div>
 
-<h3>Não Reserváveis</h3>
-<div class="elementos" id="listaNaoReservaveis"></div>
+  <h3>Não Reserváveis</h3>
+  <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
 
 <main>
-<div id="viewport"><div id="mapa"></div></div>
+  <div id="viewport"><div id="mapa"></div></div>
 </main>
 
 <div id="menuSetores">
-<button data-setor="SALAO_PRINCIPAL">Salão</button>
-<button data-setor="PAULO_1">Paulo 1</button>
-<button data-setor="PAULO_2">Paulo 2</button>
-<button data-setor="SACADA">Sacada</button>
+  <button data-setor="SALAO_PRINCIPAL">Salão</button>
+  <button data-setor="PAULO_1">Paulo 1</button>
+  <button data-setor="PAULO_2">Paulo 2</button>
+  <button data-setor="SACADA">Sacada</button>
 </div>
 
 <div id="statusSync" class="offline"></div>
 
 <div class="modal" id="modalReserva">
-<div class="modal-box">
-<h3>Reserva</h3>
-<input id="clienteNome" placeholder="Nome">
-<input id="clienteCelular" placeholder="Celular">
-<input id="qtdPessoas" type="number" value="2">
-<button onclick="salvarReserva()">Salvar</button>
-<button onclick="fecharReserva()">Cancelar</button>
-</div>
+  <div class="modal-box">
+    <h3>Reserva</h3>
+    <input id="clienteNome" placeholder="Nome">
+    <input id="clienteCelular" placeholder="Celular">
+    <input id="qtdPessoas" type="number" value="2">
+    <button onclick="salvarReserva()">Salvar</button>
+    <button onclick="fecharReserva()">Cancelar</button>
+  </div>
 </div>
 
 <script>
-/* ===== SUPABASE ===== */
-const supabase=window.supabase.createClient(
+/* ================= SUPABASE ================= */
+const supabase = window.supabase.createClient(
   'https://qsgqfvrwlvaylfeenzgh.supabase.co',
   'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
 )
 
-const mapa=document.getElementById('mapa')
-const modalReserva=document.getElementById('modalReserva')
-const statusSync=document.getElementById('statusSync')
+/* ================= VARIÁVEIS ORIGINAIS ================= */
 const overlay=document.getElementById('overlayLoading')
 const overlayText=document.getElementById('overlayText')
+const statusSync=document.getElementById('statusSync')
+const mapa=document.getElementById('mapa')
+const modalReserva=document.getElementById('modalReserva')
 
 let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
+let sincronizando=false
 let reservando=null
+const ambientesCarregados=new Set()
+
+function nomeSetor(s){
+  return {
+    SALAO_PRINCIPAL:'Salão Principal',
+    PAULO_1:'Paulo Augusto 1',
+    PAULO_2:'Paulo Augusto 2',
+    SACADA:'Sacada'
+  }[s]
+}
 
 function setStatus(s){statusSync.className=s}
-function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
+function mostrarOverlay(txt){overlayText.textContent=txt;overlay.classList.remove('hidden')}
 function esconderOverlay(){overlay.classList.add('hidden')}
 
-/* ===== SALVAR MAPA (IGUAL AO ORIGINAL) ===== */
-async function salvarMapa(){
-  setStatus('syncing')
+/* ================= SALVAR MAPA (MESMA LÓGICA) ================= */
+function salvarMapa(){
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    id:i.dataset.id,
+    id:i.dataset.id||undefined,
     setor:setorAtual,
     url:i.querySelector('img').src,
     x:parseFloat(i.style.left),
     y:parseFloat(i.style.top),
-    reservavel:i.dataset.reservavel==='true',
-    reservado:i.classList.contains('reservado'),
-    cliente:i.dataset.cliente||null,
-    celular:i.dataset.celular||null,
-    pessoas:i.dataset.pessoas?parseInt(i.dataset.pessoas):null
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
   }))
-  await supabase.from('mapa_mesas').upsert(itens)
-  setStatus('online')
+  sincronizando=true
+  setStatus('syncing')
+  supabase.from('mapa_mesas').upsert(itens)
+    .then(()=>setStatus('online'))
+    .catch(()=>setStatus('offline'))
+    .finally(()=>sincronizando=false)
 }
 
-/* ===== CARREGAR MAPA (IGUAL AO ORIGINAL) ===== */
-async function carregarMapa(force=false){
-  if(force) mostrarOverlay('Carregando ambiente...')
-  const {data}=await supabase.from('mapa_mesas').select('*').eq('setor',setorAtual)
+/* ================= CARREGAR MAPA (MESMO FLUXO) ================= */
+function carregarMapa(force=false){
+  if(force||!ambientesCarregados.has(setorAtual))
+    mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
+
+  supabase.from('mapa_mesas').select('*').eq('setor',setorAtual)
+    .then(({data})=>montarMapa(data||[]))
+    .finally(()=>{
+      ambientesCarregados.add(setorAtual)
+      setTimeout(esconderOverlay,300)
+      setStatus('online')
+    })
+}
+
+function montarMapa(d){
   mapa.innerHTML=''
-  ;(data||[]).forEach(x=>{
-    const i=criarItem(x.url,x.reservavel,x.x,x.y,false)
+  d.forEach(x=>{
+    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
     i.dataset.id=x.id
-    if(x.reservado){
-      i.dataset.cliente=x.cliente
-      i.dataset.celular=x.celular
-      i.dataset.pessoas=x.pessoas
+    if(x.ok){
+      i.dataset.cliente=x.c
+      i.dataset.celular=x.cel
+      i.dataset.pessoas=x.p
       i.classList.add('reservado')
       i.querySelector('.nome-reserva').textContent=
-        `${x.cliente} • ${x.pessoas} pessoas`
+        `${x.c} • ${x.p} pessoas`
     }
   })
-  setStatus('online')
-  setTimeout(esconderOverlay,300)
 }
 
-/* ===== ITEM ===== */
 function criarItem(url,res,x,y,salvar=true){
   const i=document.createElement('div')
   i.className='item-mapa'
@@ -177,14 +314,13 @@ function criarItem(url,res,x,y,salvar=true){
   drag(i)
   if(salvar){
     supabase.from('mapa_mesas')
-      .insert([{setor:setorAtual,url,x,y,reservavel:res}])
+      .insert([{setor:setorAtual,url,x,y,r:res}])
       .select().single()
       .then(r=>i.dataset.id=r.data.id)
   }
   return i
 }
 
-/* ===== DRAG ===== */
 function drag(el){
   let x,y
   el.onmousedown=e=>{
@@ -198,7 +334,6 @@ function drag(el){
   }
 }
 
-/* ===== DROP ===== */
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
   criarItem(
@@ -208,7 +343,6 @@ mapa.ondrop=e=>{
   )
 }
 
-/* ===== RESERVA ===== */
 function salvarReserva(){
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.celular=clienteCelular.value
@@ -221,16 +355,14 @@ function salvarReserva(){
 }
 function fecharReserva(){modalReserva.classList.remove('active')}
 
-/* ===== REMOVER ===== */
 function removerSelecionado(){
   if(!reservando)return
-  if(!confirm('Remover elemento?'))return
+  if(!confirm('Remover este elemento?'))return
   supabase.from('mapa_mesas').delete().eq('id',reservando.dataset.id)
     .then(()=>carregarMapa(true))
   reservando=null
 }
 
-/* ===== SETORES ===== */
 document.querySelectorAll('#menuSetores button').forEach(b=>{
   if(b.dataset.setor===setorAtual)b.classList.add('ativo')
   b.onclick=()=>{
@@ -242,15 +374,14 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
   }
 })
 
-/* ===== ELEMENTOS ===== */
 const reservaveis=[
-'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
-'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
-'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
 ]
 const nao=[
-'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
-'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
+ 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
 function add(url,res){
   const d=document.createElement('div')
