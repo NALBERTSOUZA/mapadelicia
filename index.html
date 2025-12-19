@@ -363,6 +363,7 @@ body.modal-open #mapa{
 const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
 const API_TOKEN = 'MAPA_MESAS'
+const DATA_LAYOUT_PADRAO = '2025-01-01'
 
 const overlay=document.getElementById('overlayLoading')
 const overlayText=document.getElementById('overlayText')
@@ -418,8 +419,7 @@ function salvarMapa(){
   setStatus('syncing')
 
 syncPromise = fetch(
-  `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${dataSelecionada}`,
-  {
+ `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${DATA_LAYOUT_PADRAO}`
     method: 'PATCH',
     headers: {
       apikey: SUPABASE_KEY,
@@ -442,11 +442,13 @@ syncPromise = fetch(
 
 
 function carregarMapa(force = false){
-  if (force || !ambientesCarregados.has(`${setorAtual}_${dataSelecionada}`))
+  const chave = `${setorAtual}_${DATA_LAYOUT_PADRAO}`
+
+  if (force || !ambientesCarregados.has(chave))
     mostrarOverlay('Carregando ambiente...')
 
   fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${dataSelecionada}&select=dados`,
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${DATA_LAYOUT_PADRAO}&select=dados`,
     {
       headers:{
         apikey: SUPABASE_KEY,
@@ -462,10 +464,11 @@ function carregarMapa(force = false){
   })
   .catch(() => setStatus('offline'))
   .finally(() => {
-    ambientesCarregados.add(`${setorAtual}_${dataSelecionada}`)
+    ambientesCarregados.add(chave)
     setTimeout(esconderOverlay, 300)
   })
 }
+
 
 
 /* ================= RESTANTE ORIGINAL ================= */
@@ -475,8 +478,7 @@ function montarMapa(dados){
 
   dados.forEach(x => {
 
-    // 🔒 GARANTE QUE É DO DIA ATUAL
-    if (x.d && x.d !== dataSelecionada) return
+    
 
     const i = criarItem(
       x.url,
