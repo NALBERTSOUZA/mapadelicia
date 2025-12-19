@@ -11,7 +11,8 @@
   --primary:#2563eb;
   --border:#dcdfe4;
   --green:#16a34a;
-  --danger:#dc2626;
+  --red:#dc2626;
+  --gray:#64748b;
 }
 *{box-sizing:border-box}
 body{
@@ -93,9 +94,45 @@ main{flex:1;overflow:hidden}
   font-weight:600;
 }
 
+/* TEXTO CENTRALIZADO NA MESA */
+.item-mapa{
+  position:absolute;
+  cursor:grab;
+}
+
+.item-mapa .info-mesa{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  text-align:center;
+}
+
+.item-mapa .info-mesa .nome{
+  font-size:13px;
+  font-weight:700;
+  background:rgba(255,255,255,.85);
+  padding:2px 6px;
+  border-radius:4px;
+}
+
+.item-mapa .info-mesa .pessoas{
+  margin-top:2px;
+  font-size:11px;
+  font-weight:600;
+  background:rgba(255,255,255,.8);
+  padding:1px 6px;
+  border-radius:4px;
+}
+
+
 /* MODAL */
 .modal{
-  position:fixed;inset:0;
+  position:fixed;
+  inset:0;
   background:rgba(0,0,0,.4);
   display:none;
   align-items:center;
@@ -105,11 +142,8 @@ main{flex:1;overflow:hidden}
 .modal-box{
   background:#fff;
   padding:20px;
-  width:300px;
-  border-radius:10px;
-}
-.modal-box .danger{
-  background:var(--danger);
+  width:320px;
+  border-radius:12px;
 }
 
 /* MENU SETORES */
@@ -167,7 +201,6 @@ main{flex:1;overflow:hidden}
   border-top-color:#2563eb;
   border-radius:50%;
   animation:spin 1s linear infinite;
-  margin:0 auto 12px;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
@@ -184,10 +217,8 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
-
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
-
   <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
@@ -197,65 +228,189 @@ main{flex:1;overflow:hidden}
 </main>
 
 <div id="menuSetores">
-  <button data-setor="SALAO_PRINCIPAL">Salão</button>
-  <button data-setor="PAULO_1">Paulo 1</button>
-  <button data-setor="PAULO_2">Paulo 2</button>
-  <button data-setor="SACADA">Sacada</button>
+  <button data-setor="SALAO_PRINCIPAL">DELÍCIA</button>
+  <button data-setor="PAULO_1">PAULO 1</button>
+  <button data-setor="PAULO_2">PAULO 2</button>
+  <button data-setor="SACADA">SACADA</button>
+  <button data-setor="PRINCIPAL">S. PRINCIPAL</button>
 </div>
 
 <div id="statusSync" class="offline"></div>
 
+<!-- MODAL RESERVA (MESAS) -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
-    <h3>Reserva</h3>
+    <h3>Mesa</h3>
+
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
 
-    <button onclick="salvarReserva()">Salvar</button>
-    <button class="danger" onclick="excluirMesa()">🗑️ Excluir Mesa</button>
-    <button onclick="fecharReserva()">Cancelar</button>
+    <button onclick="salvarReserva()">Salvar Reserva</button>
+
+    <button
+      id="btnExcluirReserva"
+      onclick="excluirReserva()"
+      style="background:var(--gray);display:none">
+      ❌ Excluir Reserva
+    </button>
+
+    <button onclick="excluirMesa()" style="background:var(--red)">
+      🗑️ Excluir Mesa
+    </button>
+
+    <button onclick="fecharReserva()" style="background:#334155">
+      Cancelar
+    </button>
+  </div>
+</div>
+
+<!-- MODAL ELEMENTO NÃO RESERVÁVEL -->
+<div class="modal" id="modalElemento">
+  <div class="modal-box">
+    <h3>Elemento</h3>
+
+    <button onclick="redimensionarElemento(1.1)">
+      ➕ Aumentar
+    </button>
+
+    <button onclick="redimensionarElemento(0.9)">
+      ➖ Diminuir
+    </button>
+
+    <button
+      onclick="excluirElemento()"
+      style="background:var(--red)">
+      🗑️ Excluir Elemento
+    </button>
+
+    <button
+      onclick="fecharElemento()"
+      style="background:#334155">
+      Cancelar
+    </button>
   </div>
 </div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
-const API_TOKEN='MAPA_MESAS_2025'
+/* ================= CONFIG SUPABASE ================= */
+const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
+const API_TOKEN = 'MAPA_MESAS'
 
 const overlay=document.getElementById('overlayLoading')
 const overlayText=document.getElementById('overlayText')
 const statusSync=document.getElementById('statusSync')
 const mapa=document.getElementById('mapa')
 const modalReserva=document.getElementById('modalReserva')
+const btnExcluirReserva=document.getElementById('btnExcluirReserva')
 
 let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
 let sincronizando=false
 let syncPromise=Promise.resolve()
 const ambientesCarregados=new Set()
 let reservando=null
+let editandoReserva = false
+
+const modalElemento = document.getElementById('modalElemento')
+let elementoSelecionado = null
+
 
 function setStatus(s){statusSync.className=s}
 function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
 function esconderOverlay(){overlay.classList.add('hidden')}
 
+/* ================= SALVAR MAPA ================= */
 function salvarMapa(){
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    r:i.dataset.reservavel,
-    c:i.dataset.cliente||'',
-    cel:i.dataset.celular||'',
-    p:i.dataset.pessoas||'',
-    ok:i.classList.contains('reservado')
-  }))
+  const itens = [...document.querySelectorAll('.item-mapa')].map(i => {
+  const img = i.querySelector('img')
+
+  return {
+    url: img.src,
+    x: parseFloat(i.style.left),
+    y: parseFloat(i.style.top),
+
+    // 👉 TAMANHO DO ELEMENTO
+    w: img.style.width || img.offsetWidth + 'px',
+
+    r: i.dataset.reservavel,
+    c: i.dataset.cliente || '',
+    cel: i.dataset.celular || '',
+    p: i.dataset.pessoas || '',
+    ok: i.classList.contains('reservado')
+  }
+})
+
   sincronizando=true
   setStatus('syncing')
-  syncPromise=fetch(API_URL,{method:'POST',body:JSON.stringify({
-    token:API_TOKEN,setor:setorAtual,dados:itens
-  })})
-  .then(()=>setStatus('online'))
-  .finally(()=>sincronizando=false)
+
+  syncPromise=fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,
+    {
+      method:'PATCH',
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token:API_TOKEN,
+        'Content-Type':'application/json',
+        Prefer:'return=minimal'
+      },
+      body:JSON.stringify({dados:itens,updated_at:new Date().toISOString()})
+    }
+  ).then(()=>setStatus('online'))
+   .catch(()=>setStatus('offline'))
+   .finally(()=>sincronizando=false)
+}
+
+/* ================= CARREGAR MAPA ================= */
+function carregarMapa(force=false){
+  if(force||!ambientesCarregados.has(setorAtual))
+    mostrarOverlay('Carregando ambiente...')
+
+  fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&select=dados`,
+    {
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token:API_TOKEN
+      }
+    }
+  )
+  .then(r=>r.json())
+  .then(r=>{
+    montarMapa(r[0]?.dados||[])
+    setStatus('online')
+  })
+  .catch(()=>setStatus('offline'))
+  .finally(()=>{
+    ambientesCarregados.add(setorAtual)
+    setTimeout(esconderOverlay,300)
+  })
+}
+
+/* ================= RESTANTE ORIGINAL ================= */
+
+function montarMapa(dados){
+  mapa.innerHTML=''
+  dados.forEach(x=>{
+    const i = criarItem(x.url, x.r === 'true', x.x, x.y, false)
+
+// 👉 RESTAURA TAMANHO DO ELEMENTO
+if (x.w) {
+  i.querySelector('img').style.width = x.w
+}
+
+    if(x.ok){
+      i.dataset.cliente=x.c
+      i.dataset.celular=x.cel
+      i.dataset.pessoas=x.p
+      i.classList.add('reservado')
+i.querySelector('.nome').textContent = x.c
+i.querySelector('.pessoas').textContent = `${x.p} pessoas`
+
+    }
+  })
 }
 
 function criarItem(url,res,x,y,salvar=true){
@@ -264,8 +419,37 @@ function criarItem(url,res,x,y,salvar=true){
   i.dataset.reservavel=res
   i.style.left=x+'px'
   i.style.top=y+'px'
-  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-  i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
+ i.innerHTML=`
+  <img src="${url}">
+  <div class="info-mesa">
+    <div class="nome"></div>
+    <div class="pessoas"></div>
+  </div>
+`
+
+i.ondblclick = () => {
+
+if (i.dataset.reservavel === 'true') {
+
+  editandoReserva = true
+  reservando = i
+
+  clienteNome.value = i.dataset.cliente || ''
+  clienteCelular.value = i.dataset.celular || ''
+  qtdPessoas.value = i.dataset.pessoas || 2
+
+  btnExcluirReserva.style.display =
+    i.classList.contains('reservado') ? 'block' : 'none'
+
+  modalReserva.classList.add('active')
+  return
+}
+
+  // ===== ELEMENTO NÃO RESERVÁVEL =====
+  elementoSelecionado = i
+  modalElemento.classList.add('active')
+}
+
   mapa.appendChild(i)
   drag(i)
   if(salvar) salvarMapa()
@@ -281,43 +465,160 @@ function drag(el){
       el.style.top=el.offsetTop+(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
   }
 }
 
-function excluirMesa(){
-  if(!reservando) return
-  if(confirm('Deseja realmente excluir esta mesa?')){
-    reservando.remove()
-    salvarMapa()
-    fecharReserva()
+mapa.ondragover=e=>e.preventDefault()
+mapa.ondrop=e=>{
+  const url=e.dataTransfer.getData('url')
+  if(!url)return
+  criarItem(url,e.dataTransfer.getData('r')==='true',e.offsetX,e.offsetY)
+}
+
+
+
+
+
+
+
+
+  
+const reservaveis=[
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(33).png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/mesas4cadeiras.png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(36).png?raw=true'
+]
+const nao=[
+ 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
+ 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(34).png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/MERCATTO%20DEL%C3%8DCIA%20(1).png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/MERCATTO%20DEL%C3%8DCIA.png?raw=true'
+]
+
+
+
+
+
+
+
+
+  
+reservaveis.forEach(u=>add(u,true))
+nao.forEach(u=>add(u,false))
+
+function add(url,res){
+  const d=document.createElement('div')
+  d.className='elemento'
+  d.draggable=true
+  d.innerHTML=`<img src="${url}">`
+  d.ondragstart=e=>{
+    e.dataTransfer.setData('url',url)
+    e.dataTransfer.setData('r',res)
   }
+  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
 
 function salvarReserva(){
-  reservando.dataset.cliente=clienteNome.value
-  reservando.dataset.celular=clienteCelular.value
-  reservando.dataset.pessoas=qtdPessoas.value
+
+  editandoReserva = true
+
+  reservando.dataset.cliente = clienteNome.value
+  reservando.dataset.celular = clienteCelular.value
+  reservando.dataset.pessoas = qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent=
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+
+  reservando.querySelector('.nome').textContent = clienteNome.value
+  reservando.querySelector('.pessoas').textContent =
+    `${qtdPessoas.value} pessoas`
+
+  salvarMapa()
+
+  // 👇 garante que o PATCH tenha tempo de sair
+  setTimeout(() => {
+    editandoReserva = false
+    fecharReserva()
+  }, 300)
+}
+
+
+function excluirReserva(){
+  reservando.classList.remove('reservado')
+  reservando.dataset.cliente=''
+  reservando.dataset.celular=''
+  reservando.dataset.pessoas=''
+ reservando.querySelector('.nome').textContent=''
+reservando.querySelector('.pessoas').textContent=''
+
+  salvarMapa()
+  fecharReserva()
+}
+
+function excluirMesa(){
+  if(!confirm('Excluir esta mesa definitivamente?'))return
+  reservando.remove()
   salvarMapa()
   fecharReserva()
 }
 
 function fecharReserva(){
   modalReserva.classList.remove('active')
-  reservando=null
+  editandoReserva = false
 }
 
-mapa.ondragover=e=>e.preventDefault()
-mapa.ondrop=e=>{
-  criarItem(
-    e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('r')==='true',
-    e.offsetX,e.offsetY
-  )
+
+document.querySelectorAll('#menuSetores button').forEach(b=>{
+  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
+  b.onclick=async()=>{
+    if(b.dataset.setor===setorAtual)return
+    if(sincronizando){
+      mostrarOverlay('Finalizando sincronização...')
+      await syncPromise
+    }
+    setorAtual=b.dataset.setor
+    localStorage.setItem('setor_atual',setorAtual)
+    document.querySelectorAll('#menuSetores button')
+      .forEach(x=>x.classList.remove('ativo'))
+    b.classList.add('ativo')
+    carregarMapa(true)
+  }
+})
+
+carregarMapa(true)
+setInterval(() => {
+  if (!editandoReserva && !sincronizando) {
+    carregarMapa(false)
+  }
+}, 10000)
+
+function redimensionarElemento(fator){
+  if (!elementoSelecionado) return
+
+  const img = elementoSelecionado.querySelector('img')
+  img.style.width = (img.offsetWidth * fator) + 'px'
+
+  salvarMapa()
 }
+
+function excluirElemento(){
+  if (!elementoSelecionado) return
+  if (!confirm('Excluir este elemento?')) return
+
+  elementoSelecionado.remove()
+  salvarMapa()
+  fecharElemento()
+}
+
+function fecharElemento(){
+  modalElemento.classList.remove('active')
+  elementoSelecionado = null
+}
+
 </script>
 
 </body>
