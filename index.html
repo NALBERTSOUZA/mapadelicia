@@ -94,6 +94,41 @@ main{flex:1;overflow:hidden}
   font-weight:600;
 }
 
+/* TEXTO CENTRALIZADO NA MESA */
+.item-mapa{
+  position:absolute;
+  cursor:grab;
+}
+
+.item-mapa .info-mesa{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  pointer-events:none;
+  text-align:center;
+}
+
+.item-mapa .info-mesa .nome{
+  font-size:13px;
+  font-weight:700;
+  background:rgba(255,255,255,.85);
+  padding:2px 6px;
+  border-radius:4px;
+}
+
+.item-mapa .info-mesa .pessoas{
+  margin-top:2px;
+  font-size:11px;
+  font-weight:600;
+  background:rgba(255,255,255,.8);
+  padding:1px 6px;
+  border-radius:4px;
+}
+
+
 /* MODAL */
 .modal{
   position:fixed;
@@ -316,8 +351,9 @@ function montarMapa(dados){
       i.dataset.celular=x.cel
       i.dataset.pessoas=x.p
       i.classList.add('reservado')
-      i.querySelector('.nome-reserva').textContent=
-        `${x.c} • ${x.p} pessoas`
+i.querySelector('.nome').textContent = x.c
+i.querySelector('.pessoas').textContent = `${x.p} pessoas`
+
     }
   })
 }
@@ -328,7 +364,14 @@ function criarItem(url,res,x,y,salvar=true){
   i.dataset.reservavel=res
   i.style.left=x+'px'
   i.style.top=y+'px'
-  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
+ i.innerHTML=`
+  <img src="${url}">
+  <div class="info-mesa">
+    <div class="nome"></div>
+    <div class="pessoas"></div>
+  </div>
+`
+
   i.ondblclick=()=>{
     if(i.dataset.reservavel!=='true')return
     reservando=i
@@ -398,8 +441,10 @@ function salvarReserva(){
   reservando.dataset.celular=clienteCelular.value
   reservando.dataset.pessoas=qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent=
-    `${clienteNome.value} • ${qtdPessoas.value} pessoas`
+reservando.querySelector('.nome').textContent = clienteNome.value
+reservando.querySelector('.pessoas').textContent =
+  `${qtdPessoas.value} pessoas`
+
   salvarMapa()
   fecharReserva()
 }
@@ -409,7 +454,9 @@ function excluirReserva(){
   reservando.dataset.cliente=''
   reservando.dataset.celular=''
   reservando.dataset.pessoas=''
-  reservando.querySelector('.nome-reserva').textContent=''
+ reservando.querySelector('.nome').textContent=''
+reservando.querySelector('.pessoas').textContent=''
+
   salvarMapa()
   fecharReserva()
 }
