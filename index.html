@@ -5,7 +5,6 @@
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<!-- SUPABASE -->
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 
 <style>
@@ -154,10 +153,8 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
-
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
-
   <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
@@ -175,53 +172,37 @@ main{flex:1;overflow:hidden}
 
 <div id="statusSync" class="offline"></div>
 
-<!-- MODAL -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Mesa</h3>
-
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
-
     <button onclick="salvarReserva()">Salvar Reserva</button>
-
-    <button id="btnExcluirReserva"
-      onclick="excluirReserva()"
-      style="background:var(--gray);display:none">
-      Excluir Reserva
-    </button>
-
-    <button onclick="excluirMesa()" style="background:var(--red)">
-      Excluir Mesa
-    </button>
-
-    <button onclick="fecharReserva()" style="background:#334155">
-      Cancelar
-    </button>
+    <button id="btnExcluirReserva" onclick="excluirReserva()" style="background:var(--gray);display:none">Excluir Reserva</button>
+    <button onclick="excluirMesa()" style="background:var(--red)">Excluir Mesa</button>
+    <button onclick="fecharReserva()" style="background:#334155">Cancelar</button>
   </div>
 </div>
 
 <script>
-/* ================= CONFIG SUPABASE ================= */
-const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
+/* ================= SUPABASE ================= */
 const supabase = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
+  'https://qsgqfvrwlvaylfeenzgh.supabase.co',
+  'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
 )
 
-
-/* ================= VARIÁVEIS ================= */
+/* ================= DOM ================= */
 const mapa = document.getElementById('mapa')
 const modalReserva = document.getElementById('modalReserva')
 const btnExcluirReserva = document.getElementById('btnExcluirReserva')
 const statusSync = document.getElementById('statusSync')
+const listaReservaveis = document.getElementById('listaReservaveis')
+const listaNaoReservaveis = document.getElementById('listaNaoReservaveis')
 
 let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
 let reservando = null
 
-/* ================= STATUS ================= */
 function setStatus(s){ statusSync.className = s }
 
 /* ================= CRUD ================= */
@@ -242,8 +223,8 @@ async function salvarItem(el){
   const payload={
     setor:setorAtual,
     url:el.querySelector('img').src,
-    x:+el.style.left.replace('px',''),
-    y:+el.style.top.replace('px',''),
+    x:parseFloat(el.style.left),
+    y:parseFloat(el.style.top),
     reservavel:el.dataset.reservavel==='true',
     reservado:el.classList.contains('reservado'),
     cliente:el.dataset.cliente||null,
