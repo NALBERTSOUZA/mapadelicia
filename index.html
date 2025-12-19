@@ -256,19 +256,12 @@ main{flex:1;overflow:hidden}
     </button>
   </div>
 </div>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 /* ================= CONFIG SUPABASE ================= */
 const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
 const API_TOKEN = 'MAPA_MESAS'
-const supabase = supabaseJs.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-)
-
-let realtimeChannel = null
-
 
 const overlay=document.getElementById('overlayLoading')
 const overlayText=document.getElementById('overlayText')
@@ -289,45 +282,36 @@ function esconderOverlay(){overlay.classList.add('hidden')}
 
 /* ================= SALVAR MAPA ================= */
 function salvarMapa(){
-  clearTimeout(saveTimeout)
+  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
+    url:i.querySelector('img').src,
+    x:parseFloat(i.style.left),
+    y:parseFloat(i.style.top),
+    r:i.dataset.reservavel,
+    c:i.dataset.cliente||'',
+    cel:i.dataset.celular||'',
+    p:i.dataset.pessoas||'',
+    ok:i.classList.contains('reservado')
+  }))
+  sincronizando=true
+  setStatus('syncing')
 
-  saveTimeout = setTimeout(() => {
-    const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-      url:i.querySelector('img').src,
-      x:parseFloat(i.style.left),
-      y:parseFloat(i.style.top),
-      r:i.dataset.reservavel,
-      c:i.dataset.cliente||'',
-      cel:i.dataset.celular||'',
-      p:i.dataset.pessoas||'',
-      ok:i.classList.contains('reservado')
-    }))
-
-    setStatus('syncing')
-
-    fetch(
-      `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,
-      {
-        method:'PATCH',
-        headers:{
-          apikey:SUPABASE_KEY,
-          Authorization:`Bearer ${SUPABASE_KEY}`,
-          token:API_TOKEN,
-          'Content-Type':'application/json',
-          Prefer:'return=minimal'
-        },
-        body:JSON.stringify({
-          dados:itens,
-          updated_at:new Date().toISOString()
-        })
-      }
-    )
-    .then(()=>setStatus('online'))
-    .catch(()=>setStatus('offline'))
-
-  }, 200) // ⚡ ajuste fino (150~300ms)
+  syncPromise=fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,
+    {
+      method:'PATCH',
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token:API_TOKEN,
+        'Content-Type':'application/json',
+        Prefer:'return=minimal'
+      },
+      body:JSON.stringify({dados:itens,updated_at:new Date().toISOString()})
+    }
+  ).then(()=>setStatus('online'))
+   .catch(()=>setStatus('offline'))
+   .finally(()=>sincronizando=false)
 }
-
 
 /* ================= CARREGAR MAPA ================= */
 function carregarMapa(force=false){
@@ -484,29 +468,6 @@ function excluirMesa(){
   salvarMapa()
   fecharReserva()
 }
-function iniciarRealtime(){
-  if(realtimeChannel){
-    supabase.removeChannel(realtimeChannel)
-  }
-
-  realtimeChannel = supabase
-    .channel('mapa-mesas-' + setorAtual)
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'mapa_mesas',
-        filter: `setor=eq.${setorAtual}`
-      },
-      payload => {
-        montarMapa(payload.new.dados || [])
-        setStatus('online')
-      }
-    )
-    .subscribe()
-}
-
 
 function fecharReserva(){
   modalReserva.classList.remove('active')
@@ -526,12 +487,11 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
       .forEach(x=>x.classList.remove('ativo'))
     b.classList.add('ativo')
     carregarMapa(true)
-    iniciarRealtime()
-
   }
 })
 
 carregarMapa(true)
+setInterval(()=>carregarMapa(false),10000)
 </script>
 
 </body>
