@@ -86,6 +86,12 @@ main{flex:1;overflow:hidden}
   cursor:grab;
   text-align:center;
 }
+.item-mapa img{
+  width:150px;
+  pointer-events:none;
+  transform-origin:center center;
+}
+
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.reservado{outline:2px solid var(--green)}
 .nome-reserva{
@@ -256,9 +262,11 @@ main{flex:1;overflow:hidden}
   <div class="modal-box">
     <h3>Mesa</h3>
 
-    <input id="clienteNome" placeholder="Nome">
-    <input id="clienteCelular" placeholder="Celular">
-    <input id="qtdPessoas" type="number" value="2">
+<input id="numeroMesa" placeholder="Número da mesa">
+<input id="clienteNome" placeholder="Nome">
+<input id="clienteCelular" placeholder="Celular">
+<input id="qtdPessoas" type="number" value="2">
+
 
 <button onclick="salvarReserva()">Salvar Reserva</button>
 
@@ -285,16 +293,16 @@ main{flex:1;overflow:hidden}
 
 <!-- MODAL ELEMENTO NÃO RESERVÁVEL -->
 <div class="modal" id="modalElemento">
-  <div class="modal-box">
-    <h3>Elemento</h3>
+<div class="modal-box">
+  <h3>Elemento</h3>
 
-    <button onclick="redimensionarElemento(1.1)">
-      ➕ Aumentar
-    </button>
+  <button onclick="girarElemento()">
+    🔄 Girar 90°
+  </button>
 
-    <button onclick="redimensionarElemento(0.9)">
-      ➖ Diminuir
-    </button>
+  <button onclick="redimensionarElemento(1.1)">➕ Aumentar</button>
+  <button onclick="redimensionarElemento(0.9)">➖ Diminuir</button>
+
 
     <button
       onclick="excluirElemento()"
@@ -349,9 +357,10 @@ return {
   y: parseFloat(i.style.top),
   w: img.style.width || img.offsetWidth + 'px',
 
-  // 🔴 NÚMERO DA MESA
-  n: i.dataset.numero || '',
+  // 🔁 ROTAÇÃO
+  rot: i.dataset.rot || 0,
 
+  n: i.dataset.numero || '',
   r: i.dataset.reservavel,
   c: i.dataset.cliente || '',
   cel: i.dataset.celular || '',
@@ -410,34 +419,55 @@ function carregarMapa(force=false){
 
 /* ================= RESTANTE ORIGINAL ================= */
 
-function montarMapa(dados){
-  mapa.innerHTML=''
-  dados.forEach(x=>{
-    const i = criarItem(x.url, x.r === 'true', x.x, x.y, false)
+function montarMapa(dados) {
+  mapa.innerHTML = ''
 
-// 👉 RESTAURA TAMANHO DO ELEMENTO
-if (x.w) {
-  i.querySelector('img').style.width = x.w
-}
+  dados.forEach(x => {
+    const i = criarItem(
+      x.url,
+      x.r === 'true',
+      x.x,
+      x.y,
+      false
+    )
 
-if (x.n && i.dataset.reservavel === 'true') {
-  i.dataset.numero = x.n
-  i.querySelector('.numero-mesa').textContent = x.n
-}
+    const img = i.querySelector('img')
 
+    // ===== TAMANHO =====
+    if (x.w) {
+      img.style.width = x.w
+    }
 
+    // ===== ROTAÇÃO (0 / 90 / 180 / 270) =====
+    if (x.rot !== undefined && x.rot !== null) {
+      i.dataset.rot = x.rot
+      img.style.transform = `rotate(${x.rot}deg)`
+    }
 
-    if(x.ok){
-      i.dataset.cliente=x.c
-      i.dataset.celular=x.cel
-      i.dataset.pessoas=x.p
+    // ===== NÚMERO DA MESA (SÓ RESERVÁVEL) =====
+    if (x.n && i.dataset.reservavel === 'true') {
+      i.dataset.numero = x.n
+      const badge = i.querySelector('.numero-mesa')
+      if (badge) badge.textContent = x.n
+    }
+
+    // ===== RESERVA =====
+    if (x.ok) {
+      i.dataset.cliente = x.c || ''
+      i.dataset.celular = x.cel || ''
+      i.dataset.pessoas = x.p || ''
+
       i.classList.add('reservado')
-i.querySelector('.nome').textContent = x.c
-i.querySelector('.pessoas').textContent = `${x.p} pessoas`
 
+      const nomeEl = i.querySelector('.nome')
+      const pessoasEl = i.querySelector('.pessoas')
+
+      if (nomeEl) nomeEl.textContent = x.c || ''
+      if (pessoasEl) pessoasEl.textContent = `${x.p || ''} pessoas`
     }
   })
 }
+
 
 function criarItem(url,res,x,y,salvar=true){
   const i=document.createElement('div')
@@ -690,6 +720,19 @@ function abrirAjusteMesa(){
   elementoSelecionado = reservando
   modalReserva.classList.remove('active')
   modalElemento.classList.add('active')
+}
+function girarElemento() {
+  if (!elementoSelecionado) return
+  if (elementoSelecionado.dataset.reservavel !== 'true') return
+
+  let atual = parseInt(elementoSelecionado.dataset.rot || 0)
+  let novo = (atual + 90) % 360
+
+  elementoSelecionado.dataset.rot = novo
+  elementoSelecionado.querySelector('img').style.transform =
+    `rotate(${novo}deg)`
+
+  salvarMapa()
 }
 
 
