@@ -236,22 +236,56 @@ main{flex:1;overflow:hidden}
 
 <div id="statusSync" class="offline"></div>
 
+<!-- MODAL RESERVA (MESAS) -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Mesa</h3>
+
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
+
     <button onclick="salvarReserva()">Salvar Reserva</button>
-    <button id="btnExcluirReserva"
+
+    <button
+      id="btnExcluirReserva"
       onclick="excluirReserva()"
       style="background:var(--gray);display:none">
       ❌ Excluir Reserva
     </button>
+
     <button onclick="excluirMesa()" style="background:var(--red)">
       🗑️ Excluir Mesa
     </button>
+
     <button onclick="fecharReserva()" style="background:#334155">
+      Cancelar
+    </button>
+  </div>
+</div>
+
+<!-- MODAL ELEMENTO NÃO RESERVÁVEL -->
+<div class="modal" id="modalElemento">
+  <div class="modal-box">
+    <h3>Elemento</h3>
+
+    <button onclick="redimensionarElemento(1.1)">
+      ➕ Aumentar
+    </button>
+
+    <button onclick="redimensionarElemento(0.9)">
+      ➖ Diminuir
+    </button>
+
+    <button
+      onclick="excluirElemento()"
+      style="background:var(--red)">
+      🗑️ Excluir Elemento
+    </button>
+
+    <button
+      onclick="fecharElemento()"
+      style="background:#334155">
       Cancelar
     </button>
   </div>
@@ -276,22 +310,35 @@ let syncPromise=Promise.resolve()
 const ambientesCarregados=new Set()
 let reservando=null
 
+const modalElemento = document.getElementById('modalElemento')
+let elementoSelecionado = null
+
+
 function setStatus(s){statusSync.className=s}
 function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
 function esconderOverlay(){overlay.classList.add('hidden')}
 
 /* ================= SALVAR MAPA ================= */
 function salvarMapa(){
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    r:i.dataset.reservavel,
-    c:i.dataset.cliente||'',
-    cel:i.dataset.celular||'',
-    p:i.dataset.pessoas||'',
-    ok:i.classList.contains('reservado')
-  }))
+  const itens = [...document.querySelectorAll('.item-mapa')].map(i => {
+  const img = i.querySelector('img')
+
+  return {
+    url: img.src,
+    x: parseFloat(i.style.left),
+    y: parseFloat(i.style.top),
+
+    // 👉 TAMANHO DO ELEMENTO
+    w: img.style.width || img.offsetWidth + 'px',
+
+    r: i.dataset.reservavel,
+    c: i.dataset.cliente || '',
+    cel: i.dataset.celular || '',
+    p: i.dataset.pessoas || '',
+    ok: i.classList.contains('reservado')
+  }
+})
+
   sincronizando=true
   setStatus('syncing')
 
@@ -345,7 +392,13 @@ function carregarMapa(force=false){
 function montarMapa(dados){
   mapa.innerHTML=''
   dados.forEach(x=>{
-    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
+    const i = criarItem(x.url, x.r === 'true', x.x, x.y, false)
+
+// 👉 RESTAURA TAMANHO DO ELEMENTO
+if (x.w) {
+  i.querySelector('img').style.width = x.w
+}
+
     if(x.ok){
       i.dataset.cliente=x.c
       i.dataset.celular=x.cel
@@ -372,16 +425,29 @@ function criarItem(url,res,x,y,salvar=true){
   </div>
 `
 
-  i.ondblclick=()=>{
-    if(i.dataset.reservavel!=='true')return
-    reservando=i
-    clienteNome.value=i.dataset.cliente||''
-    clienteCelular.value=i.dataset.celular||''
-    qtdPessoas.value=i.dataset.pessoas||2
-    btnExcluirReserva.style.display=
-      i.classList.contains('reservado')?'block':'none'
+i.ondblclick = () => {
+
+  // ===== MESA (RESERVÁVEL) =====
+  if (i.dataset.reservavel === 'true') {
+
+    reservando = i
+
+    clienteNome.value = i.dataset.cliente || ''
+    clienteCelular.value = i.dataset.celular || ''
+    qtdPessoas.value = i.dataset.pessoas || 2
+
+    btnExcluirReserva.style.display =
+      i.classList.contains('reservado') ? 'block' : 'none'
+
     modalReserva.classList.add('active')
+    return
   }
+
+  // ===== ELEMENTO NÃO RESERVÁVEL =====
+  elementoSelecionado = i
+  modalElemento.classList.add('active')
+}
+
   mapa.appendChild(i)
   drag(i)
   if(salvar) salvarMapa()
@@ -492,6 +558,29 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
 
 carregarMapa(true)
 setInterval(()=>carregarMapa(false),10000)
+function redimensionarElemento(fator){
+  if (!elementoSelecionado) return
+
+  const img = elementoSelecionado.querySelector('img')
+  img.style.width = (img.offsetWidth * fator) + 'px'
+
+  salvarMapa()
+}
+
+function excluirElemento(){
+  if (!elementoSelecionado) return
+  if (!confirm('Excluir este elemento?')) return
+
+  elementoSelecionado.remove()
+  salvarMapa()
+  fecharElemento()
+}
+
+function fecharElemento(){
+  modalElemento.classList.remove('active')
+  elementoSelecionado = null
+}
+
 </script>
 
 </body>
