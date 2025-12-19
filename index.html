@@ -462,9 +462,10 @@ if (i.dataset.reservavel === 'true') {
   editandoReserva = true
   reservando = i
 
-  clienteNome.value = i.dataset.cliente || ''
-  clienteCelular.value = i.dataset.celular || ''
-  qtdPessoas.value = i.dataset.pessoas || 2
+clienteNome.value = i.dataset.cliente || ''
+clienteCelular.value = i.dataset.celular || ''
+qtdPessoas.value = i.dataset.pessoas || 2
+numeroMesa.value = i.dataset.numero || ''
 
   btnExcluirReserva.style.display =
     i.classList.contains('reservado') ? 'block' : 'none'
@@ -566,22 +567,36 @@ function add(url,res){
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
 
-function salvarReserva(){
+function salvarReserva() {
+  if (!reservando) return
 
   editandoReserva = true
 
-  reservando.dataset.cliente = clienteNome.value
-  reservando.dataset.celular = clienteCelular.value
-  reservando.dataset.pessoas = qtdPessoas.value
+  // ===== DADOS DA RESERVA =====
+  const nome = clienteNome.value.trim()
+  const celular = clienteCelular.value.trim()
+  const pessoas = qtdPessoas.value
+  const numero = numeroMesa?.value?.trim() || reservando.dataset.numero || ''
+
+  // ===== APLICA DATASET =====
+  reservando.dataset.cliente = nome
+  reservando.dataset.celular = celular
+  reservando.dataset.pessoas = pessoas
+
+  if (numero !== '') {
+    reservando.dataset.numero = numero
+    reservando.querySelector('.numero-mesa').textContent = numero
+  }
+
+  // ===== ESTADO VISUAL =====
   reservando.classList.add('reservado')
+  reservando.querySelector('.nome').textContent = nome
+  reservando.querySelector('.pessoas').textContent = `${pessoas} pessoas`
 
-  reservando.querySelector('.nome').textContent = clienteNome.value
-  reservando.querySelector('.pessoas').textContent =
-    `${qtdPessoas.value} pessoas`
-
+  // ===== SALVA NO SUPABASE =====
   salvarMapa()
 
-  // 👇 garante que o PATCH tenha tempo de sair
+  // ===== FECHA COM SEGURANÇA =====
   setTimeout(() => {
     editandoReserva = false
     fecharReserva()
