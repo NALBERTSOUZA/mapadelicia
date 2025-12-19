@@ -210,13 +210,27 @@ main{flex:1;overflow:hidden}
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
+
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
+
     <button onclick="salvarReserva()">Salvar</button>
-    <button onclick="fecharReserva()">Cancelar</button>
+
+    <!-- BOTÃO EXCLUIR -->
+    <button
+      onclick="excluirItemModal()"
+      style="background:#dc2626;margin-top:6px"
+    >
+      🗑️ Excluir Mesa
+    </button>
+
+    <button onclick="fecharReserva()" style="background:#64748b">
+      Cancelar
+    </button>
   </div>
 </div>
+
 
 <script>
 /* ================= SUPABASE ================= */
@@ -309,7 +323,16 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.left=x+'px'
   i.style.top=y+'px'
   i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-  i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
+ i.ondblclick = () => {
+  reservando = i
+  modalReserva.classList.add('active')
+
+  // pré-preenche se já tiver reserva
+  clienteNome.value = i.dataset.cliente || ''
+  clienteCelular.value = i.dataset.celular || ''
+  qtdPessoas.value = i.dataset.pessoas || 2
+}
+
   mapa.appendChild(i)
   drag(i)
   if(salvar){
@@ -399,6 +422,32 @@ nao.forEach(u=>add(u,false))
 
 carregarMapa(true)
 setInterval(()=>carregarMapa(false),10000)
+
+function excluirItemModal(){
+  if(!reservando) return
+
+  if(!confirm('Deseja excluir esta mesa do mapa?')) return
+
+  const id = reservando.dataset.id
+
+  // Remove do banco
+  supabase
+    .from('mapa_mesas')
+    .delete()
+    .eq('id', id)
+    .then(() => {
+      // Remove da tela
+      reservando.remove()
+      reservando = null
+      fecharReserva()
+      setStatus('online')
+    })
+    .catch(() => {
+      alert('Erro ao excluir')
+      setStatus('offline')
+    })
+}
+
 </script>
 
 </body>
