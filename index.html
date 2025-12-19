@@ -231,6 +231,11 @@ main{flex:1;overflow:hidden}
   animation:spin 1s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+body.modal-open #mapa{
+  pointer-events:none;
+  filter:blur(1px);
+}
+
 </style>
 </head>
 
@@ -510,12 +515,15 @@ numeroMesa.value = i.dataset.numero || ''
     i.classList.contains('reservado') ? 'block' : 'none'
 
   modalReserva.classList.add('active')
+  document.body.classList.add('modal-open')
+
   return
 }
 
   // ===== ELEMENTO NÃO RESERVÁVEL =====
   elementoSelecionado = i
   modalElemento.classList.add('active')
+  document.body.classList.add('modal-open')
 }
 
   mapa.appendChild(i)
@@ -716,6 +724,7 @@ function fecharElemento(){
   // se veio de uma mesa, volta pra reserva
   if (elementoSelecionado === reservando) {
     modalReserva.classList.add('active')
+    document.body.classList.add('modal-open')
   }
 
   elementoSelecionado = null
@@ -727,6 +736,8 @@ function abrirAjusteMesa(){
   elementoSelecionado = reservando
   modalReserva.classList.remove('active')
   modalElemento.classList.add('active')
+  document.body.classList.add('modal-open')
+
 }
 function girarElemento() {
   if (!elementoSelecionado) return
