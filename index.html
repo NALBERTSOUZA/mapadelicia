@@ -44,7 +44,11 @@ button{
   cursor:pointer;
   font-weight:600;
 }
-input{width:100%;padding:8px;margin-bottom:8px}
+input{
+  width:100%;
+  padding:8px;
+  margin-bottom:8px;
+}
 
 /* ELEMENTOS */
 .elementos{
@@ -98,17 +102,19 @@ main{flex:1;overflow:hidden}
 
 /* MODAL */
 .modal{
-  position:fixed;inset:0;
+  position:fixed;
+  inset:0;
   background:rgba(0,0,0,.4);
   display:none;
   align-items:center;
   justify-content:center;
+  z-index:1500;
 }
 .modal.active{display:flex}
 .modal-box{
   background:#fff;
   padding:20px;
-  width:300px;
+  width:320px;
   border-radius:10px;
 }
 
@@ -162,7 +168,8 @@ main{flex:1;overflow:hidden}
 }
 #overlayLoading.hidden{display:none}
 .spinner{
-  width:42px;height:42px;
+  width:42px;
+  height:42px;
   border:4px solid rgba(255,255,255,.3);
   border-top-color:#2563eb;
   border-radius:50%;
@@ -185,7 +192,6 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
-  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
 
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
@@ -195,7 +201,9 @@ main{flex:1;overflow:hidden}
 </aside>
 
 <main>
-  <div id="viewport"><div id="mapa"></div></div>
+  <div id="viewport">
+    <div id="mapa"></div>
+  </div>
 </main>
 
 <div id="menuSetores">
@@ -207,6 +215,7 @@ main{flex:1;overflow:hidden}
 
 <div id="statusSync" class="offline"></div>
 
+<!-- MODAL RESERVA -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Reserva</h3>
@@ -217,11 +226,7 @@ main{flex:1;overflow:hidden}
 
     <button onclick="salvarReserva()">Salvar</button>
 
-    <!-- BOTÃO EXCLUIR -->
-    <button
-      onclick="excluirItemModal()"
-      style="background:#dc2626;margin-top:6px"
-    >
+    <button onclick="excluirItemModal()" style="background:#dc2626">
       🗑️ Excluir Mesa
     </button>
 
@@ -231,7 +236,6 @@ main{flex:1;overflow:hidden}
   </div>
 </div>
 
-
 <script>
 /* ================= SUPABASE ================= */
 const supabase = window.supabase.createClient(
@@ -239,35 +243,25 @@ const supabase = window.supabase.createClient(
   'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
 )
 
-/* ================= VARIÁVEIS ORIGINAIS ================= */
-const overlay=document.getElementById('overlayLoading')
-const overlayText=document.getElementById('overlayText')
-const statusSync=document.getElementById('statusSync')
-const mapa=document.getElementById('mapa')
-const modalReserva=document.getElementById('modalReserva')
+/* ================= VARIÁVEIS ================= */
+const overlay = document.getElementById('overlayLoading')
+const overlayText = document.getElementById('overlayText')
+const statusSync = document.getElementById('statusSync')
+const mapa = document.getElementById('mapa')
+const modalReserva = document.getElementById('modalReserva')
 
-let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
-let sincronizando=false
-let reservando=null
-const ambientesCarregados=new Set()
-
-function nomeSetor(s){
-  return {
-    SALAO_PRINCIPAL:'Salão Principal',
-    PAULO_1:'Paulo Augusto 1',
-    PAULO_2:'Paulo Augusto 2',
-    SACADA:'Sacada'
-  }[s]
-}
+let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
+let reservando = null
+const ambientesCarregados = new Set()
 
 function setStatus(s){statusSync.className=s}
-function mostrarOverlay(txt){overlayText.textContent=txt;overlay.classList.remove('hidden')}
+function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
 function esconderOverlay(){overlay.classList.add('hidden')}
 
-/* ================= SALVAR MAPA (MESMA LÓGICA) ================= */
+/* ================= MAPA ================= */
 function salvarMapa(){
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    id:i.dataset.id||undefined,
+    id:i.dataset.id,
     setor:setorAtual,
     url:i.querySelector('img').src,
     x:parseFloat(i.style.left),
@@ -278,19 +272,15 @@ function salvarMapa(){
     p:i.dataset.pessoas||'',
     ok:i.classList.contains('reservado')
   }))
-  sincronizando=true
   setStatus('syncing')
   supabase.from('mapa_mesas').upsert(itens)
     .then(()=>setStatus('online'))
     .catch(()=>setStatus('offline'))
-    .finally(()=>sincronizando=false)
 }
 
-/* ================= CARREGAR MAPA (MESMO FLUXO) ================= */
 function carregarMapa(force=false){
   if(force||!ambientesCarregados.has(setorAtual))
-    mostrarOverlay('Carregando ambiente '+nomeSetor(setorAtual))
-
+    mostrarOverlay('Carregando ambiente...')
   supabase.from('mapa_mesas').select('*').eq('setor',setorAtual)
     .then(({data})=>montarMapa(data||[]))
     .finally(()=>{
@@ -323,18 +313,18 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.left=x+'px'
   i.style.top=y+'px'
   i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
- i.ondblclick = () => {
-  reservando = i
-  modalReserva.classList.add('active')
 
-  // pré-preenche se já tiver reserva
-  clienteNome.value = i.dataset.cliente || ''
-  clienteCelular.value = i.dataset.celular || ''
-  qtdPessoas.value = i.dataset.pessoas || 2
-}
+  i.ondblclick=()=>{
+    reservando=i
+    clienteNome.value=i.dataset.cliente||''
+    clienteCelular.value=i.dataset.celular||''
+    qtdPessoas.value=i.dataset.pessoas||2
+    modalReserva.classList.add('active')
+  }
 
   mapa.appendChild(i)
   drag(i)
+
   if(salvar){
     supabase.from('mapa_mesas')
       .insert([{setor:setorAtual,url,x,y,r:res}])
@@ -353,19 +343,14 @@ function drag(el){
       el.style.top=el.offsetTop+(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
   }
 }
 
-mapa.ondragover=e=>e.preventDefault()
-mapa.ondrop=e=>{
-  criarItem(
-    e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('r')==='true',
-    e.offsetX,e.offsetY
-  )
-}
-
+/* ================= RESERVA ================= */
 function salvarReserva(){
   reservando.dataset.cliente=clienteNome.value
   reservando.dataset.celular=clienteCelular.value
@@ -376,27 +361,29 @@ function salvarReserva(){
   salvarMapa()
   fecharReserva()
 }
-function fecharReserva(){modalReserva.classList.remove('active')}
 
-function removerSelecionado(){
-  if(!reservando)return
-  if(!confirm('Remover este elemento?'))return
-  supabase.from('mapa_mesas').delete().eq('id',reservando.dataset.id)
-    .then(()=>carregarMapa(true))
+function excluirItemModal(){
+  if(!reservando) return
+  if(!confirm('Excluir esta mesa?')) return
+
+  supabase.from('mapa_mesas')
+    .delete()
+    .eq('id', reservando.dataset.id)
+    .then(()=>{
+      reservando.remove()
+      reservando=null
+      fecharReserva()
+      setStatus('online')
+    })
+    .catch(()=>setStatus('offline'))
+}
+
+function fecharReserva(){
+  modalReserva.classList.remove('active')
   reservando=null
 }
 
-document.querySelectorAll('#menuSetores button').forEach(b=>{
-  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
-  b.onclick=()=>{
-    setorAtual=b.dataset.setor
-    localStorage.setItem('setor_atual',setorAtual)
-    document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
-    b.classList.add('ativo')
-    carregarMapa(true)
-  }
-})
-
+/* ================= ELEMENTOS ================= */
 const reservaveis=[
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
@@ -420,34 +407,28 @@ function add(url,res){
 reservaveis.forEach(u=>add(u,true))
 nao.forEach(u=>add(u,false))
 
-carregarMapa(true)
-setInterval(()=>carregarMapa(false),10000)
-
-function excluirItemModal(){
-  if(!reservando) return
-
-  if(!confirm('Deseja excluir esta mesa do mapa?')) return
-
-  const id = reservando.dataset.id
-
-  // Remove do banco
-  supabase
-    .from('mapa_mesas')
-    .delete()
-    .eq('id', id)
-    .then(() => {
-      // Remove da tela
-      reservando.remove()
-      reservando = null
-      fecharReserva()
-      setStatus('online')
-    })
-    .catch(() => {
-      alert('Erro ao excluir')
-      setStatus('offline')
-    })
+mapa.ondragover=e=>e.preventDefault()
+mapa.ondrop=e=>{
+  criarItem(
+    e.dataTransfer.getData('url'),
+    e.dataTransfer.getData('r')==='true',
+    e.offsetX,e.offsetY
+  )
 }
 
+document.querySelectorAll('#menuSetores button').forEach(b=>{
+  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
+  b.onclick=()=>{
+    setorAtual=b.dataset.setor
+    localStorage.setItem('setor_atual',setorAtual)
+    document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'))
+    b.classList.add('ativo')
+    carregarMapa(true)
+  }
+})
+
+carregarMapa(true)
+setInterval(()=>carregarMapa(false),10000)
 </script>
 
 </body>
