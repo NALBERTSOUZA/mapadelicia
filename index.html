@@ -182,7 +182,8 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
-  <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button>
+<!-- <button onclick="removerSelecionado()">🗑️ Remover Selecionado</button> -->
+
 
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
@@ -215,22 +216,26 @@ main{flex:1;overflow:hidden}
   </div>
 </div>
 
-<script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 const SUPABASE_URL = 'https://vbrdtzrmotmjrqewvxit.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
 
-const supabase = supabase.createClient(
+const supabase = window.supabase.createClient(
   SUPABASE_URL,
   SUPABASE_KEY
 )
+
 
 const overlay=document.getElementById('overlayLoading')
 const overlayText=document.getElementById('overlayText')
 const statusSync=document.getElementById('statusSync')
 const mapa=document.getElementById('mapa')
 const modalReserva=document.getElementById('modalReserva')
+const listaReservaveis = document.getElementById('listaReservaveis')
+const listaNaoReservaveis = document.getElementById('listaNaoReservaveis')
+
 
 let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
 let sincronizando=false
