@@ -392,7 +392,9 @@ function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('h
 function esconderOverlay(){overlay.classList.add('hidden')}
 
 /* ================= SALVAR MAPA ================= */
-function salvarMapa(){
+async function salvarMapa(){
+  await garantirDiaExiste()
+
   const itens = [...document.querySelectorAll('.item-mapa')].map(i => {
     const img = i.querySelector('img')
     return {
@@ -410,7 +412,7 @@ function salvarMapa(){
   setStatus('syncing')
 
   fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${DATA_LAYOUT_PADRAO}`,
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${dataSelecionada}`,
     {
       method: 'PATCH',
       headers: {
@@ -441,20 +443,23 @@ function carregarMapa(force = false){
     mostrarOverlay('Carregando ambiente...')
 
   fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${DATA_LAYOUT_PADRAO}&select=dados`,
-    {
-      headers:{
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        token: API_TOKEN
-      }
+  `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=in.(${dataSelecionada},${DATA_LAYOUT_PADRAO})&select=data,dados`,
+  {
+    headers:{
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      token: API_TOKEN
     }
-  )
-  .then(r => r.json())
-  .then(r => {
-    montarMapa(r[0]?.dados || [])
-    setStatus('online')
-  })
+  }
+)
+.then(r => r.json())
+.then(r => {
+  const dia = r.find(x => x.data === dataSelecionada)
+  const base = r.find(x => x.data === DATA_LAYOUT_PADRAO)
+  montarMapa((dia || base)?.dados || [])
+  setStatus('online')
+})
+
   .catch(() => setStatus('offline'))
   .finally(() => {
     ambientesCarregados.add(chave)
@@ -566,10 +571,9 @@ numeroMesa.value = i.dataset.numero || ''
 
 function drag(el){
   let x,y
-  el.onmousedown = e => {
 
-    // 🔒 trava layout fora do dia padrão
-    if (dataSelecionada !== DATA_LAYOUT_PADRAO) return
+  el.onmousedown = async e => {
+    await garantirDiaExiste()
 
     x = e.clientX
     y = e.clientY
@@ -587,6 +591,7 @@ function drag(el){
     }
   }
 }
+
 
 
 mapa.ondragover = e => e.preventDefault()
