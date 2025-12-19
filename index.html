@@ -86,19 +86,11 @@ main{flex:1;overflow:hidden}
   cursor:grab;
   text-align:center;
 }
-.item-mapa img{width:150px;pointer-events:none}
+.item-mapa img{
+  width:150px;
+  pointer-events:none;
+}
 .item-mapa.reservado{outline:2px solid var(--green)}
-.nome-reserva{
-  font-size:11px;
-  margin-top:2px;
-  font-weight:600;
-}
-
-/* TEXTO CENTRALIZADO NA MESA */
-.item-mapa{
-  position:absolute;
-  cursor:grab;
-}
 
 .item-mapa .info-mesa{
   position:absolute;
@@ -108,18 +100,15 @@ main{flex:1;overflow:hidden}
   align-items:center;
   justify-content:center;
   pointer-events:none;
-  text-align:center;
 }
-
-.item-mapa .info-mesa .nome{
+.item-mapa .nome{
   font-size:13px;
   font-weight:700;
   background:rgba(255,255,255,.85);
   padding:2px 6px;
   border-radius:4px;
 }
-
-.item-mapa .info-mesa .pessoas{
+.item-mapa .pessoas{
   margin-top:2px;
   font-size:11px;
   font-weight:600;
@@ -127,7 +116,6 @@ main{flex:1;overflow:hidden}
   padding:1px 6px;
   border-radius:4px;
 }
-
 
 /* MODAL */
 .modal{
@@ -137,6 +125,7 @@ main{flex:1;overflow:hidden}
   display:none;
   align-items:center;
   justify-content:center;
+  z-index:1000;
 }
 .modal.active{display:flex}
 .modal-box{
@@ -176,44 +165,14 @@ main{flex:1;overflow:hidden}
   height:14px;
   border-radius:50%;
   box-shadow:0 0 0 3px rgba(0,0,0,.15);
-  z-index:1000;
 }
 #statusSync.online{background:#22c55e}
-#statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
+#statusSync.syncing{background:#f97316}
 #statusSync.offline{background:#ef4444}
-@keyframes pulse{50%{opacity:.4}}
-
-/* OVERLAY */
-#overlayLoading{
-  position:fixed;
-  inset:0;
-  background:rgba(15,23,42,.92);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index:2000;
-  color:#fff;
-}
-#overlayLoading.hidden{display:none}
-.spinner{
-  width:42px;height:42px;
-  border:4px solid rgba(255,255,255,.3);
-  border-top-color:#2563eb;
-  border-radius:50%;
-  animation:spin 1s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 
 <body>
-
-<div id="overlayLoading" class="hidden">
-  <div>
-    <div class="spinner"></div>
-    <div id="overlayText">Carregando ambiente...</div>
-  </div>
-</div>
 
 <aside>
   <h2>Elementos</h2>
@@ -224,7 +183,9 @@ main{flex:1;overflow:hidden}
 </aside>
 
 <main>
-  <div id="viewport"><div id="mapa"></div></div>
+  <div id="viewport">
+    <div id="mapa"></div>
+  </div>
 </main>
 
 <div id="menuSetores">
@@ -236,6 +197,7 @@ main{flex:1;overflow:hidden}
 
 <div id="statusSync" class="offline"></div>
 
+<!-- MODAL RESERVA -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Mesa</h3>
@@ -243,149 +205,91 @@ main{flex:1;overflow:hidden}
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
     <button onclick="salvarReserva()">Salvar Reserva</button>
-    <button id="btnExcluirReserva"
-      onclick="excluirReserva()"
-      style="background:var(--gray);display:none">
+    <button id="btnExcluirReserva" onclick="excluirReserva()" style="background:var(--gray);display:none">
       ❌ Excluir Reserva
     </button>
-    <button onclick="excluirMesa()" style="background:var(--red)">
-      🗑️ Excluir Mesa
-    </button>
-    <button onclick="fecharReserva()" style="background:#334155">
-      Cancelar
-    </button>
+    <button onclick="excluirMesa()" style="background:var(--red)">🗑️ Excluir Mesa</button>
+    <button onclick="fecharReserva()" style="background:#334155">Cancelar</button>
+  </div>
+</div>
+
+<!-- MODAL ELEMENTO -->
+<div class="modal" id="modalElemento">
+  <div class="modal-box">
+    <h3>Elemento</h3>
+    <button onclick="ajustarTamanho(1.1)">➕ Aumentar</button>
+    <button onclick="ajustarTamanho(0.9)">➖ Diminuir</button>
+    <button onclick="excluirElemento()" style="background:var(--red)">🗑️ Excluir</button>
+    <button onclick="fecharElemento()" style="background:#334155">Cancelar</button>
   </div>
 </div>
 
 <script>
-/* ================= CONFIG SUPABASE ================= */
-const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
-const API_TOKEN = 'MAPA_MESAS'
+const SUPABASE_URL='https://qsgqfvrwlvaylfeenzgh.supabase.co'
+const SUPABASE_KEY='sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
 
-const overlay=document.getElementById('overlayLoading')
-const overlayText=document.getElementById('overlayText')
-const statusSync=document.getElementById('statusSync')
 const mapa=document.getElementById('mapa')
 const modalReserva=document.getElementById('modalReserva')
+const modalElemento=document.getElementById('modalElemento')
 const btnExcluirReserva=document.getElementById('btnExcluirReserva')
+const statusSync=document.getElementById('statusSync')
 
-let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
-let sincronizando=false
-let syncPromise=Promise.resolve()
-const ambientesCarregados=new Set()
 let reservando=null
+let elementoSelecionado=null
+let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
 
-function setStatus(s){statusSync.className=s}
-function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
-function esconderOverlay(){overlay.classList.add('hidden')}
-
-/* ================= SALVAR MAPA ================= */
 function salvarMapa(){
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    r:i.dataset.reservavel,
-    c:i.dataset.cliente||'',
-    cel:i.dataset.celular||'',
-    p:i.dataset.pessoas||'',
-    ok:i.classList.contains('reservado')
-  }))
-  sincronizando=true
-  setStatus('syncing')
-
-  syncPromise=fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,
-    {
-      method:'PATCH',
-      headers:{
-        apikey:SUPABASE_KEY,
-        Authorization:`Bearer ${SUPABASE_KEY}`,
-        token:API_TOKEN,
-        'Content-Type':'application/json',
-        Prefer:'return=minimal'
-      },
-      body:JSON.stringify({dados:itens,updated_at:new Date().toISOString()})
-    }
-  ).then(()=>setStatus('online'))
-   .catch(()=>setStatus('offline'))
-   .finally(()=>sincronizando=false)
-}
-
-/* ================= CARREGAR MAPA ================= */
-function carregarMapa(force=false){
-  if(force||!ambientesCarregados.has(setorAtual))
-    mostrarOverlay('Carregando ambiente...')
-
-  fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&select=dados`,
-    {
-      headers:{
-        apikey:SUPABASE_KEY,
-        Authorization:`Bearer ${SUPABASE_KEY}`,
-        token:API_TOKEN
-      }
-    }
-  )
-  .then(r=>r.json())
-  .then(r=>{
-    montarMapa(r[0]?.dados||[])
-    setStatus('online')
-  })
-  .catch(()=>setStatus('offline'))
-  .finally(()=>{
-    ambientesCarregados.add(setorAtual)
-    setTimeout(esconderOverlay,300)
-  })
-}
-
-/* ================= RESTANTE ORIGINAL ================= */
-
-function montarMapa(dados){
-  mapa.innerHTML=''
-  dados.forEach(x=>{
-    const i=criarItem(x.url,x.r==='true',x.x,x.y,false)
-    if(x.ok){
-      i.dataset.cliente=x.c
-      i.dataset.celular=x.cel
-      i.dataset.pessoas=x.p
-      i.classList.add('reservado')
-i.querySelector('.nome').textContent = x.c
-i.querySelector('.pessoas').textContent = `${x.p} pessoas`
-
+  const dados=[...document.querySelectorAll('.item-mapa')].map(i=>{
+    const img=i.querySelector('img')
+    return{
+      url:img.src,
+      x:i.offsetLeft,
+      y:i.offsetTop,
+      w:img.style.width||img.offsetWidth+'px',
+      r:i.dataset.reservavel,
+      c:i.dataset.cliente||'',
+      cel:i.dataset.celular||'',
+      p:i.dataset.pessoas||'',
+      ok:i.classList.contains('reservado')
     }
   })
+  statusSync.className='syncing'
+  fetch(`${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,{
+    method:'PATCH',
+    headers:{
+      apikey:SUPABASE_KEY,
+      Authorization:`Bearer ${SUPABASE_KEY}`,
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({dados})
+  }).then(()=>statusSync.className='online')
+    .catch(()=>statusSync.className='offline')
 }
 
-function criarItem(url,res,x,y,salvar=true){
+function criarItem(url,res,x,y){
   const i=document.createElement('div')
   i.className='item-mapa'
   i.dataset.reservavel=res
   i.style.left=x+'px'
   i.style.top=y+'px'
- i.innerHTML=`
-  <img src="${url}">
-  <div class="info-mesa">
-    <div class="nome"></div>
-    <div class="pessoas"></div>
-  </div>
-`
-
+  i.innerHTML=`
+    <img src="${url}">
+    <div class="info-mesa">
+      <div class="nome"></div>
+      <div class="pessoas"></div>
+    </div>`
   i.ondblclick=()=>{
-    if(i.dataset.reservavel!=='true')return
-    reservando=i
-    clienteNome.value=i.dataset.cliente||''
-    clienteCelular.value=i.dataset.celular||''
-    qtdPessoas.value=i.dataset.pessoas||2
-    btnExcluirReserva.style.display=
-      i.classList.contains('reservado')?'block':'none'
-    modalReserva.classList.add('active')
+    if(res){
+      reservando=i
+      modalReserva.classList.add('active')
+    }else{
+      elementoSelecionado=i
+      modalElemento.classList.add('active')
+    }
   }
-  mapa.appendChild(i)
   drag(i)
-  if(salvar) salvarMapa()
-  return i
+  mapa.appendChild(i)
+  salvarMapa()
 }
 
 function drag(el){
@@ -397,102 +301,26 @@ function drag(el){
       el.style.top=el.offsetTop+(ev.clientY-y)+'px'
       x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup=()=>{
-      document.onmousemove=null
-      salvarMapa()
-    }
+    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
   }
 }
 
-mapa.ondragover=e=>e.preventDefault()
-mapa.ondrop=e=>{
-  const url=e.dataTransfer.getData('url')
-  if(!url)return
-  criarItem(url,e.dataTransfer.getData('r')==='true',e.offsetX,e.offsetY)
-}
-
-const reservaveis=[
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true',
-  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/mesas4cadeiras.png?raw=true',
-  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2.png?raw=true',
-  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(33).png?raw=true'
-]
-const nao=[
- 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
- 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
-]
-
-reservaveis.forEach(u=>add(u,true))
-nao.forEach(u=>add(u,false))
-
-function add(url,res){
-  const d=document.createElement('div')
-  d.className='elemento'
-  d.draggable=true
-  d.innerHTML=`<img src="${url}">`
-  d.ondragstart=e=>{
-    e.dataTransfer.setData('url',url)
-    e.dataTransfer.setData('r',res)
-  }
-  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
-}
-
-function salvarReserva(){
-  reservando.dataset.cliente=clienteNome.value
-  reservando.dataset.celular=clienteCelular.value
-  reservando.dataset.pessoas=qtdPessoas.value
-  reservando.classList.add('reservado')
-reservando.querySelector('.nome').textContent = clienteNome.value
-reservando.querySelector('.pessoas').textContent =
-  `${qtdPessoas.value} pessoas`
-
+function ajustarTamanho(f){
+  const img=elementoSelecionado.querySelector('img')
+  img.style.width=(img.offsetWidth*f)+'px'
   salvarMapa()
-  fecharReserva()
 }
-
-function excluirReserva(){
-  reservando.classList.remove('reservado')
-  reservando.dataset.cliente=''
-  reservando.dataset.celular=''
-  reservando.dataset.pessoas=''
- reservando.querySelector('.nome').textContent=''
-reservando.querySelector('.pessoas').textContent=''
-
+function excluirElemento(){
+  elementoSelecionado.remove()
+  fecharElemento()
   salvarMapa()
-  fecharReserva()
 }
+function fecharElemento(){modalElemento.classList.remove('active')}
 
-function excluirMesa(){
-  if(!confirm('Excluir esta mesa definitivamente?'))return
-  reservando.remove()
-  salvarMapa()
-  fecharReserva()
-}
-
-function fecharReserva(){
-  modalReserva.classList.remove('active')
-}
-
-document.querySelectorAll('#menuSetores button').forEach(b=>{
-  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
-  b.onclick=async()=>{
-    if(b.dataset.setor===setorAtual)return
-    if(sincronizando){
-      mostrarOverlay('Finalizando sincronização...')
-      await syncPromise
-    }
-    setorAtual=b.dataset.setor
-    localStorage.setItem('setor_atual',setorAtual)
-    document.querySelectorAll('#menuSetores button')
-      .forEach(x=>x.classList.remove('ativo'))
-    b.classList.add('ativo')
-    carregarMapa(true)
-  }
-})
-
-carregarMapa(true)
-setInterval(()=>carregarMapa(false),10000)
+function fecharReserva(){modalReserva.classList.remove('active')}
+function excluirMesa(){reservando.remove();fecharReserva();salvarMapa()}
+function salvarReserva(){reservando.classList.add('reservado');fecharReserva();salvarMapa()}
+function excluirReserva(){reservando.classList.remove('reservado');fecharReserva();salvarMapa()}
 </script>
 
 </body>
