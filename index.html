@@ -672,8 +672,10 @@ function excluirMesa(){
 
 function fecharReserva(){
   modalReserva.classList.remove('active')
+  document.body.classList.remove('modal-open')
   editandoReserva = false
 }
+
 
 
 document.querySelectorAll('#menuSetores button').forEach(b=>{
