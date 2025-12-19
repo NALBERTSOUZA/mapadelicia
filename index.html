@@ -173,7 +173,6 @@ main{flex:1;overflow:hidden}
 
 <body>
 
-<!-- OVERLAY -->
 <div id="overlayLoading" class="hidden">
   <div>
     <div class="spinner"></div>
@@ -183,10 +182,8 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
-
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
-
   <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
@@ -204,27 +201,21 @@ main{flex:1;overflow:hidden}
 
 <div id="statusSync" class="offline"></div>
 
-<!-- MODAL -->
 <div class="modal" id="modalReserva">
   <div class="modal-box">
     <h3>Mesa</h3>
-
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
-
     <button onclick="salvarReserva()">Salvar Reserva</button>
-
     <button id="btnExcluirReserva"
       onclick="excluirReserva()"
       style="background:var(--gray);display:none">
       ❌ Excluir Reserva
     </button>
-
     <button onclick="excluirMesa()" style="background:var(--red)">
       🗑️ Excluir Mesa
     </button>
-
     <button onclick="fecharReserva()" style="background:#334155">
       Cancelar
     </button>
@@ -232,8 +223,10 @@ main{flex:1;overflow:hidden}
 </div>
 
 <script>
-const API_URL='https://script.google.com/macros/s/AKfycbzjzEFaIJ2D6bEZ0aaQFpO-i-es5F_YHOgbnQpp8IqXyWTg-Hl5jKGh0bGFjiolZ7915w/exec'
-const API_TOKEN='MAPA_MESAS_2025'
+/* ================= CONFIG SUPABASE ================= */
+const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
+const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
+const API_TOKEN = 'MAPA_MESAS_2025'
 
 const overlay=document.getElementById('overlayLoading')
 const overlayText=document.getElementById('overlayText')
@@ -249,13 +242,10 @@ const ambientesCarregados=new Set()
 let reservando=null
 
 function setStatus(s){statusSync.className=s}
-
-function mostrarOverlay(txt){
-  overlayText.textContent=txt
-  overlay.classList.remove('hidden')
-}
+function mostrarOverlay(t){overlayText.textContent=t;overlay.classList.remove('hidden')}
 function esconderOverlay(){overlay.classList.add('hidden')}
 
+/* ================= SALVAR MAPA ================= */
 function salvarMapa(){
   const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
     url:i.querySelector('img').src,
@@ -269,27 +259,43 @@ function salvarMapa(){
   }))
   sincronizando=true
   setStatus('syncing')
-  syncPromise=fetch(API_URL,{
-    method:'POST',
-    body:JSON.stringify({
-      token:API_TOKEN,
-      setor:setorAtual,
-      dados:itens
-    })
-  })
-  .then(r=>r.json())
-  .then(r=>setStatus(r.ok?'online':'offline'))
-  .finally(()=>sincronizando=false)
+
+  syncPromise=fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,
+    {
+      method:'PATCH',
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token:API_TOKEN,
+        'Content-Type':'application/json',
+        Prefer:'return=minimal'
+      },
+      body:JSON.stringify({dados:itens,updated_at:new Date().toISOString()})
+    }
+  ).then(()=>setStatus('online'))
+   .catch(()=>setStatus('offline'))
+   .finally(()=>sincronizando=false)
 }
 
+/* ================= CARREGAR MAPA ================= */
 function carregarMapa(force=false){
   if(force||!ambientesCarregados.has(setorAtual))
     mostrarOverlay('Carregando ambiente...')
 
-  fetch(`${API_URL}?token=${API_TOKEN}&setor=${setorAtual}`)
+  fetch(
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&select=dados`,
+    {
+      headers:{
+        apikey:SUPABASE_KEY,
+        Authorization:`Bearer ${SUPABASE_KEY}`,
+        token:API_TOKEN
+      }
+    }
+  )
   .then(r=>r.json())
   .then(r=>{
-    montarMapa(r.dados||[])
+    montarMapa(r[0]?.dados||[])
     setStatus('online')
   })
   .catch(()=>setStatus('offline'))
@@ -298,6 +304,8 @@ function carregarMapa(force=false){
     setTimeout(esconderOverlay,300)
   })
 }
+
+/* ================= RESTANTE ORIGINAL ================= */
 
 function montarMapa(dados){
   mapa.innerHTML=''
@@ -322,6 +330,7 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.top=y+'px'
   i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
   i.ondblclick=()=>{
+    if(i.dataset.reservavel!=='true')return
     reservando=i
     clienteNome.value=i.dataset.cliente||''
     clienteCelular.value=i.dataset.celular||''
@@ -354,11 +363,9 @@ function drag(el){
 
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
-  criarItem(
-    e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('r')==='true',
-    e.offsetX,e.offsetY
-  )
+  const url=e.dataTransfer.getData('url')
+  if(!url)return
+  criarItem(url,e.dataTransfer.getData('r')==='true',e.offsetX,e.offsetY)
 }
 
 const reservaveis=[
@@ -408,7 +415,7 @@ function excluirReserva(){
 }
 
 function excluirMesa(){
-  if(!confirm('Excluir esta mesa definitivamente?')) return
+  if(!confirm('Excluir esta mesa definitivamente?'))return
   reservando.remove()
   salvarMapa()
   fecharReserva()
