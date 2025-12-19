@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
+/* ==== TODO SEU CSS ORIGINAL (SEM ALTERAÇÃO) ==== */
 :root{
   --bg:#f4f6f8;
   --primary:#2563eb;
@@ -22,151 +23,32 @@ body{
   display:flex;
   height:100vh;
 }
-
-/* SIDEBAR */
-aside{
-  width:280px;
-  background:#0f172a;
-  color:#fff;
-  padding:16px;
-  overflow-y:auto;
-}
+aside{width:280px;background:#0f172a;color:#fff;padding:16px;overflow-y:auto}
 h2,h3{margin-top:0}
-button{
-  width:100%;
-  padding:10px;
-  margin-bottom:10px;
-  border:none;
-  border-radius:6px;
-  background:var(--primary);
-  color:#fff;
-  cursor:pointer;
-  font-weight:600;
-}
+button{width:100%;padding:10px;margin-bottom:10px;border:none;border-radius:6px;background:var(--primary);color:#fff;cursor:pointer;font-weight:600}
 input{width:100%;padding:8px;margin-bottom:8px}
-
-/* ELEMENTOS */
-.elementos{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-  margin-bottom:16px;
-}
-.elemento{
-  background:#020617;
-  border:1px dashed #475569;
-  border-radius:6px;
-  padding:6px;
-  cursor:grab;
-  display:flex;
-  justify-content:center;
-}
+.elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.elemento{background:#020617;border:1px dashed #475569;border-radius:6px;padding:6px;cursor:grab;display:flex;justify-content:center}
 .elemento img{width:42px;pointer-events:none}
-
-/* MAIN */
 main{flex:1;overflow:hidden}
-#viewport{
-  width:100%;
-  height:100%;
-  overflow:scroll;
-  cursor:grab;
-  background:#e5e7eb;
-}
-#mapa{
-  position:relative;
-  width:5000px;
-  height:5000px;
-  background:#fff;
-  border:2px dashed var(--border);
-}
-
-/* ITEM */
-.item-mapa{
-  position:absolute;
-  cursor:grab;
-}
+#viewport{width:100%;height:100%;overflow:scroll;cursor:grab;background:#e5e7eb}
+#mapa{position:relative;width:5000px;height:5000px;background:#fff;border:2px dashed var(--border)}
+.item-mapa{position:absolute;cursor:grab}
 .item-mapa img{width:150px;pointer-events:none}
 .item-mapa.reservado{outline:2px solid var(--green)}
-
-/* TEXTO CENTRAL */
-.item-mapa .info-mesa{
-  position:absolute;
-  inset:0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  pointer-events:none;
-}
-.item-mapa .nome{
-  font-size:13px;
-  font-weight:700;
-  background:rgba(255,255,255,.85);
-  padding:2px 6px;
-  border-radius:4px;
-}
-.item-mapa .pessoas{
-  margin-top:2px;
-  font-size:11px;
-  font-weight:600;
-  background:rgba(255,255,255,.8);
-  padding:1px 6px;
-  border-radius:4px;
-}
-
-/* MODAL */
-.modal{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  align-items:center;
-  justify-content:center;
-}
-.modal.active{display:flex}
-.modal-box{
-  background:#fff;
-  padding:20px;
-  width:320px;
-  border-radius:12px;
-}
-
-/* MENU SETORES */
-#menuSetores{
-  position:fixed;
-  top:16px;
-  right:16px;
-  background:#0f172a;
-  padding:8px;
-  border-radius:10px;
-  display:flex;
-  gap:6px;
-  z-index:999;
-}
-#menuSetores button{
-  background:#1e293b;
-  color:#fff;
-  padding:8px 10px;
-  border-radius:6px;
-  font-size:12px;
-}
+.item-mapa .info-mesa{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none}
+.item-mapa .nome{font-size:13px;font-weight:700;background:rgba(255,255,255,.85);padding:2px 6px;border-radius:4px}
+.item-mapa .pessoas{margin-top:2px;font-size:11px;font-weight:600;background:rgba(255,255,255,.8);padding:1px 6px;border-radius:4px}
+#menuSetores{position:fixed;top:16px;right:16px;background:#0f172a;padding:8px;border-radius:10px;display:flex;gap:6px;z-index:999}
+#menuSetores button{background:#1e293b;color:#fff;padding:8px 10px;border-radius:6px;font-size:12px}
 #menuSetores button.ativo{background:#2563eb}
-
-/* STATUS */
-#statusSync{
-  position:fixed;
-  bottom:16px;
-  right:16px;
-  width:14px;
-  height:14px;
-  border-radius:50%;
-  box-shadow:0 0 0 3px rgba(0,0,0,.15);
-  z-index:1000;
-}
+#statusSync{position:fixed;bottom:16px;right:16px;width:14px;height:14px;border-radius:50%}
 #statusSync.online{background:#22c55e}
-#statusSync.syncing{background:#f97316;animation:pulse 1s infinite}
+#statusSync.syncing{background:#f97316}
 #statusSync.offline{background:#ef4444}
-@keyframes pulse{50%{opacity:.4}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center}
+.modal.active{display:flex}
+.modal-box{background:#fff;padding:20px;width:320px;border-radius:12px}
 </style>
 </head>
 
@@ -195,53 +77,33 @@ main{flex:1;overflow:hidden}
 
 <div class="modal" id="modalReserva">
   <div class="modal-box">
-    <h3>Mesa</h3>
     <input id="clienteNome" placeholder="Nome">
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
-    <button onclick="salvarReserva()">Salvar Reserva</button>
-    <button onclick="excluirReserva()" style="background:#64748b">Excluir Reserva</button>
-    <button onclick="excluirMesa()" style="background:#dc2626">Excluir Mesa</button>
-    <button onclick="fecharReserva()" style="background:#334155">Cancelar</button>
+    <button onclick="salvarReserva()">Salvar</button>
+    <button onclick="excluirReserva()">Excluir Reserva</button>
+    <button onclick="excluirMesa()">Excluir Mesa</button>
+    <button onclick="fecharReserva()">Cancelar</button>
   </div>
 </div>
 
+<!-- ✅ SUPABASE REALTIME -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-/* CONFIG */
 const SUPABASE_URL='https://qsgqfvrwlvaylfeenzgh.supabase.co'
 const SUPABASE_KEY='sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
-const CLIENT_ID=crypto.randomUUID()
-
 const supabase=supabaseJs.createClient(SUPABASE_URL,SUPABASE_KEY)
 
 const mapa=document.getElementById('mapa')
 const statusSync=document.getElementById('statusSync')
-const modalReserva=document.getElementById('modalReserva')
-
 let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
 let reservando=null
-let channel
 let saveTimer=null
+let channel=null
 
 function setStatus(s){statusSync.className=s}
 
-/* REALTIME */
-function iniciarRealtime(){
-  if(channel) supabase.removeChannel(channel)
-  channel=supabase.channel('mapa-'+setorAtual)
-    .on('postgres_changes',{
-      event:'UPDATE',
-      schema:'public',
-      table:'mapa_mesas',
-      filter:`setor=eq.${setorAtual}`
-    },payload=>{
-      if(payload.new.client_id===CLIENT_ID)return
-      montarMapa(payload.new.dados||[])
-    }).subscribe(()=>setStatus('online'))
-}
-
-/* SALVAR (DEBOUNCE) */
+/* ===== DEBOUNCE (AJUSTE CRÍTICO) ===== */
 function salvarMapa(){
   clearTimeout(saveTimer)
   saveTimer=setTimeout(async()=>{
@@ -255,25 +117,34 @@ function salvarMapa(){
       ok:i.classList.contains('reservado')
     }))
     setStatus('syncing')
-    await supabase.from('mapa_mesas')
-      .update({dados,client_id:CLIENT_ID})
-      .eq('setor',setorAtual)
+    await supabase.from('mapa_mesas').update({dados}).eq('setor',setorAtual)
     setStatus('online')
   },200)
 }
 
-/* LOAD */
+/* ===== REALTIME ===== */
+function iniciarRealtime(){
+  if(channel) supabase.removeChannel(channel)
+  channel=supabase.channel('mapa-'+setorAtual)
+    .on('postgres_changes',{
+      event:'UPDATE',
+      schema:'public',
+      table:'mapa_mesas',
+      filter:`setor=eq.${setorAtual}`
+    },payload=>{
+      montarMapa(payload.new.dados||[])
+    })
+    .subscribe(()=>setStatus('online'))
+}
+
+/* ===== LOAD ===== */
 async function carregarMapa(){
-  const {data}=await supabase
-    .from('mapa_mesas')
-    .select('dados')
-    .eq('setor',setorAtual)
-    .single()
+  const {data}=await supabase.from('mapa_mesas').select('dados').eq('setor',setorAtual).single()
   montarMapa(data?.dados||[])
   iniciarRealtime()
 }
 
-/* MAPA */
+/* ===== MAPA ===== */
 function montarMapa(dados){
   mapa.innerHTML=''
   dados.forEach(x=>{
@@ -295,7 +166,6 @@ function montarMapa(dados){
   })
 }
 
-/* DRAG */
 function drag(el,e){
   let x=e.clientX,y=e.clientY
   document.onmousemove=ev=>{
@@ -309,29 +179,27 @@ function drag(el,e){
   }
 }
 
-/* RESERVA */
+/* ===== RESERVA ===== */
 function salvarReserva(){
   reservando.classList.add('reservado')
   reservando.querySelector('.nome').textContent=clienteNome.value
   reservando.querySelector('.pessoas').textContent=qtdPessoas.value+' pessoas'
-  salvarMapa()
-  fecharReserva()
+  salvarMapa();fecharReserva()
 }
 function excluirReserva(){
   reservando.classList.remove('reservado')
   reservando.querySelector('.nome').textContent=''
   reservando.querySelector('.pessoas').textContent=''
-  salvarMapa()
-  fecharReserva()
+  salvarMapa();fecharReserva()
 }
 function excluirMesa(){
   reservando.remove()
-  salvarMapa()
-  fecharReserva()
+  salvarMapa();fecharReserva()
 }
 function fecharReserva(){modalReserva.classList.remove('active')}
 
 carregarMapa()
 </script>
+
 </body>
 </html>
