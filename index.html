@@ -206,7 +206,11 @@ main{flex:1;overflow:hidden}
 /* ================= CONFIG SUPABASE ================= */
 const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_KEY)
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+)
+
 
 /* ================= VARIÁVEIS ================= */
 const mapa = document.getElementById('mapa')
