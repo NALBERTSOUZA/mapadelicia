@@ -99,6 +99,20 @@ main{flex:1;overflow:hidden}
   position:absolute;
   cursor:grab;
 }
+.numero-mesa{
+  position:absolute;
+  top:-8px;
+  right:-8px;
+  background:#dc2626;
+  color:#fff;
+  font-size:12px;
+  font-weight:800;
+  padding:4px 6px;
+  border-radius:999px;
+  pointer-events:none;
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+
 
 .item-mapa .info-mesa{
   position:absolute;
@@ -329,20 +343,21 @@ function salvarMapa(){
   const itens = [...document.querySelectorAll('.item-mapa')].map(i => {
   const img = i.querySelector('img')
 
-  return {
-    url: img.src,
-    x: parseFloat(i.style.left),
-    y: parseFloat(i.style.top),
+return {
+  url: img.src,
+  x: parseFloat(i.style.left),
+  y: parseFloat(i.style.top),
+  w: img.style.width || img.offsetWidth + 'px',
 
-    // 👉 TAMANHO DO ELEMENTO
-    w: img.style.width || img.offsetWidth + 'px',
+  // 🔴 NÚMERO DA MESA
+  n: i.dataset.numero || '',
 
-    r: i.dataset.reservavel,
-    c: i.dataset.cliente || '',
-    cel: i.dataset.celular || '',
-    p: i.dataset.pessoas || '',
-    ok: i.classList.contains('reservado')
-  }
+  r: i.dataset.reservavel,
+  c: i.dataset.cliente || '',
+  cel: i.dataset.celular || '',
+  p: i.dataset.pessoas || '',
+  ok: i.classList.contains('reservado')
+}
 })
 
   sincronizando=true
@@ -405,6 +420,12 @@ if (x.w) {
   i.querySelector('img').style.width = x.w
 }
 
+if (x.n) {
+  i.dataset.numero = x.n
+  i.querySelector('.numero-mesa').textContent = x.n
+}
+
+
     if(x.ok){
       i.dataset.cliente=x.c
       i.dataset.celular=x.cel
@@ -423,8 +444,11 @@ function criarItem(url,res,x,y,salvar=true){
   i.dataset.reservavel=res
   i.style.left=x+'px'
   i.style.top=y+'px'
- i.innerHTML=`
+i.innerHTML = `
+  <span class="numero-mesa"></span>
+
   <img src="${url}">
+
   <div class="info-mesa">
     <div class="nome"></div>
     <div class="pessoas"></div>
@@ -476,11 +500,24 @@ function drag(el){
   }
 }
 
-mapa.ondragover=e=>e.preventDefault()
-mapa.ondrop=e=>{
-  const url=e.dataTransfer.getData('url')
-  if(!url)return
-  criarItem(url,e.dataTransfer.getData('r')==='true',e.offsetX,e.offsetY)
+mapa.ondragover = e => e.preventDefault()
+
+mapa.ondrop = e => {
+  const url = e.dataTransfer.getData('url')
+  const res = e.dataTransfer.getData('r') === 'true'
+  if (!url) return
+
+  const item = criarItem(url, res, e.offsetX, e.offsetY)
+
+  // 👉 SÓ PARA RESERVÁVEIS
+  if (res) {
+    let numero = prompt('Número da mesa:')
+    if (numero !== null && numero !== '') {
+      item.dataset.numero = numero
+      item.querySelector('.numero-mesa').textContent = numero
+    }
+    salvarMapa()
+  }
 }
 
 
