@@ -420,10 +420,11 @@ if (x.w) {
   i.querySelector('img').style.width = x.w
 }
 
-if (x.n) {
+if (x.n && i.dataset.reservavel === 'true') {
   i.dataset.numero = x.n
   i.querySelector('.numero-mesa').textContent = x.n
 }
+
 
 
     if(x.ok){
@@ -445,7 +446,7 @@ function criarItem(url,res,x,y,salvar=true){
   i.style.left=x+'px'
   i.style.top=y+'px'
 i.innerHTML = `
-  <span class="numero-mesa"></span>
+  ${res ? `<span class="numero-mesa"></span>` : ``}
 
   <img src="${url}">
 
@@ -510,7 +511,7 @@ mapa.ondrop = e => {
 
   const item = criarItem(url, res, e.offsetX, e.offsetY)
 
-  // 👉 SÓ PARA RESERVÁVEIS
+  // 🔴 SOMENTE RESERVÁVEIS
   if (res) {
     let numero = prompt('Número da mesa:')
     if (numero !== null && numero !== '') {
@@ -520,6 +521,7 @@ mapa.ondrop = e => {
     salvarMapa()
   }
 }
+
 
 
 
