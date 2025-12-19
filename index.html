@@ -2,9 +2,10 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Mapa de Mesas</title>
+<title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
+<!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -23,6 +24,8 @@ body{
   display:flex;
   height:100vh;
 }
+
+/* SIDEBAR */
 aside{
   width:280px;
   background:#0f172a;
@@ -43,6 +46,8 @@ button{
   font-weight:600;
 }
 input{width:100%;padding:8px;margin-bottom:8px}
+
+/* ELEMENTOS */
 .elementos{
   display:grid;
   grid-template-columns:repeat(3,1fr);
@@ -59,6 +64,8 @@ input{width:100%;padding:8px;margin-bottom:8px}
   justify-content:center;
 }
 .elemento img{width:42px;pointer-events:none}
+
+/* MAIN */
 main{flex:1;overflow:hidden}
 #viewport{
   width:100%;
@@ -74,6 +81,8 @@ main{flex:1;overflow:hidden}
   background:#fff;
   border:2px dashed var(--border);
 }
+
+/* ITEM */
 .item-mapa{
   position:absolute;
   cursor:grab;
@@ -86,6 +95,8 @@ main{flex:1;overflow:hidden}
   margin-top:2px;
   font-weight:600;
 }
+
+/* MODAL */
 .modal{
   position:fixed;inset:0;
   background:rgba(0,0,0,.4);
@@ -101,6 +112,8 @@ main{flex:1;overflow:hidden}
   border-radius:10px;
 }
 .modal-box .danger{background:var(--danger)}
+
+/* MENU SETORES */
 #menuSetores{
   position:fixed;
   top:16px;
@@ -120,6 +133,8 @@ main{flex:1;overflow:hidden}
   font-size:12px;
 }
 #menuSetores button.ativo{background:#2563eb}
+
+/* STATUS */
 #statusSync{
   position:fixed;
   bottom:16px;
@@ -139,8 +154,10 @@ main{flex:1;overflow:hidden}
 
 <aside>
   <h2>Elementos</h2>
+
   <h3>Reserváveis</h3>
   <div class="elementos" id="listaReservaveis"></div>
+
   <h3>Não Reserváveis</h3>
   <div class="elementos" id="listaNaoReservaveis"></div>
 </aside>
@@ -171,10 +188,15 @@ main{flex:1;overflow:hidden}
 </div>
 
 <script>
+/* ================= SUPABASE ================= */
 const SUPABASE_URL = 'https://vbrdtzrmotmjrqewvxit.supabase.co'
 const SUPABASE_ANON_KEY = 'sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
-const supabase = supabaseJs.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const supabase = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+)
 
+/* ================= VARIÁVEIS ================= */
 const mapa = document.getElementById('mapa')
 const modalReserva = document.getElementById('modalReserva')
 const statusSync = document.getElementById('statusSync')
@@ -182,79 +204,103 @@ const statusSync = document.getElementById('statusSync')
 let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
 let reservando = null
 
-function setStatus(s){statusSync.className=s}
+function setStatus(s){ statusSync.className = s }
 
+/* ================= SALVAR ================= */
 async function salvarMapa(){
   setStatus('syncing')
+
   await supabase.from('mapa_mesas').delete().eq('setor', setorAtual)
 
-  const itens=[...document.querySelectorAll('.item-mapa')].map(i=>({
-    setor:setorAtual,
-    url:i.querySelector('img').src,
-    x:parseFloat(i.style.left),
-    y:parseFloat(i.style.top),
-    reservavel:i.dataset.reservavel==='true',
-    cliente:i.dataset.cliente||null,
-    celular:i.dataset.celular||null,
-    pessoas:i.dataset.pessoas?parseInt(i.dataset.pessoas):null,
-    reservado:i.classList.contains('reservado')
+  const itens = [...document.querySelectorAll('.item-mapa')].map(i=>({
+    setor: setorAtual,
+    url: i.querySelector('img').src,
+    x: parseFloat(i.style.left),
+    y: parseFloat(i.style.top),
+    reservavel: i.dataset.reservavel === 'true',
+    cliente: i.dataset.cliente || null,
+    celular: i.dataset.celular || null,
+    pessoas: i.dataset.pessoas ? Number(i.dataset.pessoas) : null,
+    reservado: i.classList.contains('reservado')
   }))
 
-  if(itens.length) await supabase.from('mapa_mesas').insert(itens)
+  if(itens.length){
+    await supabase.from('mapa_mesas').insert(itens)
+  }
+
   setStatus('online')
 }
 
+/* ================= CARREGAR ================= */
 async function carregarMapa(){
   setStatus('syncing')
-  const {data}=await supabase.from('mapa_mesas').select('*').eq('setor',setorAtual)
-  mapa.innerHTML=''
+
+  const { data } = await supabase
+    .from('mapa_mesas')
+    .select('*')
+    .eq('setor', setorAtual)
+
+  mapa.innerHTML = ''
+
   data.forEach(x=>{
-    const i=criarItem(x.url,x.reservavel,x.x,x.y,false)
+    const i = criarItem(x.url, x.reservavel, x.x, x.y, false)
     if(x.reservado){
-      i.dataset.cliente=x.cliente
-      i.dataset.celular=x.celular
-      i.dataset.pessoas=x.pessoas
+      i.dataset.cliente = x.cliente
+      i.dataset.celular = x.celular
+      i.dataset.pessoas = x.pessoas
       i.classList.add('reservado')
-      i.querySelector('.nome-reserva').textContent=
+      i.querySelector('.nome-reserva').textContent =
         `${x.cliente} • ${x.pessoas} pessoas`
     }
   })
+
   setStatus('online')
 }
 
+/* ================= ITEM ================= */
 function criarItem(url,res,x,y,salvar=true){
-  const i=document.createElement('div')
-  i.className='item-mapa'
-  i.dataset.reservavel=res
-  i.style.left=x+'px'
-  i.style.top=y+'px'
-  i.innerHTML=`<img src="${url}"><div class="nome-reserva"></div>`
-  i.ondblclick=()=>{reservando=i;modalReserva.classList.add('active')}
+  const i = document.createElement('div')
+  i.className = 'item-mapa'
+  i.dataset.reservavel = res
+  i.style.left = x+'px'
+  i.style.top = y+'px'
+  i.innerHTML = `<img src="${url}"><div class="nome-reserva"></div>`
+
+  i.ondblclick = ()=>{
+    reservando = i
+    modalReserva.classList.add('active')
+  }
+
   mapa.appendChild(i)
   drag(i)
   if(salvar) salvarMapa()
   return i
 }
 
+/* ================= DRAG ================= */
 function drag(el){
   let x,y
   el.onmousedown=e=>{
     x=e.clientX;y=e.clientY
     document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+      el.style.left = el.offsetLeft + (ev.clientX-x) + 'px'
+      el.style.top  = el.offsetTop  + (ev.clientY-y) + 'px'
       x=ev.clientX;y=ev.clientY
     }
-    document.onmouseup=()=>{document.onmousemove=null;salvarMapa()}
+    document.onmouseup=()=>{
+      document.onmousemove=null
+      salvarMapa()
+    }
   }
 }
 
+/* ================= RESERVA ================= */
 function salvarReserva(){
-  reservando.dataset.cliente=clienteNome.value
-  reservando.dataset.celular=clienteCelular.value
-  reservando.dataset.pessoas=qtdPessoas.value
+  reservando.dataset.cliente = clienteNome.value
+  reservando.dataset.celular = clienteCelular.value
+  reservando.dataset.pessoas = qtdPessoas.value
   reservando.classList.add('reservado')
-  reservando.querySelector('.nome-reserva').textContent=
+  reservando.querySelector('.nome-reserva').textContent =
     `${clienteNome.value} • ${qtdPessoas.value} pessoas`
   salvarMapa()
   fecharReserva()
@@ -271,18 +317,21 @@ function excluirMesa(){
 
 function fecharReserva(){
   modalReserva.classList.remove('active')
-  reservando=null
+  reservando = null
 }
 
+/* ================= DROP ================= */
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=e=>{
   criarItem(
     e.dataTransfer.getData('url'),
-    e.dataTransfer.getData('r')==='true',
-    e.offsetX,e.offsetY
+    e.dataTransfer.getData('r') === 'true',
+    e.offsetX,
+    e.offsetY
   )
 }
 
+/* ================= ELEMENTOS ================= */
 const reservaveis=[
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
@@ -292,6 +341,7 @@ const nao=[
  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
  'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
 ]
+
 reservaveis.forEach(u=>add(u,true))
 nao.forEach(u=>add(u,false))
 
@@ -307,8 +357,9 @@ function add(url,res){
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
 
+/* ================= INIT ================= */
 carregarMapa()
-setInterval(carregarMapa,10000)
+setInterval(carregarMapa, 10000)
 </script>
 
 </body>
