@@ -198,6 +198,8 @@ main{flex:1;overflow:hidden}
 }
 #menuSetores button.ativo{background:#2563eb}
 
+
+
 /* STATUS */
 #statusSync{
   position:fixed;
@@ -262,6 +264,27 @@ body.modal-open #mapa{
 <main>
   <div id="viewport"><div id="mapa"></div></div>
 </main>
+<div style="
+  position:fixed;
+  top:16px;
+  left:320px;
+  background:#0f172a;
+  padding:8px 12px;
+  border-radius:10px;
+  z-index:999;
+  color:#fff;
+  display:flex;
+  align-items:center;
+  gap:8px;
+">
+  <label style="font-size:12px">Data:</label>
+  <input
+    type="date"
+    id="dataMapa"
+    style="padding:6px;border-radius:6px;border:none"
+  >
+</div>
+
 
 <div id="menuSetores">
   <button data-setor="SALAO_PRINCIPAL">DELÍCIA</button>
@@ -335,6 +358,7 @@ body.modal-open #mapa{
 </div>
 
 <script>
+
 /* ================= CONFIG SUPABASE ================= */
 const SUPABASE_URL = 'https://qsgqfvrwlvaylfeenzgh.supabase.co'
 const SUPABASE_KEY = 'sb_publishable_-USgoUkYunnwye4oemBEAQ_PgfXD0Gx'
@@ -348,6 +372,10 @@ const modalReserva=document.getElementById('modalReserva')
 const btnExcluirReserva=document.getElementById('btnExcluirReserva')
 
 let setorAtual=localStorage.getItem('setor_atual')||'SALAO_PRINCIPAL'
+let dataSelecionada =
+  localStorage.getItem('data_mapa') ||
+  new Date().toISOString().split('T')[0]
+
 let sincronizando=false
 let syncPromise=Promise.resolve()
 const ambientesCarregados=new Set()
@@ -365,80 +393,91 @@ function esconderOverlay(){overlay.classList.add('hidden')}
 /* ================= SALVAR MAPA ================= */
 function salvarMapa(){
   const itens = [...document.querySelectorAll('.item-mapa')].map(i => {
-  const img = i.querySelector('img')
+    const img = i.querySelector('img')
 
-return {
-  url: img.src,
-  x: parseFloat(i.style.left),
-  y: parseFloat(i.style.top),
-  w: img.style.width || img.offsetWidth + 'px',
+    return {
+      url: img.src,
+      x: parseFloat(i.style.left),
+      y: parseFloat(i.style.top),
+      w: img.style.width || img.offsetWidth + 'px',
 
-  // 🔁 ROTAÇÃO
-  rot: i.dataset.rot || 0,
+      rot: i.dataset.rot || 0,
 
-  n: i.dataset.numero || '',
-  r: i.dataset.reservavel,
-  c: i.dataset.cliente || '',
-  cel: i.dataset.celular || '',
-  p: i.dataset.pessoas || '',
-  ok: i.classList.contains('reservado')
-}
-})
+      n: i.dataset.numero || '',
+      r: i.dataset.reservavel,
+      c: i.dataset.cliente || '',
+      cel: i.dataset.celular || '',
+      p: i.dataset.pessoas || '',
+      d: i.dataset.data || '',
 
-  sincronizando=true
+      ok: i.classList.contains('reservado')
+    }
+  })
+
+  sincronizando = true
   setStatus('syncing')
 
-  syncPromise=fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}`,
-    {
-      method:'PATCH',
-      headers:{
-        apikey:SUPABASE_KEY,
-        Authorization:`Bearer ${SUPABASE_KEY}`,
-        token:API_TOKEN,
-        'Content-Type':'application/json',
-        Prefer:'return=minimal'
-      },
-      body:JSON.stringify({dados:itens,updated_at:new Date().toISOString()})
-    }
-  ).then(()=>setStatus('online'))
-   .catch(()=>setStatus('offline'))
-   .finally(()=>sincronizando=false)
+syncPromise = fetch(
+  `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${dataSelecionada}`,
+  {
+    method: 'PATCH',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      token: API_TOKEN,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal'
+    },
+    body: JSON.stringify({
+      dados: itens,
+      updated_at: new Date().toISOString()
+    })
+  }
+)
+
+  .then(() => setStatus('online'))
+  .catch(() => setStatus('offline'))
+  .finally(() => sincronizando = false)
 }
 
-/* ================= CARREGAR MAPA ================= */
-function carregarMapa(force=false){
-  if(force||!ambientesCarregados.has(setorAtual))
+
+function carregarMapa(force = false){
+  if (force || !ambientesCarregados.has(`${setorAtual}_${dataSelecionada}`))
     mostrarOverlay('Carregando ambiente...')
 
   fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&select=dados`,
+    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${dataSelecionada}&select=dados`,
     {
       headers:{
-        apikey:SUPABASE_KEY,
-        Authorization:`Bearer ${SUPABASE_KEY}`,
-        token:API_TOKEN
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        token: API_TOKEN
       }
     }
   )
-  .then(r=>r.json())
-  .then(r=>{
-    montarMapa(r[0]?.dados||[])
+  .then(r => r.json())
+  .then(r => {
+    montarMapa(r[0]?.dados || [])
     setStatus('online')
   })
-  .catch(()=>setStatus('offline'))
-  .finally(()=>{
-    ambientesCarregados.add(setorAtual)
-    setTimeout(esconderOverlay,300)
+  .catch(() => setStatus('offline'))
+  .finally(() => {
+    ambientesCarregados.add(`${setorAtual}_${dataSelecionada}`)
+    setTimeout(esconderOverlay, 300)
   })
 }
 
+
 /* ================= RESTANTE ORIGINAL ================= */
 
-function montarMapa(dados) {
+function montarMapa(dados){
   mapa.innerHTML = ''
 
   dados.forEach(x => {
+
+    // 🔒 GARANTE QUE É DO DIA ATUAL
+    if (x.d && x.d !== dataSelecionada) return
+
     const i = criarItem(
       x.url,
       x.r === 'true',
@@ -449,40 +488,32 @@ function montarMapa(dados) {
 
     const img = i.querySelector('img')
 
-    // ===== TAMANHO =====
-    if (x.w) {
-      img.style.width = x.w
-    }
+    if (x.w) img.style.width = x.w
 
-    // ===== ROTAÇÃO (0 / 90 / 180 / 270) =====
-    if (x.rot !== undefined && x.rot !== null) {
+    if (x.rot !== undefined) {
       i.dataset.rot = x.rot
       img.style.transform = `rotate(${x.rot}deg)`
     }
 
-    // ===== NÚMERO DA MESA (SÓ RESERVÁVEL) =====
     if (x.n && i.dataset.reservavel === 'true') {
       i.dataset.numero = x.n
-      const badge = i.querySelector('.numero-mesa')
-      if (badge) badge.textContent = x.n
+      i.querySelector('.numero-mesa').textContent = x.n
     }
 
-    // ===== RESERVA =====
     if (x.ok) {
       i.dataset.cliente = x.c || ''
       i.dataset.celular = x.cel || ''
       i.dataset.pessoas = x.p || ''
+      i.dataset.data = x.d || dataSelecionada
 
       i.classList.add('reservado')
-
-      const nomeEl = i.querySelector('.nome')
-      const pessoasEl = i.querySelector('.pessoas')
-
-      if (nomeEl) nomeEl.textContent = x.c || ''
-      if (pessoasEl) pessoasEl.textContent = `${x.p || ''} pessoas`
+      i.querySelector('.nome').textContent = x.c || ''
+      i.querySelector('.pessoas').textContent =
+        `${x.p || ''} pessoas`
     }
   })
 }
+
 
 
 function criarItem(url,res,x,y,salvar=true){
@@ -617,41 +648,39 @@ function add(url,res){
   ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
 }
 
-function salvarReserva() {
+function salvarReserva(){
   if (!reservando) return
 
   editandoReserva = true
 
-  // ===== DADOS DA RESERVA =====
   const nome = clienteNome.value.trim()
   const celular = clienteCelular.value.trim()
   const pessoas = qtdPessoas.value
-  const numero = numeroMesa?.value?.trim() || reservando.dataset.numero || ''
+  const numero = numeroMesa.value.trim()
 
-  // ===== APLICA DATASET =====
   reservando.dataset.cliente = nome
   reservando.dataset.celular = celular
   reservando.dataset.pessoas = pessoas
+  reservando.dataset.data = dataSelecionada
 
-  if (numero !== '') {
+  if (numero) {
     reservando.dataset.numero = numero
     reservando.querySelector('.numero-mesa').textContent = numero
   }
 
-  // ===== ESTADO VISUAL =====
   reservando.classList.add('reservado')
   reservando.querySelector('.nome').textContent = nome
-  reservando.querySelector('.pessoas').textContent = `${pessoas} pessoas`
+  reservando.querySelector('.pessoas').textContent =
+    `${pessoas} pessoas`
 
-  // ===== SALVA NO SUPABASE =====
   salvarMapa()
 
-  // ===== FECHA COM SEGURANÇA =====
   setTimeout(() => {
     editandoReserva = false
     fecharReserva()
   }, 300)
 }
+
 
 
 function excluirReserva(){
@@ -699,6 +728,19 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
 })
 
 carregarMapa(true)
+const inputData = document.getElementById('dataMapa')
+inputData.value = dataSelecionada
+
+inputData.onchange = async () => {
+  if (sincronizando) await syncPromise
+
+  dataSelecionada = inputData.value
+  localStorage.setItem('data_mapa', dataSelecionada)
+
+  ambientesCarregados.clear()
+  carregarMapa(true)
+}
+
 setInterval(() => {
   if (!editandoReserva && !sincronizando) {
     carregarMapa(false)
