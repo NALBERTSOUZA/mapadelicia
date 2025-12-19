@@ -246,22 +246,26 @@ main{flex:1;overflow:hidden}
     <input id="clienteCelular" placeholder="Celular">
     <input id="qtdPessoas" type="number" value="2">
 
-    <button onclick="salvarReserva()">Salvar Reserva</button>
+<button onclick="salvarReserva()">Salvar Reserva</button>
 
-    <button
-      id="btnExcluirReserva"
-      onclick="excluirReserva()"
-      style="background:var(--gray);display:none">
-      ❌ Excluir Reserva
-    </button>
+<button id="btnExcluirReserva" onclick="excluirReserva()"
+  style="background:var(--gray);display:none">
+  ❌ Excluir Reserva
+</button>
 
-    <button onclick="excluirMesa()" style="background:var(--red)">
-      🗑️ Excluir Mesa
-    </button>
+<button onclick="excluirMesa()" style="background:var(--red)">
+  🗑️ Excluir Mesa
+</button>
 
-    <button onclick="fecharReserva()" style="background:#334155">
-      Cancelar
-    </button>
+<hr style="margin:12px 0">
+
+<button onclick="abrirAjusteMesa()">
+  📐 Ajustar tamanho da mesa
+</button>
+
+<button onclick="fecharReserva()" style="background:#334155">
+  Cancelar
+</button>
   </div>
 </div>
 
@@ -489,9 +493,10 @@ mapa.ondrop=e=>{
   
 const reservaveis=[
  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(33).png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(38).png?raw=true',
+ 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true',
   'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/mesas4cadeiras.png?raw=true',
-  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(36).png?raw=true'
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(36).png?raw=true',
+  'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/Design%20sem%20nome%20(37).png?raw=true'
 ]
 const nao=[
  'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
@@ -616,8 +621,23 @@ function excluirElemento(){
 
 function fecharElemento(){
   modalElemento.classList.remove('active')
+
+  // se veio de uma mesa, volta pra reserva
+  if (elementoSelecionado === reservando) {
+    modalReserva.classList.add('active')
+  }
+
   elementoSelecionado = null
 }
+
+function abrirAjusteMesa(){
+  if (!reservando) return
+
+  elementoSelecionado = reservando
+  modalReserva.classList.remove('active')
+  modalElemento.classList.add('active')
+}
+
 
 </script>
 
