@@ -4,388 +4,226 @@
 <meta charset="UTF-8">
 <title>Mapa de Mesas • Restaurante</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
-:root{
-  --bg:#f1f5f9;
-  --panel:#ffffff;
-  --primary:#2563eb;
-  --secondary:#0f172a;
-  --border:#e5e7eb;
-  --green:#16a34a;
-  --yellow:#f59e0b;
-  --danger:#dc2626;
-  --muted:#64748b;
-}
+:root{--bg:#f1f5f9;--panel:#fff;--primary:#2563eb;--secondary:#0f172a;--border:#e5e7eb;--green:#16a34a;--yellow:#f59e0b;--danger:#dc2626;--muted:#64748b}
 *{box-sizing:border-box}
-body{
-  margin:0;
-  font-family:Inter,system-ui,Arial;
-  background:var(--bg);
-  display:flex;
-  height:100vh;
-  overflow:hidden;
-}
-
-/* SIDEBAR */
-aside{
-  width:300px;
-  background:var(--secondary);
-  color:#fff;
-  padding:16px;
-  overflow-y:auto;
-}
-aside h2, aside h3{margin:8px 0}
-button{
-  width:100%;
-  padding:10px;
-  border:none;
-  border-radius:10px;
-  font-weight:600;
-  cursor:pointer;
-  margin-bottom:8px;
-}
-button.primary{background:var(--primary);color:#fff}
-button.secondary{background:#1e293b;color:#fff}
-button.danger{background:var(--danger);color:#fff}
-button.ghost{background:#334155;color:#fff}
-input,select{
-  width:100%;
-  padding:10px;
-  border-radius:10px;
-  border:1px solid var(--border);
-  margin-bottom:8px;
-}
-
-/* ELEMENTOS */
-.elementos{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:10px;
-}
-.elemento{
-  background:#020617;
-  border:1px dashed #334155;
-  border-radius:10px;
-  padding:6px;
-  cursor:grab;
-  display:flex;
-  justify-content:center;
-}
+body{margin:0;font-family:Inter,system-ui,Arial;background:var(--bg);display:flex;height:100vh;overflow:hidden}
+aside{width:320px;background:var(--secondary);color:#fff;padding:14px;overflow-y:auto}
+h2,h3{margin:6px 0}
+button{width:100%;padding:10px;border:none;border-radius:10px;font-weight:600;cursor:pointer;margin-bottom:6px}
+.primary{background:var(--primary);color:#fff}
+.secondary{background:#1e293b;color:#fff}
+.danger{background:var(--danger);color:#fff}
+.ghost{background:#334155;color:#fff}
+input,select{width:100%;padding:9px;border-radius:10px;border:1px solid var(--border);margin-bottom:6px}
+.elementos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.elemento{background:#020617;border:1px dashed #334155;border-radius:10px;padding:6px;cursor:grab;display:flex;justify-content:center}
 .elemento img{width:42px}
-
-/* MAIN */
 main{flex:1;position:relative}
-#viewport{
-  width:100%;
-  height:100%;
-  overflow:auto;
-  background:#e5e7eb;
-}
-#mapa{
-  position:relative;
-  width:5000px;
-  height:5000px;
-  background:var(--panel);
-  border:2px dashed var(--border);
-  transform-origin:0 0;
-}
-
-/* ITEM */
-.item-mapa{
-  position:absolute;
-  cursor:grab;
-  text-align:center;
-  user-select:none;
-}
-.item-mapa img{width:150px}
-.item-mapa.selecionado{outline:3px solid var(--primary);border-radius:12px}
-.item-mapa.reservado{outline:3px solid var(--yellow);border-radius:12px}
-.item-mapa.ocupado{outline:3px solid var(--green);border-radius:12px}
-.nome-reserva{font-size:11px;font-weight:600}
-
-/* MODAL */
-.modal{
-  position:fixed;inset:0;
-  background:rgba(15,23,42,.65);
-  display:none;
-  align-items:center;
-  justify-content:center;
-  z-index:3000;
-}
-.modal.active{display:flex}
-.modal-box{
-  background:#fff;
-  width:360px;
-  padding:24px;
-  border-radius:16px;
-  box-shadow:0 20px 60px rgba(0,0,0,.4);
-}
-
-/* SETORES */
-#menuSetores{
-  position:fixed;
-  top:16px;
-  right:16px;
-  background:var(--secondary);
-  padding:6px;
-  border-radius:14px;
-  display:flex;
-  gap:6px;
-  z-index:2000;
-}
+#viewport{width:100%;height:100%;overflow:auto;background:#e5e7eb}
+#mapa{position:relative;width:5000px;height:5000px;background:var(--panel);border:2px dashed var(--border);transform-origin:0 0}
+.item{position:absolute;cursor:grab;text-align:center;user-select:none}
+.item img{width:150px}
+.item.sel{outline:3px solid var(--primary);border-radius:12px}
+.item.res{outline:3px solid var(--yellow);border-radius:12px}
+.item.ocu{outline:3px solid var(--green);border-radius:12px}
+.nome{font-size:11px;font-weight:600}
+.timer{font-size:10px;color:var(--muted)}
+#menuSetores{position:fixed;top:16px;right:16px;background:var(--secondary);padding:6px;border-radius:14px;display:flex;gap:6px;z-index:1000}
 #menuSetores button{background:#1e293b;font-size:12px}
-#menuSetores button.ativo{background:var(--primary)}
+#menuSetores .ativo{background:var(--primary)}
+.modal{position:fixed;inset:0;background:rgba(15,23,42,.65);display:none;align-items:center;justify-content:center;z-index:3000}
+.modal.active{display:flex}
+.box{background:#fff;width:360px;padding:22px;border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.badge{display:inline-block;padding:4px 8px;border-radius:20px;font-size:11px;font-weight:600}
+.b-livre{background:#cbd5e1;color:#000}
+.b-res{background:#fde68a;color:#000}
+.b-ocu{background:#bbf7d0;color:#000}
 </style>
 </head>
 
 <body>
 
 <aside>
-  <h2>Elementos</h2>
+<h2>Mapa de Mesas</h2>
 
-  <h3>Reserváveis</h3>
-  <div class="elementos" id="listaReservaveis"></div>
+<h3>Reserváveis</h3>
+<div class="elementos" id="listaReservaveis"></div>
 
-  <h3>Não Reserváveis</h3>
-  <div class="elementos" id="listaNaoReservaveis"></div>
+<h3>Não Reserváveis</h3>
+<div class="elementos" id="listaNaoReservaveis"></div>
 
-  <hr>
+<hr>
 
-  <h3>Propriedades</h3>
-  <div id="painelProps">
-    <div class="muted">Selecione uma mesa</div>
-  </div>
+<h3>Propriedades</h3>
+<div id="painelProps"><span class="badge b-livre">Nenhuma mesa</span></div>
+
+<hr>
+
+<h3>Resumo</h3>
+<div id="resumo"></div>
 </aside>
 
 <main>
-  <div id="viewport">
-    <div id="mapa"></div>
-  </div>
+<div id="viewport"><div id="mapa"></div></div>
 </main>
 
 <div id="menuSetores">
-  <button data-setor="SALAO_PRINCIPAL">Salão</button>
-  <button data-setor="PAULO_1">Paulo 1</button>
-  <button data-setor="PAULO_2">Paulo 2</button>
-  <button data-setor="SACADA">Sacada</button>
+<button data-setor="SALAO_PRINCIPAL">Salão</button>
+<button data-setor="PAULO_1">Paulo 1</button>
+<button data-setor="PAULO_2">Paulo 2</button>
+<button data-setor="SACADA">Sacada</button>
 </div>
 
-<div class="modal" id="modalReserva">
-  <div class="modal-box">
-    <h3>Reserva / Ocupação</h3>
-    <input id="clienteNome" placeholder="Nome">
-    <input id="clienteCelular" placeholder="Celular">
-    <input id="qtdPessoas" type="number" value="2">
-    <select id="statusMesa">
-      <option value="livre">Livre</option>
-      <option value="reservado">Reservada</option>
-      <option value="ocupado">Ocupada</option>
-    </select>
-
-    <button class="primary" onclick="salvarReserva()">Salvar</button>
-    <button class="secondary" onclick="fecharReserva()">Cancelar</button>
-    <button class="danger" onclick="excluirElemento()">Excluir mesa</button>
-  </div>
+<div class="modal" id="modal">
+<div class="box">
+<h3>Mesa</h3>
+<input id="cliente" placeholder="Cliente">
+<input id="celular" placeholder="Celular">
+<input id="pessoas" type="number" value="2">
+<select id="status">
+<option value="livre">Livre</option>
+<option value="reservado">Reservada</option>
+<option value="ocupado">Ocupada</option>
+</select>
+<button class="primary" onclick="salvar()">Salvar</button>
+<button class="secondary" onclick="fechar()">Cancelar</button>
+<button class="danger" onclick="excluir()">Excluir</button>
+</div>
 </div>
 
 <script>
-/* ================= SUPABASE ================= */
-const SUPABASE_URL = 'https://vbrdtzrmotmjrqewvxit.supabase.co'
-const SUPABASE_KEY = 'sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+const SUPABASE_URL='https://vbrdtzrmotmjrqewvxit.supabase.co'
+const SUPABASE_KEY='sb_publishable_PVvLbx2HbCb2kQJjbODwVA_2iqOJJxx'
+const supabase=supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
 
-/* ================= STATE ================= */
-const mapa = document.getElementById('mapa')
-const modalReserva = document.getElementById('modalReserva')
-const painelProps = document.getElementById('painelProps')
-let setorAtual = localStorage.getItem('setor_atual') || 'SALAO_PRINCIPAL'
-let selecionado = null
-let zoom = 1
+const mapa=document.getElementById('mapa')
+const modal=document.getElementById('modal')
+const painel=document.getElementById('painelProps')
+const resumo=document.getElementById('resumo')
+let setor=localStorage.getItem('setor')||'SALAO_PRINCIPAL'
+let sel=null,zoom=1
 
-/* ================= LOAD ================= */
-async function carregarMapa(){
-  const { data } = await supabase
-    .from('mapa_mesas')
-    .select('*')
-    .eq('setor', setorAtual)
-
-  mapa.innerHTML=''
-  data.forEach(criarItem)
+async function load(){
+const {data}=await supabase.from('mapa_mesas').select('*').eq('setor',setor)
+mapa.innerHTML=''
+let l=0,r=0,o=0
+data.forEach(d=>{
+if(d.status==='livre')l++
+if(d.status==='reservado')r++
+if(d.status==='ocupado')o++
+criar(d)
+})
+resumo.innerHTML=`<div>Livres: ${l}</div><div>Reservadas: ${r}</div><div>Ocupadas: ${o}</div>`
 }
 
-/* ================= ITEM ================= */
-function criarItem(x){
-  const i=document.createElement('div')
-  i.className='item-mapa'
-  i.style.left=x.x+'px'
-  i.style.top=x.y+'px'
-  i.dataset.id=x.id
-  i.dataset.status=x.status||'livre'
-
-  i.innerHTML=`<img src="${x.url}"><div class="nome-reserva"></div>`
-
-  atualizarVisual(i,x)
-
-  i.onclick=()=>{
-    document.querySelectorAll('.item-mapa').forEach(m=>m.classList.remove('selecionado'))
-    i.classList.add('selecionado')
-    selecionado=i
-    renderPainel(i)
-  }
-
-  i.ondblclick=()=>{
-    selecionado=i
-    clienteNome.value=x.cliente||''
-    clienteCelular.value=x.celular||''
-    qtdPessoas.value=x.pessoas||2
-    statusMesa.value=x.status||'livre'
-    modalReserva.classList.add('active')
-  }
-
-  drag(i)
-  mapa.appendChild(i)
+function criar(d){
+const i=document.createElement('div')
+i.className='item'
+i.style.left=d.x+'px'
+i.style.top=d.y+'px'
+i.dataset.id=d.id
+i.dataset.status=d.status
+i.innerHTML=`<img src="${d.url}"><div class="nome">${d.cliente||''}</div><div class="timer"></div>`
+atualizaVisual(i,d)
+i.onclick=()=>selecionar(i,d)
+i.ondblclick=()=>abrir(i,d)
+drag(i)
+mapa.appendChild(i)
 }
 
-function atualizarVisual(el,x){
-  el.classList.remove('reservado','ocupado')
-  if(x.status==='reservado')el.classList.add('reservado')
-  if(x.status==='ocupado')el.classList.add('ocupado')
-  el.querySelector('.nome-reserva').textContent =
-    x.cliente ? `${x.cliente} • ${x.pessoas||''}` : ''
+function atualizaVisual(i,d){
+i.classList.remove('res','ocu','sel')
+if(d.status==='reservado')i.classList.add('res')
+if(d.status==='ocupado')i.classList.add('ocu')
 }
 
-/* ================= DRAG ================= */
+function selecionar(i,d){
+document.querySelectorAll('.item').forEach(x=>x.classList.remove('sel'))
+i.classList.add('sel')
+sel=i
+painel.innerHTML=`<span class="badge b-${d.status}">${d.status}</span><button class="ghost" onclick="duplicar()">Duplicar</button>`
+}
+
+function abrir(i,d){
+sel=i
+cliente.value=d.cliente||''
+celular.value=d.celular||''
+pessoas.value=d.pessoas||2
+status.value=d.status||'livre'
+modal.classList.add('active')
+}
+
+async function salvar(){
+let payload={cliente:cliente.value,celular:celular.value,pessoas:pessoas.value,status:status.value}
+if(status.value==='ocupado')payload.inicio_ocupacao=new Date()
+await supabase.from('mapa_mesas').update(payload).eq('id',sel.dataset.id)
+fechar()
+}
+
+async function excluir(){
+if(sel.dataset.status==='ocupado'){alert('Mesa ocupada não pode ser excluída');return}
+if(!confirm('Excluir mesa?'))return
+await supabase.from('mapa_mesas').delete().eq('id',sel.dataset.id)
+fechar()
+}
+
+function fechar(){modal.classList.remove('active')}
+
 function drag(el){
-  let x,y
-  el.onmousedown=e=>{
-    x=e.clientX;y=e.clientY
-    document.onmousemove=ev=>{
-      el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
-      el.style.top=el.offsetTop+(ev.clientY-y)+'px'
-      x=ev.clientX;y=ev.clientY
-    }
-    document.onmouseup=()=>{
-      document.onmousemove=null
-      supabase.from('mapa_mesas').update({
-        x:parseFloat(el.style.left),
-        y:parseFloat(el.style.top)
-      }).eq('id',el.dataset.id)
-    }
-  }
+let x,y
+el.onmousedown=e=>{
+x=e.clientX;y=e.clientY
+document.onmousemove=ev=>{
+el.style.left=el.offsetLeft+(ev.clientX-x)+'px'
+el.style.top=el.offsetTop+(ev.clientY-y)+'px'
+x=ev.clientX;y=ev.clientY}
+document.onmouseup=()=>{
+document.onmousemove=null
+supabase.from('mapa_mesas').update({x:parseFloat(el.style.left),y:parseFloat(el.style.top)}).eq('id',el.dataset.id)
+}}
 }
 
-/* ================= DROP ================= */
+async function duplicar(){
+await supabase.from('mapa_mesas').insert([{setor, url:sel.querySelector('img').src, x:parseFloat(sel.style.left)+40, y:parseFloat(sel.style.top)+40, status:'livre'}])
+}
+
 mapa.ondragover=e=>e.preventDefault()
 mapa.ondrop=async e=>{
-  await supabase.from('mapa_mesas').insert([{
-    setor:setorAtual,
-    url:e.dataTransfer.getData('url'),
-    x:e.offsetX,
-    y:e.offsetY,
-    status:'livre'
-  }])
+await supabase.from('mapa_mesas').insert([{setor,url:e.dataTransfer.getData('url'),x:e.offsetX,y:e.offsetY,status:'livre'}])
 }
 
-/* ================= RESERVA ================= */
-async function salvarReserva(){
-  await supabase.from('mapa_mesas').update({
-    cliente:clienteNome.value,
-    celular:clienteCelular.value,
-    pessoas:qtdPessoas.value,
-    status:statusMesa.value
-  }).eq('id',selecionado.dataset.id)
-  fecharReserva()
-}
-
-/* ================= DELETE ================= */
-async function excluirElemento(){
-  if(selecionado?.dataset.status==='ocupado'){
-    alert('Mesa ocupada não pode ser excluída')
-    return
-  }
-  if(!confirm('Excluir esta mesa?'))return
-  await supabase.from('mapa_mesas').delete()
-    .eq('id',selecionado.dataset.id)
-  fecharReserva()
-}
-
-/* ================= PAINEL ================= */
-function renderPainel(el){
-  painelProps.innerHTML=`
-    <div><strong>Status:</strong> ${el.dataset.status}</div>
-    <button class="ghost" onclick="duplicarMesa()">Duplicar</button>
-  `
-}
-async function duplicarMesa(){
-  await supabase.from('mapa_mesas').insert([{
-    setor:setorAtual,
-    url:selecionado.querySelector('img').src,
-    x:parseFloat(selecionado.style.left)+40,
-    y:parseFloat(selecionado.style.top)+40,
-    status:'livre'
-  }])
-}
-
-/* ================= MODAL ================= */
-function fecharReserva(){
-  modalReserva.classList.remove('active')
-}
-
-/* ================= ZOOM ================= */
 viewport.addEventListener('wheel',e=>{
-  if(!e.ctrlKey)return
-  e.preventDefault()
-  zoom+=e.deltaY*-0.001
-  zoom=Math.min(Math.max(.5,zoom),2)
-  mapa.style.transform=`scale(${zoom})`
+if(!e.ctrlKey)return
+e.preventDefault()
+zoom+=e.deltaY*-0.001
+zoom=Math.min(Math.max(.5,zoom),2)
+mapa.style.transform=`scale(${zoom})`
 })
 
-/* ================= ELEMENTOS ================= */
-const reservaveis=[
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true',
- 'https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true'
-]
-const nao=[
- 'https://cdn-icons-png.flaticon.com/512/1687/1687128.png',
- 'https://cdn-icons-png.flaticon.com/512/2917/2917995.png'
-]
-function addElemento(url,res){
-  const d=document.createElement('div')
-  d.className='elemento'
-  d.draggable=true
-  d.innerHTML=`<img src="${url}">`
-  d.ondragstart=e=>{
-    e.dataTransfer.setData('url',url)
-  }
-  ;(res?listaReservaveis:listaNaoReservaveis).appendChild(d)
-}
-reservaveis.forEach(u=>addElemento(u,true))
-nao.forEach(u=>addElemento(u,false))
-
-/* ================= SETORES ================= */
 document.querySelectorAll('#menuSetores button').forEach(b=>{
-  if(b.dataset.setor===setorAtual)b.classList.add('ativo')
-  b.onclick=()=>{
-    setorAtual=b.dataset.setor
-    localStorage.setItem('setor_atual',setorAtual)
-    document.querySelectorAll('#menuSetores button')
-      .forEach(x=>x.classList.remove('ativo'))
-    b.classList.add('ativo')
-    carregarMapa()
-  }
+if(b.dataset.setor===setor)b.classList.add('ativo')
+b.onclick=()=>{setor=b.dataset.setor;localStorage.setItem('setor',setor);document.querySelectorAll('#menuSetores button').forEach(x=>x.classList.remove('ativo'));b.classList.add('ativo');load()}
 })
 
-/* ================= REALTIME ================= */
-supabase.channel('mapa-live')
-  .on('postgres_changes',{event:'*',schema:'public',table:'mapa_mesas'},
-    ()=>carregarMapa())
-  .subscribe()
+const reservaveis=['https://github.com/NALBERTSOUZA/mapadelicia/blob/main/2cadeiras.png?raw=true','https://github.com/NALBERTSOUZA/mapadelicia/blob/main/4cadeiras.png?raw=true','https://github.com/NALBERTSOUZA/mapadelicia/blob/main/redonda.png?raw=true']
+const nao=['https://cdn-icons-png.flaticon.com/512/1687/1687128.png','https://cdn-icons-png.flaticon.com/512/2917/2917995.png']
+function add(url,ok){
+const d=document.createElement('div')
+d.className='elemento'
+d.draggable=true
+d.innerHTML=`<img src="${url}">`
+d.ondragstart=e=>e.dataTransfer.setData('url',url)
+;(ok?listaReservaveis:listaNaoReservaveis).appendChild(d)
+}
+reservaveis.forEach(u=>add(u,true))
+nao.forEach(u=>add(u,false))
 
-carregarMapa()
+supabase.channel('mapa-realtime').on('postgres_changes',{event:'*',schema:'public',table:'mapa_mesas'},()=>load()).subscribe()
+
+load()
 </script>
 
 </body>
