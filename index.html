@@ -688,23 +688,29 @@ function salvarReserva(){
 }
 
 
-
 function excluirReserva(){
   reservando.classList.remove('reservado')
-  reservando.dataset.cliente=''
-  reservando.dataset.celular=''
-  reservando.dataset.pessoas=''
- reservando.querySelector('.nome').textContent=''
-reservando.querySelector('.pessoas').textContent=''
+  reservando.dataset.cliente = ''
+  reservando.dataset.celular = ''
+  reservando.dataset.pessoas = ''
+  reservando.dataset.data = ''
 
+  reservando.querySelector('.nome').textContent = ''
+  reservando.querySelector('.pessoas').textContent = ''
+
+  salvarMapa()   // 🔥 ESSENCIAL
   fecharReserva()
 }
+
 
 function excluirMesa(){
-  if(!confirm('Excluir esta mesa definitivamente?'))return
+  if(!confirm('Excluir esta mesa definitivamente?')) return
+
   reservando.remove()
+  salvarMapa()   // 🔥 ESSENCIAL
   fecharReserva()
 }
+
 
 function fecharReserva(){
   modalReserva.classList.remove('active')
@@ -765,9 +771,10 @@ function excluirElemento(){
   if (!confirm('Excluir este elemento?')) return
 
   elementoSelecionado.remove()
-  salvarMapa()
+  salvarMapa()       // 🔥 mantém
   fecharElemento()
 }
+
 
 function fecharElemento(){
   modalElemento.classList.remove('active')
