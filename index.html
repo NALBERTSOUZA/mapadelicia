@@ -544,7 +544,7 @@ i.innerHTML = `
 
 i.ondblclick = () => {
 
-if (i.dataset.reservavel === 'true') {
+if (i.dataset.reservavel === true || i.dataset.reservavel === 'true') {
 
   editandoReserva = true
   reservando = i
