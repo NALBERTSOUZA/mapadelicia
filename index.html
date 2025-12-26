@@ -753,6 +753,9 @@ document.querySelectorAll('#menuSetores button').forEach(b=>{
 
 carregarMapa(true)
 const inputData = document.getElementById('dataMapa')
+  inputData.value = DATA_LAYOUT_PADRAO
+dataSelecionada = DATA_LAYOUT_PADRAO
+
 inputData.value = dataSelecionada
 
 inputData.onchange = async () => {
