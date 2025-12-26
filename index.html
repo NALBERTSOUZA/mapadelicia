@@ -395,6 +395,7 @@ function esconderOverlay(){overlay.classList.add('hidden')}
 function salvarMapa(){
   const itens = [...document.querySelectorAll('.item-mapa')].map(i => {
     const img = i.querySelector('img')
+
     return {
       url: img.src,
       x: parseFloat(i.style.left),
@@ -402,28 +403,41 @@ function salvarMapa(){
       w: img.style.width || img.offsetWidth + 'px',
       rot: i.dataset.rot || 0,
       n: i.dataset.numero || '',
-      r: i.dataset.reservavel
+      r: i.dataset.reservavel === 'true',
+      c: i.dataset.cliente || '',
+      cel: i.dataset.celular || '',
+      p: i.dataset.pessoas || '',
+      d: i.dataset.data || DATA_LAYOUT_PADRAO,
+      ok: i.classList.contains('reservado')
     }
   })
 
   sincronizando = true
   setStatus('syncing')
 
-  fetch(
-    `${SUPABASE_URL}/rest/v1/mapa_mesas?setor=eq.${setorAtual}&data=eq.${DATA_LAYOUT_PADRAO}`,
-    {
-      method: 'PATCH',
-      headers: {
-        apikey: SUPABASE_KEY,
-        Authorization: `Bearer ${SUPABASE_KEY}`,
-        token: API_TOKEN,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ dados: itens })
-    }
-  )
-  .then(() => setStatus('online'))
-  .catch(() => setStatus('offline'))
+  fetch(`${SUPABASE_URL}/rest/v1/mapa_mesas`, {
+    method: 'POST',
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      token: API_TOKEN,
+      'Content-Type': 'application/json',
+      'Prefer': 'resolution=merge-duplicates'
+    },
+    body: JSON.stringify({
+      setor: setorAtual,
+      data: DATA_LAYOUT_PADRAO,
+      dados: itens
+    })
+  })
+  .then(r => {
+    if (!r.ok) throw new Error('Erro ao salvar')
+    setStatus('online')
+  })
+  .catch(err => {
+    console.error(err)
+    setStatus('offline')
+  })
   .finally(() => sincronizando = false)
 }
 
