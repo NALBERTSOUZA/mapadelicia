@@ -398,16 +398,16 @@ function salvarMapa(){
 
     return {
       url: img.src,
-      x: parseFloat(i.style.left),
-      y: parseFloat(i.style.top),
+      x: Number(i.style.left.replace('px','')),
+      y: Number(i.style.top.replace('px','')),
       w: img.style.width || img.offsetWidth + 'px',
-      rot: i.dataset.rot || 0,
+      rot: Number(i.dataset.rot || 0),
       n: i.dataset.numero || '',
       r: i.dataset.reservavel === 'true',
       c: i.dataset.cliente || '',
       cel: i.dataset.celular || '',
-      p: i.dataset.pessoas || '',
-      d: i.dataset.data || DATA_LAYOUT_PADRAO,
+      p: Number(i.dataset.pessoas || 0),
+      d: i.dataset.data || dataSelecionada,
       ok: i.classList.contains('reservado')
     }
   })
@@ -489,7 +489,7 @@ function montarMapa(dados){
 
     const i = criarItem(
       x.url,
-      x.r === 'true',
+      Boolean(x.r),
       x.x,
       x.y,
       false
