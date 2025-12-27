@@ -797,15 +797,13 @@ function excluirElemento(){
 
 function fecharElemento(){
   modalElemento.classList.remove('active')
+  modalReserva.classList.remove('active')
 
-  // se veio de uma mesa, volta pra reserva
-  if (elementoSelecionado === reservando) {
-    modalReserva.classList.add('active')
-    document.body.classList.add('modal-open')
-  }
+  document.body.classList.remove('modal-open')
 
   elementoSelecionado = null
 }
+
 
 function abrirAjusteMesa(){
   if (!reservando) return
