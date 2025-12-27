@@ -544,8 +544,10 @@ i.innerHTML = `
 
 i.ondblclick = () => {
 
-  if (i.dataset.reservavel === 'true') {
+  const ehMesa = i.querySelector('.numero-mesa')
 
+  if (ehMesa) {
+    // 🔥 SEMPRE ABRE RESERVA (como antes)
     editandoReserva = true
     reservando = i
 
@@ -559,11 +561,10 @@ i.ondblclick = () => {
 
     modalReserva.classList.add('active')
     document.body.classList.add('modal-open')
-
     return
   }
 
-  // ===== ELEMENTO NÃO RESERVÁVEL =====
+  // 🌿 SOMENTE ELEMENTOS DECORATIVOS
   elementoSelecionado = i
   modalElemento.classList.add('active')
   document.body.classList.add('modal-open')
