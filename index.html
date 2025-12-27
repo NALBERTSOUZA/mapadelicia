@@ -696,6 +696,8 @@ function salvarReserva(){
   reservando.querySelector('.pessoas').textContent =
     `${pessoas} pessoas`
 
+  // 🔥 ESSENCIAL
+  salvarMapa()
 
   setTimeout(() => {
     editandoReserva = false
