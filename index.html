@@ -544,30 +544,31 @@ i.innerHTML = `
 
 i.ondblclick = () => {
 
-if (i.dataset.reservavel === true || i.dataset.reservavel === 'true') {
+  if (i.dataset.reservavel === 'true') {
 
-  editandoReserva = true
-  reservando = i
+    editandoReserva = true
+    reservando = i
 
-clienteNome.value = i.dataset.cliente || ''
-clienteCelular.value = i.dataset.celular || ''
-qtdPessoas.value = i.dataset.pessoas || 2
-numeroMesa.value = i.dataset.numero || ''
+    clienteNome.value = i.dataset.cliente || ''
+    clienteCelular.value = i.dataset.celular || ''
+    qtdPessoas.value = i.dataset.pessoas || 2
+    numeroMesa.value = i.dataset.numero || ''
 
-  btnExcluirReserva.style.display =
-    i.classList.contains('reservado') ? 'block' : 'none'
+    btnExcluirReserva.style.display =
+      i.classList.contains('reservado') ? 'block' : 'none'
 
-  modalReserva.classList.add('active')
-  document.body.classList.add('modal-open')
+    modalReserva.classList.add('active')
+    document.body.classList.add('modal-open')
 
-  return
-}
+    return
+  }
 
   // ===== ELEMENTO NÃO RESERVÁVEL =====
   elementoSelecionado = i
   modalElemento.classList.add('active')
   document.body.classList.add('modal-open')
 }
+
 
   mapa.appendChild(i)
   drag(i)
